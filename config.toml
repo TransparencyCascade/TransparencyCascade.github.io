@@ -1,7 +1,6 @@
 baseURL = "https://transparencycascade.org/"
 languageCode = "en-us"
 title = "Transparency Cascade Press"
-theme = "minimal"
 
 [params]
   description = "Investigative journalism documenting institutional capture"
