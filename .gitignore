@@ -1,0 +1,17 @@
+# Hugo
+/public/
+/resources/_gen/
+hugo.lock
+
+# macOS
+.DS_Store
+
+# Editor
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Node (if using npm build tools)
+node_modules/

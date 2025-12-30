@@ -1,0 +1,28 @@
+baseURL = "https://transparencycascade.org/"
+languageCode = "en-us"
+title = "Transparency Cascade Press"
+theme = "minimal"
+
+[params]
+  description = "Investigative journalism documenting institutional capture"
+  author = "Mark Ramm"
+  newsletter = "https://read.transparencycascade.org"
+  timeline = "https://capturecascade.org"
+
+[menu]
+  [[menu.main]]
+    name = "Read"
+    url = "https://read.transparencycascade.org"
+    weight = 1
+  [[menu.main]]
+    name = "Timeline"
+    url = "https://capturecascade.org"
+    weight = 2
+  [[menu.main]]
+    name = "About"
+    url = "/about/"
+    weight = 3
+  [[menu.main]]
+    name = "Subscribe"
+    url = "https://read.transparencycascade.org/subscribe"
+    weight = 4
