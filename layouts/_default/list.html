@@ -1,17 +1,19 @@
 {{ define "main" }}
-<section class="page">
-    <header class="page-header">
-        {{ if not .IsHome }}<h1>{{ .Title }}</h1>{{ end }}
-    </header>
-    <div class="page-content">
-        {{ .Content }}
-    </div>
-    {{ if .Pages }}
-    <ul class="page-list">
-        {{ range .Pages }}
-        <li><a href="{{ .Permalink }}">{{ .Title }}</a></li>
+<section>
+    <div class="container">
+        <header class="page-header">
+            {{ if not .IsHome }}<h1>{{ .Title }}</h1>{{ end }}
+        </header>
+        <div class="page-content">
+            {{ .Content }}
+        </div>
+        {{ if .Pages }}
+        <ul class="page-list">
+            {{ range .Pages }}
+            <li><a href="{{ .Permalink }}">{{ .Title }}</a></li>
+            {{ end }}
+        </ul>
         {{ end }}
-    </ul>
-    {{ end }}
+    </div>
 </section>
 {{ end }}

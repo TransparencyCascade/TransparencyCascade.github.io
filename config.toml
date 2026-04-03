@@ -3,15 +3,15 @@ languageCode = "en-us"
 title = "Transparency Cascade Press"
 
 [params]
-  description = "Investigative journalism documenting institutional capture"
+  description = "Independent investigative journalism documenting institutional capture, corruption, and threats to democratic accountability"
   author = "Mark Ramm"
-  newsletter = "https://read.transparencycascade.org"
+  newsletter = "https://theramm.substack.com"
   timeline = "https://capturecascade.org"
 
 [menu]
   [[menu.main]]
     name = "Read"
-    url = "https://read.transparencycascade.org"
+    url = "https://theramm.substack.com"
     weight = 1
   [[menu.main]]
     name = "Timeline"
@@ -23,5 +23,5 @@ title = "Transparency Cascade Press"
     weight = 3
   [[menu.main]]
     name = "Subscribe"
-    url = "https://read.transparencycascade.org/subscribe"
+    url = "https://theramm.substack.com/subscribe"
     weight = 4
