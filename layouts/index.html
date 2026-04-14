@@ -1,78 +1,95 @@
 {{ define "main" }}
 
 <!-- Hero -->
-<section class="hero">
-    <div class="container">
-        <div class="hero-label">Independent Investigative Journalism</div>
-        <h1>Documenting institutional capture, corruption, and threats to democratic accountability</h1>
-        <p class="hero-subtitle">We trace the money, name the actors, and connect the patterns across five decades of systematic capture &mdash; from the Powell Memo to the present.</p>
-        <div class="hero-stats">
-            <div class="hero-stat">
-                <span class="number">52+</span>
-                <span class="label">Investigations Published</span>
-            </div>
-            <div class="hero-stat">
-                <span class="number">4,500+</span>
-                <span class="label">Timeline Events</span>
-            </div>
-            <div class="hero-stat">
-                <span class="number">1971&ndash;2026</span>
-                <span class="label">Years Documented</span>
-            </div>
+<section class="hero hero-map">
+    <div class="container" style="position:relative; z-index:2;">
+        <div class="hero-text-box">
+            <div class="hero-label">Independent Investigative Journalism</div>
+            <h1>Tracing the money, naming the actors, connecting the patterns</h1>
+            <p class="hero-subtitle">Transparency Cascade Press builds the investigative infrastructure to document institutional capture &mdash; from the reporting that breaks the news, to the data tools that make the patterns visible, to the historical timeline that shows how we got here.</p>
         </div>
     </div>
 </section>
 
-<!-- Recent Investigations -->
+<!-- Platform -->
+<section class="section">
+    <div class="container">
+        <div class="platform-grid">
+
+            <a href="https://detention-pipeline.transparencycascade.org/" class="platform-card platform-featured">
+                <div class="platform-badge">Featured</div>
+                <div class="platform-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h18"/><circle cx="7" cy="7" r="2" fill="currentColor" stroke="none" opacity="0.6"/><circle cx="14" cy="12" r="2" fill="currentColor" stroke="none" opacity="0.6"/><circle cx="10" cy="17" r="2" fill="currentColor" stroke="none" opacity="0.6"/></svg>
+                </div>
+                <h3>Detention Pipeline</h3>
+                <p class="platform-desc">Early-warning system tracking ICE detention expansion across 1,988 U.S. counties. Interactive heat map, facility directory, coverage gaps, FOIA generator. The data layer for our detention investigation.</p>
+                <div class="platform-stats">
+                    <span><strong>6,000+</strong> pages</span>
+                    <span><strong>1,988</strong> counties</span>
+                    <span><strong>1,189</strong> facilities</span>
+                </div>
+                <span class="platform-cta">Explore the data &rarr;</span>
+            </a>
+
+            <a href="https://theramm.substack.com" class="platform-card">
+                <div class="platform-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                </div>
+                <h3>The RAMM</h3>
+                <p class="platform-desc">Investigative reporting on institutional capture, the Epstein files, the detention architecture, and democratic accountability. The journalism that drives the data.</p>
+                <div class="platform-stats">
+                    <span><strong>52+</strong> investigations</span>
+                    <span><strong>6</strong> series</span>
+                </div>
+                <span class="platform-cta">Read the reporting &rarr;</span>
+            </a>
+
+            <a href="https://capturecascade.org" class="platform-card">
+                <div class="platform-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><circle cx="6" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="18" cy="12" r="2"/><line x1="6" y1="6" x2="6" y2="10"/><line x1="12" y1="4" x2="12" y2="10"/><line x1="18" y1="7" x2="18" y2="10"/></svg>
+                </div>
+                <h3>Capture Cascade Timeline</h3>
+                <p class="platform-desc">4,700+ documented events tracing five decades of institutional capture &mdash; the actors, mechanisms, and money flows that transformed American democracy. Every claim sourced.</p>
+                <div class="platform-stats">
+                    <span><strong>4,700+</strong> events</span>
+                    <span><strong>374</strong> actor profiles</span>
+                    <span><strong>1971&ndash;2026</strong></span>
+                </div>
+                <span class="platform-cta">Explore the timeline &rarr;</span>
+            </a>
+
+        </div>
+    </div>
+</section>
+
+<!-- Breaking -->
 <section class="section">
     <div class="container">
         <div class="section-header">
-            <h2 class="section-title">Recent Investigations</h2>
-            <a href="https://theramm.substack.com" class="section-link">All articles</a>
+            <h2 class="section-title">Latest</h2>
+            <a href="https://theramm.substack.com" class="section-link">All articles &rarr;</a>
         </div>
-        <div class="article-grid">
-            <a href="https://theramm.substack.com/p/the-moral-battlefield-part-4" class="article-card">
+        <div class="latest-grid">
+            <a href="https://theramm.substack.com/p/is-your-county-being-targeted-for" class="latest-card latest-featured">
+                <div class="card-series series-red">Detention Pipeline</div>
+                <h3 class="card-title">Is Your County Being Targeted for ICE Detention?</h3>
+                <p class="card-excerpt">We built a public data tool tracking 17,000+ signals across 1,988 counties. Look up yours.</p>
+                <div class="card-date">April 2026</div>
+            </a>
+            <a href="https://theramm.substack.com/p/the-blueprint-for-americas-detention" class="latest-card">
+                <div class="card-series series-red">After the Arrest</div>
+                <h3 class="card-title">The Blueprint for America's Detention Camps</h3>
+                <div class="card-date">April 2026</div>
+            </a>
+            <a href="https://theramm.substack.com/p/the-moral-battlefield-part-4" class="latest-card">
                 <div class="card-series">The Moral Battlefield</div>
-                <div class="card-date">March 23, 2026</div>
                 <h3 class="card-title">The Institutional Cascade</h3>
+                <div class="card-date">March 2026</div>
             </a>
-            <a href="https://theramm.substack.com/p/the-moral-battlefield" class="article-card">
-                <div class="card-series">The Moral Battlefield</div>
-                <div class="card-date">March 17, 2026</div>
-                <h3 class="card-title">The Moral Battlefield</h3>
-            </a>
-            <a href="https://theramm.substack.com/p/the-second-sermon" class="article-card">
-                <div class="card-series">The Second Sermon</div>
-                <div class="card-date">March 15, 2026</div>
-                <h3 class="card-title">The Second Sermon</h3>
-            </a>
-            <a href="https://theramm.substack.com/p/series-index-after-the-arrest" class="article-card">
-                <div class="card-series series-red">After the Arrest</div>
-                <div class="card-date">March 13, 2026</div>
-                <h3 class="card-title">Series Index: After the Arrest</h3>
-            </a>
-            <a href="https://theramm.substack.com/p/making-it-visible-bringing-the-detention" class="article-card">
-                <div class="card-series series-red">After the Arrest</div>
-                <div class="card-date">March 10, 2026</div>
-                <h3 class="card-title">Making It Visible: Bringing the Detention Crisis Into the Light</h3>
-            </a>
-            <a href="https://theramm.substack.com/p/the-darkness-is-infrastructure-the" class="article-card">
-                <div class="card-series series-red">After the Arrest</div>
-                <div class="card-date">March 9, 2026</div>
-                <h3 class="card-title">The Darkness is Infrastructure: The system didn't fail at oversight. It was engineered to eliminate it.</h3>
-            </a>
-            <a href="https://theramm.substack.com/p/a-senator-said-epstein-explains-trump" class="article-card">
+            <a href="https://theramm.substack.com/p/a-senator-said-epstein-explains-trump" class="latest-card">
                 <div class="card-series">The Epstein Files</div>
-                <div class="card-date">March 6, 2026</div>
-                <h3 class="card-title">A Senator Said Epstein Explains Trump and Russia. He's Right.</h3>
-            </a>
-            <a href="https://theramm.substack.com/p/gods-plan-for-iran" class="article-card">
-                <div class="card-date">March 4, 2026</div>
-                <h3 class="card-title">God's Plan for Iran</h3>
-            </a>
-            <a href="https://theramm.substack.com/p/the-pentagon-banned-claude-as-a-national" class="article-card">
-                <div class="card-date">March 3, 2026</div>
-                <h3 class="card-title">The Pentagon Banned Claude as a National Security Threat. Then It Used Claude to Bomb Iran.</h3>
+                <h3 class="card-title">A Senator Said Epstein Explains Trump and Russia. He&rsquo;s Right.</h3>
+                <div class="card-date">March 2026</div>
             </a>
         </div>
     </div>
@@ -98,7 +115,7 @@
             <a href="https://theramm.substack.com/p/the-gamergate-army-gets-badges-and" class="series-card">
                 <div class="series-count">7 Parts</div>
                 <h3 class="series-name">The Gamergate Pipeline</h3>
-                <p class="series-desc">From 4chan to federal power. How a 22-year radicalization pipeline built the enforcement apparatus that killed Renee Good.</p>
+                <p class="series-desc">From 4chan to federal power. How a 22-year radicalization pipeline built the enforcement apparatus.</p>
             </a>
             <a href="https://theramm.substack.com/p/the-epstein-files" class="series-card">
                 <div class="series-count">Ongoing</div>
@@ -108,44 +125,13 @@
             <a href="https://theramm.substack.com/p/elbowsup" class="series-card">
                 <div class="series-count">8 Parts</div>
                 <h3 class="series-name">#ElbowsUp</h3>
-                <p class="series-desc">Speculative fiction exploring constitutional crisis, federal occupation, and the mechanics of resistance and partition.</p>
+                <p class="series-desc">Speculative fiction exploring constitutional crisis, federal occupation, and the mechanics of resistance.</p>
             </a>
-            <a href="https://theramm.substack.com/p/when-ai-systems-gaslight-users-about" class="series-card">
-                <div class="series-count">3 Parts</div>
-                <h3 class="series-name">AI Gaslighting</h3>
-                <p class="series-desc">When AI systems fabricate technical evidence, deny observable reality, and what cross-platform testing reveals.</p>
+            <a href="https://theramm.substack.com/p/the-detention-architecture-an-investigation" class="series-card series-featured">
+                <div class="series-count">Breaking</div>
+                <h3 class="series-name">The Detention Architecture</h3>
+                <p class="series-desc">A leaked proposal reveals how former ICE officials help sheriffs build detention campuses designed to hide in plain sight.</p>
             </a>
-        </div>
-    </div>
-</section>
-
-<!-- Timeline -->
-<section class="timeline-section">
-    <div class="container">
-        <div class="timeline-intro">
-            <div class="timeline-text">
-                <h2>The Capture Cascade Timeline</h2>
-                <p>Every claim sourced. Every event verifiable. An open-source database documenting five decades of institutional capture &mdash; the actors, mechanisms, and money flows that transformed American democracy.</p>
-                <a href="https://capturecascade.org" class="btn btn-outline">Explore the Timeline</a>
-            </div>
-            <div class="timeline-features">
-                <div class="timeline-feature">
-                    <div class="tf-number">4,595</div>
-                    <div class="tf-label">Documented Events</div>
-                </div>
-                <div class="timeline-feature">
-                    <div class="tf-number">55</div>
-                    <div class="tf-label">Years Covered</div>
-                </div>
-                <div class="timeline-feature">
-                    <div class="tf-number">374</div>
-                    <div class="tf-label">Actor Profiles</div>
-                </div>
-                <div class="timeline-feature">
-                    <div class="tf-number">Open</div>
-                    <div class="tf-label">Source &amp; Data</div>
-                </div>
-            </div>
         </div>
     </div>
 </section>
@@ -157,7 +143,7 @@
             <div>
                 <div class="section-header">
                     <h2 class="section-title">About</h2>
-                    <a href="/about/" class="section-link">Full bio &amp; policies</a>
+                    <a href="/about/" class="section-link">Full bio &amp; policies &rarr;</a>
                 </div>
                 <p><strong>Transparency Cascade Press</strong> is an independent investigative journalism operation founded by <strong>Mark Ramm</strong>, a writer and researcher with 20+ years of publication experience including a book with Prentice Hall and articles for O'Reilly Media.</p>
                 <p>We adhere to the <a href="https://www.spj.org/spj-code-of-ethics/">Society of Professional Journalists Code of Ethics</a> and publish our <a href="/about/editorial-policies/">editorial policies</a> publicly. Our methodology prioritizes documentary evidence, multiple independent sources, and transparent corrections.</p>

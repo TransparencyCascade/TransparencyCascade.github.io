@@ -15,3 +15,6 @@ hugo.lock
 
 # Node (if using npm build tools)
 node_modules/
+
+.hugo_build.lock
+Screenshot*.png
