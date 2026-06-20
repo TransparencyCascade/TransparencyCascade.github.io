@@ -1,32 +1,32 @@
 ---
-title: "Resources: What You Can Do"
-description: "Practical, sourced field guides for readers of Transparency Cascade Press — how to protect yourself from the surveillance economy our reporting documents. Living documents, every claim cited, kept current as the tools and the law change."
+title: "Resources"
+description: "A hub for readers and researchers of Transparency Cascade Press — read the investigations by theme, do the work yourself with the same tools and databases we use, and protect yourself from the surveillance economy our reporting documents. Durable, curated, sourced, kept current."
 date: 2026-06-20
 lastmod: 2026-06-20
 ---
 
-**Practical companions to our reporting — for the reader who has finished an investigation and asked the only question that finally matters: *all right, so what do I actually do?***
+**Most of our work documents the machinery — the detention contracts, the data brokers, the financial loops, the recordless rooms where the people who build the apparatus meet the officials who are supposed to govern it. This section turns the camera around.**
 
-Most of our work documents the machinery: the detention contracts, the data brokers, the surveillance-advertising economy, the recordless rooms where the people who build the apparatus meet the officials who are supposed to govern it. This section turns the camera around. It is for the reader who wants to act — and who deserves advice that is honest about what works, what is oversold, and what we can only build together.
+It exists for three kinds of reader: the one who has finished one investigation and wants to understand how all of them fit together; the one who wants to *do the work themselves*, with the same public records and tools we use; and the one who simply wants to know what they can do to protect themselves. Three doors.
 
-These are not gadget reviews, and they are not advocacy with a buy button attached. The discipline is the same one that governs the rest of our work: **every factual claim is sourced, every tool is described by what it does *and* what it does not do, and where the popular advice is wrong or stale, we say so.** Much of the privacy industry profits by selling you the feeling of safety. We would rather tell you the truth and point you at the free thing that actually works.
-
----
-
-## How to use these pages
-
-Every page carries a **"last reviewed" date and a "next review trigger."** These are living documents on purpose: privacy tools change owners and policies, and the law moves. A guide written once and left to rot is worse than no guide, because it counsels false confidence. We keep these current alongside the reporting they accompany.
-
-Each guide is tiered. There is a baseline tier — things everyone should do — and a higher-risk tier for people who need more: organizers, journalists, immigrants, anyone with a reason to believe they are specifically targeted. Read for your situation, not for the worst case.
+Unlike the reporting, which moves with the news, everything here is built to last. These are durable, curated pages — sourced to the same standard as our journalism, carrying a "last reviewed" date, and kept current as the records, the tools, and the law change. The news lives at [The RAMM](https://theramm.substack.com); the distilled, navigable, reusable version lives here.
 
 ---
 
-## The guides
+## Read the investigations
 
-**Start here:**
+A year of reporting is hard to navigate one post at a time. **[The Investigations →](/resources/investigations/)** is a guided index — the major threads grouped by theme, with the spine of each laid out in order, so you can read an entire investigation instead of stumbling through a feed. Start there if you found one piece and want the whole picture.
 
-- [Make Yourself Expensive: Shrinking Your Data Footprint](/resources/data-footprint/) — the field guide to the single most useful thing an individual can do about the surveillance economy. Why removing your data from brokers is the highest-leverage move, why the free do-it-yourself route beats the paid services, what the privacy tools really protect (and what they don't), and how individual hygiene becomes collective power. Connects directly to our data-colonialism reporting.
+## Do the work yourself
+
+We publish our research infrastructure in the open because accountability shouldn't depend on trusting us. **[Investigate It Yourself →](/resources/investigate/)** points you at the same materials we build on: the searchable timeline of 4,500+ documented events, the ProPublica database of administration financial disclosures, the detention-pipeline early-warning map, and the public-records and open-source-intelligence basics for running your own investigation.
+
+## Protect yourself
+
+The surveillance economy our reporting documents is not abstract — it has a cost, and there are real things an individual and a community can do about it. **[Make Yourself Expensive: Shrinking Your Data Footprint →](/resources/data-footprint/)** is the field guide: what actually works, what is oversold, why the free do-it-yourself route beats the paid services, and how individual privacy hygiene becomes collective power. More protect-yourself guides will live alongside it here.
+
+*See also the [Crypto reference section](/crypto/) — plain, sourced definitions of the instruments and regulators at the center of the crypto-capture story, so the reporting can move faster than its vocabulary.*
 
 ---
 
-*Transparency Cascade Press reports on institutional capture, corruption, and threats to democratic accountability. This resources section is maintained alongside that reporting and adheres to the same [editorial policies](/about/editorial-policies/). Corrections and source questions: [contact@transparencycascade.org](mailto:contact@transparencycascade.org).*
+*Transparency Cascade Press reports on institutional capture, corruption, and threats to democratic accountability. This section is maintained alongside that reporting and adheres to the same [editorial policies](/about/editorial-policies/). Corrections and source questions: [contact@transparencycascade.org](mailto:contact@transparencycascade.org).*
