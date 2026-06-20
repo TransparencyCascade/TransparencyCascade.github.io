@@ -23,7 +23,10 @@ We publish our research infrastructure in the open because accountability should
 
 ## Protect yourself
 
-The surveillance economy our reporting documents is not abstract — it has a cost, and there are real things an individual and a community can do about it. **[Make Yourself Expensive: Shrinking Your Data Footprint →](/resources/data-footprint/)** is the field guide: what actually works, what is oversold, why the free do-it-yourself route beats the paid services, and how individual privacy hygiene becomes collective power. More protect-yourself guides will live alongside it here.
+The surveillance economy our reporting documents is not abstract — it has a cost, and there are real things an individual and a community can do about it.
+
+- **[Make Yourself Expensive: Shrinking Your Data Footprint →](/resources/data-footprint/)** — the individual field guide: what actually works, what is oversold, why the free do-it-yourself route beats the paid services, and how individual privacy hygiene becomes collective power.
+- **[Fighting the Data Centers →](/resources/data-center-fights/)** — the community move: where the resistance to AI data centers is, who's tracking the fights, and the connection most coverage misses — the same buildings, the same developers, are also becoming detention warehouses.
 
 *See also the [Crypto reference section](/crypto/) — plain, sourced definitions of the instruments and regulators at the center of the crypto-capture story, so the reporting can move faster than its vocabulary.*
 
