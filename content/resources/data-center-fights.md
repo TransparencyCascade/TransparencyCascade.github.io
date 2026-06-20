@@ -17,7 +17,7 @@ We are not going to build a tracker that already exists. Several well-resourced 
 
 ## The resistance is real, and it's working
 
-The opposition has gone from scattered to structural. As of early 2026, researchers were tracking on the order of **800+ active opposition groups across nearly every state**, and the fights are landing: one tracker documented opposition blocking or delaying roughly **$130 billion in data-center projects in a single quarter** — a record — with projects stopped or slowed in two dozen states and New York's legislature passing a one-year construction moratorium. Virginia's "Data Center Alley" has become the national epicenter, where most voters now blame the facilities for rising electricity costs.
+The opposition has gone from scattered to structural. As of early 2026, [Data Center Watch](https://www.datacenterwatch.org/) counted **833 active opposition groups across 49 states**, and the fights are landing: opponents blocked or delayed at least **75 projects worth roughly $130 billion in a single quarter (Q1 2026)** — as much in three months as in all of 2025. By that spring, moratorium proposals had been introduced in 14 states, and **at least 69 local governments had enacted construction bans or pauses**, Seattle the biggest city among them. Virginia's "Data Center Alley" remains the national concentration point — where most voters now blame the facilities for rising electricity costs — while Maryland, Ohio, and Texas had the most active opposition groups.
 
 The point worth holding onto: **"you can't fight this" is simply false.** People are fighting it, and winning more than the news admits.
 
