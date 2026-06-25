@@ -2,10 +2,10 @@
 title: "Make Yourself Expensive: Shrinking Your Data Footprint"
 description: "A practical, sourced field guide to reducing your exposure to the surveillance economy — what actually works, what is oversold, and how individual privacy hygiene becomes collective power. Why removing your data from brokers is the highest-leverage move, why free do-it-yourself beats the paid services, and what the privacy tools really protect."
 date: 2026-06-20
-lastmod: 2026-06-20
+lastmod: 2026-06-25
 ---
 
-**Status.** Last reviewed 2026-06-20. **Next review trigger:** a material change to the Consumer Reports data-removal study, the status of the *Fourth Amendment Is Not For Sale Act* or surveillance-advertising legislation, or any tool below changing ownership, pricing, or privacy policy. Privacy tooling moves fast; if you are reading this long after the date above, treat the specific product names as a starting point and verify before relying on them.
+**Status.** Last reviewed 2026-06-25. **Next review trigger:** a material change to the Consumer Reports data-removal study, the status of the *Fourth Amendment Is Not For Sale Act* or surveillance-advertising legislation, or any tool below changing ownership, pricing, or privacy policy. Privacy tooling moves fast; if you are reading this long after the date above, treat the specific product names as a starting point and verify before relying on them.
 
 ---
 
@@ -38,7 +38,7 @@ Here is the surprise, and it is well-documented. In 2024, *Consumer Reports* (wo
 **The free tools that make this doable:**
 
 - [**Permission Slip**, from Consumer Reports](https://www.consumerreports.org/electronics/privacy/take-control-of-online-data-with-apps-a5151057853/) — a free iOS and Android app. You swipe through companies and tap to send "do not sell" and deletion requests. The same nonprofit that proved the paid services underperform built a free tool that does the work. Start here.
-- For the technically comfortable, open-source projects exist that batch and automate removal requests across hundreds of brokers — search current ones rather than trusting a name from a guide, since these tools change hands and quality varies; the [Privacy Guides community](https://www.privacyguides.org/) is a reliable place to find a currently-maintained one.
+- For the technically comfortable, open-source projects batch and automate removal requests across hundreds of brokers. We track which ones are actively maintained, because in this corner of the software world many are launched and abandoned within months. As of the review date above, the actively-maintained options worth knowing are [**auto-identity-remove**](https://github.com/stephenlthorn/auto-identity-remove) — which covers 500+ sites, handles CAPTCHAs, and runs locally on your machine — and the request infrastructure behind [**YourDigitalRights.org**](https://yourdigitalrights.org), which also maintains *Data Brokers Watch*, a curated database of more than a thousand brokers. These tools move fast; if you are reading this well after the review date, confirm a project is still maintained before relying on it (the [Privacy Guides community](https://www.privacyguides.org/) is a reliable place to check).
 - The community-maintained [**"Big Ass Data Broker Opt-Out List"**](https://github.com/yaelwrites/Big-Ass-Data-Broker-Opt-Out-List) is the canonical do-it-yourself map — kept current by regular people as brokers change their forms.
 
 The political point hiding here: **the nonprofit and open-source world already built the public-good version. The subscription services are selling you something that is free and, on the evidence, worse.**
