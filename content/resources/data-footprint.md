@@ -3,9 +3,10 @@ title: "Make Yourself Expensive: Shrinking Your Data Footprint"
 description: "A practical, sourced field guide to reducing your exposure to the surveillance economy — what actually works, what is oversold, and how individual privacy hygiene becomes collective power. Why removing your data from brokers is the highest-leverage move, why free do-it-yourself beats the paid services, and what the privacy tools really protect."
 date: 2026-06-20
 lastmod: 2026-06-25
+correction_log: "2026-06-25: Permission Slip recommendation updated — it transferred to DeleteMe (Abine), a paid service, in May 2026; demoted with a caveat, free by-hand list + CA DROP promoted. Flagged by readers."
 ---
 
-**Status.** Last reviewed 2026-06-25. **Next review trigger:** a material change to the Consumer Reports data-removal study, the status of the *Fourth Amendment Is Not For Sale Act* or surveillance-advertising legislation, or any tool below changing ownership, pricing, or privacy policy. Privacy tooling moves fast; if you are reading this long after the date above, treat the specific product names as a starting point and verify before relying on them.
+**Status.** Last reviewed 2026-06-25. **Correction (2026-06-25):** Permission Slip transferred to the paid service DeleteMe (Abine) in May 2026 — it is no longer the clean free Consumer Reports app this guide first recommended. Move 1 has been updated; the free by-hand route and California's new DROP tool are now the lead recommendations. Thanks to the readers who caught this within hours. **Next review trigger:** a material change to the Consumer Reports data-removal study, the status of the *Fourth Amendment Is Not For Sale Act* or surveillance-advertising legislation, or any tool below changing ownership, pricing, or privacy policy. Privacy tooling moves fast; if you are reading this long after the date above, treat the specific product names as a starting point and verify before relying on them.
 
 ---
 
@@ -37,9 +38,10 @@ Here is the surprise, and it is well-documented. In 2024, *Consumer Reports* (wo
 
 **The free tools that make this doable:**
 
-- [**Permission Slip**, from Consumer Reports](https://www.consumerreports.org/electronics/privacy/take-control-of-online-data-with-apps-a5151057853/) — a free iOS and Android app. You swipe through companies and tap to send "do not sell" and deletion requests. The same nonprofit that proved the paid services underperform built a free tool that does the work. Start here.
+- **Start with a free, community-maintained list and work it by hand.** The canonical one is [**Yael Grauer's "Big Ass Data Broker Opt-Out List"**](https://github.com/yaelwrites/Big-Ass-Data-Broker-Opt-Out-List) — kept current by regular people as brokers change their forms, and the free option Privacy Guides recommends first. This is the 70% route. It costs you time, not money.
+- **If you live in California, use the new state-run [DROP tool](https://privacy.ca.gov/) (Delete Request and Opt-out Platform).** It's free, government-run, and lets you submit a *single* deletion request that every registered data broker is legally required to honor — brokers must begin processing DROP requests on August 1, 2026. It is the strongest free option for Californians, and the model other states should copy.
+- **About "Permission Slip" — a caution, because this changed recently.** We previously recommended Permission Slip as a free Consumer Reports app, and through early 2026 it was exactly that. **As of a May 2026 transfer, Permission Slip is now operated by [DeleteMe (Abine)](https://joindeleteme.com/permission-slip/) — a paid data-removal company.** A free tier still exists (manual opt-out and deletion requests), but the app now upsells "Permission Slip PLUS" and DeleteMe's paid subscription, so go in with your eyes open and decline the upsell. *(Reader credit: subscribers flagged this within hours of publication — exactly the kind of fast-moving change this page warns about. It is also a small case study in the page's own thesis: a free public-interest tool absorbed into a paid service.)* If you want the app's convenience without the funnel, the by-hand list above does the same job for free.
 - For the technically comfortable, open-source projects batch and automate removal requests across hundreds of brokers. We track which ones are actively maintained, because in this corner of the software world many are launched and abandoned within months. As of the review date above, the actively-maintained options worth knowing are [**auto-identity-remove**](https://github.com/stephenlthorn/auto-identity-remove) — which covers 500+ sites, handles CAPTCHAs, and runs locally on your machine — and the request infrastructure behind [**YourDigitalRights.org**](https://yourdigitalrights.org), which also maintains *Data Brokers Watch*, a curated database of more than a thousand brokers. These tools move fast; if you are reading this well after the review date, confirm a project is still maintained before relying on it (the [Privacy Guides community](https://www.privacyguides.org/) is a reliable place to check).
-- The community-maintained [**"Big Ass Data Broker Opt-Out List"**](https://github.com/yaelwrites/Big-Ass-Data-Broker-Opt-Out-List) is the canonical do-it-yourself map — kept current by regular people as brokers change their forms.
 
 The political point hiding here: **the nonprofit and open-source world already built the public-good version. The subscription services are selling you something that is free and, on the evidence, worse.**
 
@@ -73,7 +75,7 @@ You do not have to invent this. The infrastructure exists:
 
 - The **Electronic Frontier Foundation** runs [Surveillance Self-Defense](https://ssd.eff.org/) and security trainings built for at-risk communities — the model for a local data-detox clinic.
 - EFF's annual **"Opt-Out October"** is a ready-made campaign to localize.
-- Permission Slip and the Big-Ass list are your curriculum.
+- The Big-Ass Data Broker Opt-Out List (and, in California, the state DROP tool) are your curriculum.
 
 Don't just protect yourself. Host the room where ten of your neighbors protect themselves, and send each of them home able to teach ten more.
 
@@ -105,7 +107,7 @@ That is what surveillance-advertising legislation does. The **Banning Surveillan
 
 ## What this adds up to
 
-Start this afternoon: download Permission Slip, do an opt-out pass, switch your email and your default search. Tell yourself the truth about the limits — none of these tools is a force field, and anyone selling you one is selling you something.
+Start this afternoon: open the Big-Ass Data Broker Opt-Out List (or, in California, the state DROP tool), do an opt-out pass by hand, switch your email and your default search. Tell yourself the truth about the limits — none of these tools is a force field, and anyone selling you one is selling you something.
 
 Then go past yourself. Teach a room of neighbors to do what you just did. Learn the name of the bill that would close the loophole, and the one that would turn off the engine, so that when the moment comes to push, you are not starting from zero.
 
@@ -133,7 +135,9 @@ This guide is the practical companion to our reporting on data colonialism and t
 - [Attorney General Bonta Announces Settlement with Sephora](https://oag.ca.gov/news/press-releases/attorney-general-bonta-announces-settlement-sephora-part-ongoing-enforcement) (California Department of Justice) — Global Privacy Control enforcement
 - [US Lawmakers Introduce Banning Surveillance Advertising Act](https://iapp.org/news/b/us-lawmakers-introduce-banning-surveillance-advertising-act) (IAPP)
 - [EFF Surveillance Self-Defense](https://ssd.eff.org/) — the canonical free guide
-- [Permission Slip by Consumer Reports](https://www.consumerreports.org/electronics/privacy/take-control-of-online-data-with-apps-a5151057853/) — free opt-out app
+- [Permission Slip's next chapter with DeleteMe](https://innovation.consumerreports.org/permission-slips-next-chapter-with-deleteme/) (Consumer Reports, May 2026) — the transfer of Permission Slip to DeleteMe / Abine
+- [California DROP — Delete Request and Opt-out Platform](https://privacy.ca.gov/) (California Privacy Protection Agency) — free state-run single-request broker deletion, processing from Aug 1, 2026
+- [Data broker removals](https://www.privacyguides.org/en/data-broker-removals/) (Privacy Guides) — the free-DIY-first consensus
 - [Big Ass Data Broker Opt-Out List](https://github.com/yaelwrites/Big-Ass-Data-Broker-Opt-Out-List) — community do-it-yourself map
 
 ---
