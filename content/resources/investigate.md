@@ -2,10 +2,10 @@
 title: "Investigate It Yourself"
 description: "The public records, databases, and tools Transparency Cascade Press builds its reporting on — and how to use them. The accountability work doesn't depend on trusting us; it depends on the record being open. Here's the record."
 date: 2026-06-20
-lastmod: 2026-06-20
+lastmod: 2026-08-19
 ---
 
-**Status.** Last reviewed 2026-06-20. **Next review trigger:** a new public dataset worth adding, a tool changing access terms, or a broken link below.
+**Status.** Last reviewed 2026-08-19. **Next review trigger:** a new public dataset worth adding, a tool changing access terms, or a broken link below.
 
 ---
 
@@ -34,10 +34,10 @@ A public heat map and county-by-county tracker of where new ICE detention facili
 
 → **[detention-pipeline.transparencycascade.org](https://detention-pipeline.transparencycascade.org)** · and our explainer, [Is Your County Being Targeted?](https://theramm.transparencycascade.org/p/is-your-county-being-targeted-for)
 
-### Pyrite — our research infrastructure (open source)
-The knowledge-base and search system that powers the investigation is published openly. If you want to build your own structured-research tooling, the code is there.
+### Pyrite — the knowledge base behind the reporting (open source)
+Every investigation here runs on a structured, versioned knowledge base rather than a folder of documents: sourced entries, typed relationships, full-text and semantic search, and a QA pass that catches unsourced claims before they reach a draft. Pyrite is the open-source tool that does that. We did not build it for this newsroom, but this newsroom is built on it, and if you want your own structured-research tooling the code is there.
 
-→ **[github.com/TransparencyCascade/pyrite](https://github.com/TransparencyCascade/pyrite)**
+→ **[pyrite.wiki](https://pyrite.wiki)** · source at **[github.com/markramm/pyrite](https://github.com/markramm/pyrite)**
 
 ---
 
