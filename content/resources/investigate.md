@@ -35,7 +35,9 @@ A public heat map and county-by-county tracker of where new ICE detention facili
 → **[detention-pipeline.transparencycascade.org](https://detention-pipeline.transparencycascade.org)** · and our explainer, [Is Your County Being Targeted?](https://theramm.transparencycascade.org/p/is-your-county-being-targeted-for)
 
 ### Pyrite — the knowledge base behind the reporting (open source)
-Every investigation here runs on a structured, versioned knowledge base rather than a folder of documents: sourced entries, typed relationships, full-text and semantic search, and a QA pass that catches unsourced claims before they reach a draft. Pyrite is the open-source tool that does that. We did not build it for this newsroom, but this newsroom is built on it, and if you want your own structured-research tooling the code is there.
+Every investigation here runs on a structured, versioned knowledge base rather than a folder of documents: sourced entries with typed relationships, full-text and semantic search, and a QA pass that catches unsourced claims before they reach a draft. Notes live as plain markdown in git, so every change to the record is a reviewable commit.
+
+Pyrite is the open-source system that does that. It was built here, by Transparency Cascade Press, because the reporting needed it — and it is agent-first by design: the AI research assistants that do the retrieval are treated as users of the knowledge base, not as bolt-on features. It has since grown past this newsroom into a general tool, and the code is there if you want your own.
 
 → **[pyrite.wiki](https://pyrite.wiki)** · source at **[github.com/markramm/pyrite](https://github.com/markramm/pyrite)**
 
