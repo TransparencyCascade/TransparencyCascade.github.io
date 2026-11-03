@@ -130,7 +130,27 @@
   .cal time{font:700 15px/1.5 var(--sans);}
   .cal .st{font-weight:700;}
   .cal li.past{color:var(--graphite);} .cal li.past time{text-decoration:line-through; text-decoration-color:var(--graphite);}
-  @media (max-width:640px){ .tabs{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; margin-right:-18px; padding-right:18px;} .tabs::-webkit-scrollbar{display:none;} .tabs button{white-space:nowrap;} }
+  /* story markers and the selected county */
+  .mk{cursor:pointer;}
+  .mk circle{fill:#000; stroke:#fff; stroke-width:1.5; vector-effect:non-scaling-stroke;}
+  .mk text{fill:#fff; font-family:var(--sans); font-weight:800; text-anchor:middle; dominant-baseline:central; pointer-events:none;}
+  .mk:hover circle, .mk:focus circle{fill:var(--mark); stroke:#000;}
+  .mk:hover text, .mk:focus text{fill:#000;}
+  .mk:focus{outline:none;}
+  .mapwrap path.c.sel{stroke:#000; stroke-width:3;}
+  .legend .dot{display:inline-block; width:14px; height:14px; border-radius:50%; background:#000; vertical-align:-2px; margin-right:6px;}
+  /* laptop and wider: the map is the navigation, pinned on the left; the answer and the reporting scroll on the right */
+  @media (min-width:1100px){
+    .wrap{max-width:1500px; display:grid; grid-template-columns:minmax(0,1.25fr) minmax(400px,0.75fr); column-gap:48px; padding:0 32px 100px;}
+    .wrap > *{grid-column:2; min-width:0;}
+    .wrap > .maparea{grid-column:1; grid-row:1 / span 40; position:sticky; top:0; align-self:start; height:100vh;
+      display:flex; flex-direction:column; justify-content:center; padding:24px 0;}
+    .maparea .stats{margin-top:0;}
+    .maparea .mapwrap svg{max-height:calc(100vh - 210px);}
+    h1{max-width:none; font-size:clamp(34px,3.4vw,52px);}
+  }
+  @media (max-width:640px){
+    .mk text{display:none;} .tabs{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; margin-right:-18px; padding-right:18px;} .tabs::-webkit-scrollbar{display:none;} .tabs button{white-space:nowrap;} }
   @media (max-width:520px){ body{font-size:16px;} .stats b{font-size:26px;} .ballot .opt{font-size:18px;} .cal li{grid-template-columns:6.4em 1fr;} }
 </style>
 </head>
@@ -163,7 +183,7 @@
   <div class="mapwrap" id="mapwrap" aria-label="Map of listed counties; select a county to show it below">
     <div id="tip"></div>
   </div>
-  <div class="legend"><span><i style="background:#F2C230;border-color:#7A5B00"></i>New this year</span><span><i style="background:#000"></i>Also on 2022 or 2024 list</span><span><i style="background:#C8CBCD;border-color:#8A8F94"></i>Monitored in 2024, not this year</span><span>Tap a county to see it below. Cities are shown by their county.</span></div>
+  <div class="legend"><span><i style="background:#F2C230;border-color:#7A5B00"></i>New this year</span><span><i style="background:#000"></i>Also on 2022 or 2024 list</span><span><i style="background:#C8CBCD;border-color:#8A8F94"></i>Monitored in 2024, not this year</span><span><i class="dot" style="border:0"></i>Reports from that place</span><span>Tap a county or a dot to see it. Cities are shown by their county.</span></div>
 </section>
 
 <section class="reports" id="reports" hidden></section>
@@ -360,18 +380,38 @@
     }
     const tip = document.getElementById('tip');
     const label = f => { const L=listed[f.id]; if (L) return L.map(r=>r.j+', '+r.st).join(' · '); const D=drop[f.id]; return D ? D.map(d=>d.j+', '+d.st).join(' · ')+' (2024 only)' : ''; };
+    function choose(f){
+      const L=listed[f.id], D=drop[f.id];
+      if (!L && !D) return;
+      const pick = L ? L[0] : D[0];
+      view = L ? 'state' : 'dropped';
+      document.querySelectorAll('.tabs button').forEach(x => x.setAttribute('aria-pressed', x.dataset.v===view));
+      sel = f.id; const q=document.getElementById('q'); q.value = L ? (L.length>1 ? pick.cty : pick.j+', '+pick.st) : pick.j+', '+pick.st; render();
+      svg.selectAll('path.c').classed('sel', d => d.id===sel);
+      const target = document.querySelector('.controls');
+      target.scrollIntoView({behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start'});
+      if (window.plausible) plausible('map-click');
+    }
     svg.selectAll('path.c.on')
       .on('mousemove', (e,f) => { const b=wrap.node().getBoundingClientRect(); tip.textContent=label(f); tip.style.display='block'; tip.style.left=(e.clientX-b.left+12)+'px'; tip.style.top=(e.clientY-b.top-28)+'px'; })
       .on('mouseleave', () => { tip.style.display='none'; })
-      .on('click', (e,f) => {
-        const L=listed[f.id], D=drop[f.id];
-        const pick = L ? L[0] : D[0];
-        view = L ? 'state' : 'dropped';
-        document.querySelectorAll('.tabs button').forEach(x => x.setAttribute('aria-pressed', x.dataset.v===view));
-        sel = f.id; const q=document.getElementById('q'); q.value = L ? (L.length>1 ? pick.cty : pick.j+', '+pick.st) : pick.j+', '+pick.st; render();
-        document.querySelector('.controls').scrollIntoView({behavior:'smooth'});
-        if (window.plausible) plausible('map-click');
-      });
+      .on('click', (e,f) => choose(f));
+    // story markers: one dot per county with verified reports, sized to the view, numbered
+    const byFips = {};
+    STORIES.forEach(st => st.places.forEach(p => { const r = rows.find(x => x.st===p.st && x.j===p.j); if (r && r.fips) (byFips[r.fips]=byFips[r.fips]||new Set()).add(st.url); }));
+    const vbw = +vb.split(' ')[2], rad = Math.max(vbw/975*8.5, vbw/140*1.1);
+    const feats = counties.filter(f => byFips[f.id]);
+    const mk = svg.append('g').selectAll('g').data(feats).join('g').attr('class','mk')
+      .attr('transform', f => { const c = path.centroid(f); return `translate(${c[0]},${c[1]})`; })
+      .attr('tabindex', 0).attr('role','button')
+      .attr('aria-label', f => label(f) + ': ' + byFips[f.id].size + (byFips[f.id].size===1 ? ' report' : ' reports'))
+      .on('click', (e,f) => choose(f))
+      .on('keydown', (e,f) => { if (e.key==='Enter' || e.key===' ') { e.preventDefault(); choose(f); } })
+      .on('mousemove', (e,f) => { const b=wrap.node().getBoundingClientRect(); tip.textContent=label(f)+': '+byFips[f.id].size+(byFips[f.id].size===1?' report':' reports'); tip.style.display='block'; tip.style.left=(e.clientX-b.left+12)+'px'; tip.style.top=(e.clientY-b.top-28)+'px'; })
+      .on('mouseleave', () => { tip.style.display='none'; });
+    mk.append('circle').attr('r', rad);
+    mk.append('text').attr('font-size', rad*1.15).text(f => byFips[f.id].size);
+    document.getElementById('q').addEventListener('input', () => svg.selectAll('path.c').classed('sel', false));
   } catch (err) { document.getElementById('mapwrap').style.display='none'; }
 })();
 </script>
