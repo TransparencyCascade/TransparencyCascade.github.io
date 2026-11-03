@@ -282,7 +282,9 @@
         html += `<p class="why">We have not compiled ${esc(ST)}'s certification deadlines yet. So far the calendar covers Arizona, California, Georgia, Michigan, Nevada, North Carolina, Pennsylvania and Wisconsin.</p>`;
       }
     }
-    const cs = (ST ? STORIES.filter(s => (s.states||[]).includes(ST)) : STORIES).filter(s => s.lane === 'count');
+    const all = (ST ? STORIES.filter(s => (s.states||[]).includes(ST)) : STORIES).filter(s => s.lane === 'count');
+    const calls = all.filter(s => s.kind === 'Race calls'), cs = all.filter(s => s.kind !== 'Race calls');
+    if (calls.length) html += `<h2>Races called${ST ? ' in ' + esc(ST) : ''} (${calls.length})</h2><p class="why">As local outlets reported them, with the outlet that made the call. We do not call races.</p><ul class="rep">${calls.map(s => repItem(s, true)).join('')}</ul>`;
     html += `<h2>Count and certification reports${ST ? ' from ' + esc(ST) : ''} (${cs.length})</h2>` +
       (cs.length ? `<ul class="rep">${cs.map(s => repItem(s, true)).join('')}</ul>` : '<p class="why">Nothing yet. Reports about rescans, canvasses, certification and count lawsuits will appear here.</p>');
     body.innerHTML = html;

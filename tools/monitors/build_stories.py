@@ -13,6 +13,7 @@ LISTED = {(r["st"], r["j"]) for r in D["rows"]}
 
 KIND = {"machines": "Voting equipment", "weather": "Flooding and weather", "monitors": "DOJ monitors",
         "legal": "Courts", "intimidation": "Voter intimidation", "other": "Misinformation", "lines": "Lines and delays",
+        "call": "Race calls", "count": "Count and certification",
         "provisional": "Registration"}
 
 # finding place strings that are not "Place, State" -> the listed places they concern
@@ -109,7 +110,10 @@ for e in EXTRA:
         stories.append(dict(e, kind=KIND.get(e["kind"], e["kind"])))
 
 for s_ in stories:
-    s_["lane"] = "count" if s_["url"] in COUNT_URLS else "watchers"
+    s_["lane"] = "count" if (s_["url"] in COUNT_URLS or s_["kind"] in ("Race calls", "Count and certification")) else "watchers"
+CALLS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "calls.json")  # written by count_call.py
+if os.path.exists(CALLS):
+    COUNT_EXTRA = COUNT_EXTRA + [dict(c, kind="Race calls") for c in json.load(open(CALLS))]
 for e in COUNT_EXTRA:
     stories.append(dict(e, lane="count", places=[]))
 out = {"updated": "2026-11-03", "note": "Reporting from Election Day, linked to the places on DOJ's list. Each link was opened and read before it was listed.",
