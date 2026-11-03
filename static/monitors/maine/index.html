@@ -21,7 +21,7 @@
 <meta name="twitter:image" content="https://transparencycascade.org/monitors/cards/maine.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,400;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
 <script async src="https://plausible.io/js/pa-M-497ZEFkxmAoPGY4QkPC.js"></script>
@@ -30,91 +30,118 @@
   plausible.init()
 </script>
 <style>
+  /* The paper ballot: white stock, black ink, one highlighter. Public Sans, the U.S. government's own design-system face.
+     No red or blue anywhere: on a U.S. map they read as parties. */
   :root{
-    --paper:#EDE9E0; --ink:#16130E; --seal:#8A1C1C; --graphite:#6B6459; --rule:#C9C1B2; --paper2:#E5E0D5;
-    --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
-    --serif:'Newsreader',Georgia,'Times New Roman',serif;
+    --paper:#FFFFFF; --ink:#000000; --graphite:#5B6168; --rule:#C8CBCD; --field:#F3F4F1; --mark:#F2C230; --mark-ink:#7A5B00;
+    --sans:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+    --mono:var(--sans); --serif:var(--sans); --seal:var(--ink); --paper2:var(--field);
   }
   *{box-sizing:border-box;}
-  body{margin:0; background:var(--paper); color:var(--ink); font:18px/1.6 var(--serif);}
-  .wrap{max-width:860px; margin:0 auto; padding:0 18px 100px;}
-  header{padding:42px 0 22px; border-bottom:2px solid var(--ink);}
-  .stamp{font:600 12px/1 var(--mono); letter-spacing:.24em; text-transform:uppercase; color:var(--seal);
-         display:inline-block; border:1.5px solid var(--seal); padding:5px 9px; margin-bottom:18px;}
-  h1{font:700 clamp(28px,5.5vw,46px)/1.05 var(--mono); margin:.1em 0 .3em;}
-  .dek{font-size:19px; max-width:62ch; margin:0;}
-  a{color:var(--seal); text-underline-offset:2px;}
-  .stats{display:flex; flex-wrap:wrap; gap:10px 28px; margin:22px 0 4px; font:500 13px/1.3 var(--mono);
-         text-transform:uppercase; letter-spacing:.05em; color:var(--graphite);}
-  .stats b{display:block; font-size:28px; color:var(--ink);}
-  .controls{position:sticky; top:0; background:var(--paper); padding:16px 0 12px; border-bottom:1px solid var(--rule); z-index:2;}
-  input[type=search]{width:100%; font:500 18px var(--mono); padding:12px 14px; border:2px solid var(--ink); background:#fff; color:var(--ink);}
-  .tabs{display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 14px; margin-top:8px; font:500 12px/1.4 var(--mono); color:var(--graphite);}
-  .tabs span{text-transform:uppercase; letter-spacing:.06em;}
-  .tabs button{font:inherit; padding:0; border:0; background:none; color:var(--graphite); cursor:pointer; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px;}
-  .tabs button[aria-pressed=true]{color:var(--ink); font-weight:700; text-decoration:none;}
-  .mapwrap{margin:22px 0 4px; position:relative;}
+  html{-webkit-text-size-adjust:100%;}
+  body{margin:0; background:var(--paper); color:var(--ink); font:400 17px/1.55 var(--sans); font-variant-numeric:tabular-nums;}
+  .wrap{max-width:760px; margin:0 auto; padding:0 18px 100px;}
+  a{color:var(--ink); text-decoration-thickness:2px; text-decoration-color:var(--mark); text-underline-offset:3px;}
+  a:hover{background:var(--mark);}
+  :focus-visible{outline:3px solid var(--ink); outline-offset:2px; background:var(--mark);}
+  header{padding:28px 0 14px;}
+  .stamp{font:600 14px/1.3 var(--sans); color:var(--graphite); margin-bottom:10px;}
+  .lanes{display:flex; flex-wrap:wrap; gap:6px 10px; margin:0 0 18px;}
+  .lanes a{font:700 14px/1 var(--sans); text-decoration:none; padding:8px 12px; border:2px solid var(--ink); border-radius:999px;}
+  .lanes a:first-child{background:var(--ink); color:var(--paper);}
+  .lanes a:hover{background:var(--mark); color:var(--ink);}
+  h1{font:800 clamp(34px,8vw,58px)/1.0 var(--sans); letter-spacing:-0.025em; margin:0 0 14px; max-width:14ch;}
+  .dek{font-size:18px; line-height:1.5; max-width:60ch; margin:0;}
+  #back a{font:600 14px var(--sans); color:var(--graphite);}
+  .controls{position:sticky; top:0; background:var(--paper); padding:14px 0 10px; z-index:3; border-bottom:2px solid var(--ink);}
+  input[type=search]{width:100%; font:600 19px var(--sans); padding:14px 16px; border:3px solid var(--ink); border-radius:0; background:var(--paper); color:var(--ink); -webkit-appearance:none;}
+  input[type=search]::-webkit-search-cancel-button{-webkit-appearance:none; height:18px; width:18px; cursor:pointer;
+    background:linear-gradient(45deg,transparent 44%,#000 44%,#000 56%,transparent 56%),linear-gradient(-45deg,transparent 44%,#000 44%,#000 56%,transparent 56%);}
+  input[type=search]::placeholder{color:var(--graphite); font-weight:400;}
+  input[type=search]:focus{outline:none; box-shadow:0 0 0 4px var(--mark);}
+  .tabs{display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:10px; font:600 14px/1 var(--sans);}
+  .tabs span{color:var(--graphite); margin-right:4px;}
+  .tabs button{font:inherit; padding:7px 11px; border:1.5px solid var(--rule); border-radius:999px; background:var(--paper); color:var(--ink); cursor:pointer;}
+  .tabs button[aria-pressed=true]{border-color:var(--ink); background:var(--ink); color:var(--paper);}
+
+  /* the answer, printed as a ballot */
+  #answer:empty{display:none;}
+  .ballot{position:relative; margin:18px 0 6px; border:3px solid var(--ink); padding:0 34px 0 0; background:var(--paper);}
+  .ballot .b-head{background:var(--ink); color:var(--paper); font:700 17px/1.3 var(--sans); padding:10px 16px;}
+  .ballot .b-head b{font-weight:800;}
+  .ballot .b-inst{font:400 13px/1.4 var(--sans); color:var(--graphite); padding:10px 16px 0;}
+  .ballot .opt{display:flex; gap:14px; align-items:flex-start; padding:12px 16px; margin:0; font:700 20px/1.25 var(--sans); border-bottom:1px solid var(--rule);}
+  .ballot .opt:last-of-type{border-bottom:0;}
+  .ballot .opt small{display:block; font:400 15px/1.45 var(--sans); margin-top:4px; color:var(--ink);}
+  .ballot .opt.off{color:var(--graphite); font-weight:600;}
+  .oval{flex:0 0 auto; width:34px; height:20px; border:2.5px solid var(--ink); border-radius:50%; margin-top:2px;}
+  .opt.on .oval{background:var(--ink); box-shadow:inset 0 0 0 3px var(--ink);}
+  @media (prefers-reduced-motion:no-preference){ .opt.on .oval{animation:mark .35s ease-out both;} @keyframes mark{from{background:transparent;} to{background:var(--ink);}} }
+  .ballot .marks{position:absolute; right:8px; top:56px; bottom:10px; width:14px;
+    background:repeating-linear-gradient(to bottom, var(--ink) 0 6px, transparent 6px 22px);}
+
+  .stats{display:flex; flex-wrap:wrap; gap:8px 26px; margin:26px 0 6px; font:400 15px/1.3 var(--sans); color:var(--graphite);}
+  .stats b{display:block; font:800 32px/1 var(--sans); color:var(--ink); letter-spacing:-0.02em;}
+  .mapwrap{margin:16px 0 4px; position:relative;}
   .mapwrap svg{width:100%; height:auto; max-height:560px; display:block;}
   .mapwrap path{vector-effect:non-scaling-stroke;}
   .mapwrap path.c{stroke:none;}
   .mapwrap path.c.on{cursor:pointer;}
-  .mapwrap path.c.on:hover{stroke:var(--ink); stroke-width:1.5;}
-  .legend{display:flex; flex-wrap:wrap; gap:4px 16px; font:500 12px var(--mono); color:var(--graphite); margin-top:6px;}
-  .legend i{display:inline-block; width:12px; height:12px; vertical-align:-1px; margin-right:5px; border:1px solid var(--graphite);}
-  #tip{position:absolute; pointer-events:none; background:var(--ink); color:var(--paper); font:500 12px/1.3 var(--mono); padding:5px 8px; display:none; white-space:nowrap;}
-  h2{font:700 15px/1.3 var(--mono); text-transform:uppercase; letter-spacing:.08em; margin:28px 0 6px; padding-bottom:4px; border-bottom:1px solid var(--rule);}
-  .row{padding:10px 0; border-bottom:1px dotted var(--rule);}
-  .name{font:700 17px var(--mono);}
-  .tag{display:inline-block; font:500 11px/1 var(--mono); text-transform:uppercase; letter-spacing:.06em; padding:3px 6px; margin-left:6px; border:1px solid var(--graphite); color:var(--graphite); vertical-align:2px;}
-  .tag.new{border-color:var(--seal); color:var(--seal);}
-  .meta{font-size:15px; color:var(--graphite); margin-top:2px;}
-  .empty{font-style:italic; color:var(--graphite); padding:16px 0;}
-  section.box{margin-top:36px; padding:18px 20px; background:var(--paper2); border-left:4px solid var(--seal);}
-  section.box h3{font:700 14px var(--mono); text-transform:uppercase; letter-spacing:.08em; margin:0 0 6px;}
+  .mapwrap path.c.on:hover{stroke:var(--ink); stroke-width:2;}
+  .legend{display:flex; flex-wrap:wrap; gap:6px 18px; font:400 14px var(--sans); color:var(--graphite); margin-top:8px;}
+  .legend i{display:inline-block; width:14px; height:14px; vertical-align:-2px; margin-right:6px; border:1.5px solid var(--ink);}
+  #tip{position:absolute; pointer-events:none; background:var(--ink); color:var(--paper); font:600 13px/1.3 var(--sans); padding:6px 9px; display:none; white-space:nowrap;}
+
+  h2{font:800 22px/1.2 var(--sans); letter-spacing:-0.01em; margin:34px 0 8px; padding-bottom:6px; border-bottom:2px solid var(--ink);}
+  h2 a{text-decoration:none;}
+  .row{padding:14px 0; border-bottom:1px solid var(--rule);}
+  .name{font:700 19px/1.3 var(--sans);}
+  .tag{display:inline-block; font:600 13px/1 var(--sans); padding:4px 8px; margin-left:8px; border-radius:999px; border:1.5px solid var(--ink); vertical-align:2px;}
+  .tag.new{background:var(--mark); border-color:var(--mark-ink);}
+  .meta{font-size:15px; color:var(--graphite); margin-top:4px;}
+  .meta dl{display:grid; grid-template-columns:max-content 1fr; gap:1px 12px; margin:4px 0 0;}
+  .meta dt{color:var(--graphite);} .meta dd{margin:0; color:var(--ink);}
+  .empty{color:var(--graphite); padding:16px 0;}
+  section.box{margin-top:40px; padding:18px 20px; background:var(--field); border-left:6px solid var(--mark);}
+  section.box h3{font:800 18px/1.3 var(--sans); margin:0 0 6px;}
   .notes{font-size:15px; color:var(--graphite); margin-top:36px;}
   .notes li{margin-bottom:6px;}
-  #back a{font:500 13px var(--mono); color:var(--graphite);}
-  nav#states{margin-top:30px;}
-  nav#states div{display:flex; flex-wrap:wrap; gap:4px 14px; font:500 13px/1.6 var(--mono);}
-  nav#states a{color:var(--ink); text-decoration-color:var(--rule);}
-  nav#states a.cur{color:var(--seal); font-weight:700; text-decoration:none;}
+  nav#states{margin-top:34px;}
+  nav#states div{display:flex; flex-wrap:wrap; gap:6px 14px; font:600 15px/1.7 var(--sans);}
+  nav#states a{text-decoration-color:var(--rule);}
+  nav#states a.cur{background:var(--mark); text-decoration:none; padding:0 4px;}
+
   .reports{margin-top:30px;}
-  .reports .why{font-size:15px; color:var(--graphite); margin:0 0 6px;}
-  ul.rep{list-style:none; margin:6px 0 0; padding:0;}
-  ul.rep li{padding:8px 0 8px 12px; border-left:3px solid var(--rule); margin:6px 0; font-size:16px; line-height:1.4;}
-  ul.rep li.mon{border-left-color:var(--seal);}
-  ul.rep .k{display:block; font:500 11px/1.4 var(--mono); text-transform:uppercase; letter-spacing:.06em; color:var(--graphite);}
+  .reports .why, #count .why{font-size:15px; color:var(--graphite); margin:0 0 8px; max-width:62ch;}
+  ul.rep{list-style:none; margin:8px 0 0; padding:0;}
+  ul.rep li{padding:9px 0 9px 14px; border-left:4px solid var(--rule); margin:8px 0; font-size:16px; line-height:1.4;}
+  ul.rep li.mon{border-left-color:var(--ink);}
+  ul.rep .k{display:block; font:600 13px/1.4 var(--sans); color:var(--graphite);}
   ul.rep .src{color:var(--graphite); font-size:14px;}
-  .row ul.rep li{font-size:15px; padding:4px 0 4px 10px; margin:4px 0;}
-  .tip{font:500 13px var(--mono); color:var(--graphite); margin-top:10px;}
-  .row .tip{margin-top:4px; font-size:12px;}
-  .more{font:500 13px var(--mono); padding:0; border:0; background:none; color:var(--seal); cursor:pointer; text-decoration:underline; margin-top:6px;}
-  .lanes{display:flex; flex-wrap:wrap; gap:4px 18px; margin:0 0 10px; font:700 13px/1.4 var(--mono);}
-  .lanes a{color:var(--ink); text-decoration-color:var(--rule); text-underline-offset:3px;}
-  #count, #top-watchers{scroll-margin-top:150px;}
-  #count{margin-top:44px; padding-top:6px; border-top:2px solid var(--ink);}
-  #count h2.lane{font:700 clamp(22px,4vw,30px)/1.1 var(--mono); text-transform:none; letter-spacing:0; border:0; margin:14px 0 6px;}
+  .row ul.rep li{font-size:15px; padding:5px 0 5px 12px; margin:6px 0;}
+  .tip{font:400 14px var(--sans); color:var(--graphite); margin-top:10px;}
+  .row .tip{margin-top:6px; font-size:14px;}
+  .more{font:700 14px var(--sans); padding:8px 0; border:0; background:none; color:var(--ink); cursor:pointer; text-decoration:underline; text-decoration-color:var(--mark); text-decoration-thickness:2px;}
+  #count, #top-watchers{scroll-margin-top:170px;}
+  #count{margin-top:52px; padding-top:22px; border-top:6px solid var(--ink);}
+  #count h2.lane{font:800 clamp(30px,6vw,44px)/1.05 var(--sans); letter-spacing:-0.02em; border:0; margin:0 0 10px; padding:0;}
   .cal{list-style:none; padding:0; margin:8px 0;}
-  .cal li{display:grid; grid-template-columns:6.5em 1fr; gap:2px 12px; padding:7px 0; border-bottom:1px dotted var(--rule); font-size:16px;}
-  .cal time{font:500 13px/1.6 var(--mono); color:var(--seal);}
-  .cal .st{font:700 13px var(--mono);}
-  .cal li.past{opacity:.55;}
-  @media (max-width:520px){ body{font-size:17px;} .stats b{font-size:24px;} }
+  .cal li{display:grid; grid-template-columns:7.2em 1fr; gap:2px 14px; padding:9px 0; border-bottom:1px solid var(--rule); font-size:16px;}
+  .cal time{font:700 15px/1.5 var(--sans);}
+  .cal .st{font-weight:700;}
+  .cal li.past{color:var(--graphite);} .cal li.past time{text-decoration:line-through; text-decoration-color:var(--graphite);}
+  @media (max-width:640px){ .tabs{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; margin-right:-18px; padding-right:18px;} .tabs::-webkit-scrollbar{display:none;} .tabs button{white-space:nowrap;} }
+  @media (max-width:520px){ body{font-size:16px;} .stats b{font-size:26px;} .ballot .opt{font-size:18px;} .cal li{grid-template-columns:6.4em 1fr;} }
 </style>
 </head>
 <body>
 <div class="wrap">
 <header>
-  <div class="stamp">Election Day · Nov. 3, 2026</div>
+  <p class="stamp">The RAMM, Election Day, Nov. 3, 2026</p>
   <nav class="lanes" aria-label="Sections"><a href="#top-watchers">Watching the watchers</a><a href="#count">Watching the count</a></nav>
   <div id="back"></div>
   <h1 id="top-watchers">Is DOJ monitoring your county?</h1>
   <p class="dek">On Election Day morning the Justice Department said it intends to "monitor or observe" voting in 3 places in Maine: Lewiston, Portland, South Portland. 3 are new this year. <a href="https://www.justice.gov/opa/pr/doj-monitor-elections-all-50-states-first-time">DOJ's release</a>.</p>
-  <div class="stats" id="stats"></div>
-  <div class="mapwrap" id="mapwrap" aria-label="Map of listed counties; select a county to show it below">
-    <div id="tip"></div>
-  </div>
-  <div class="legend"><span><i style="background:#8A1C1C;border-color:#8A1C1C"></i>New this year</span><span><i style="background:#16130E;border-color:#16130E"></i>Also on 2022 or 2024 list</span><span><i style="background:#C9C1B2"></i>Monitored in 2024, not this year</span><span>Tap a county to see it below. Cities are shown by their county.</span></div>
 </header>
 
 <div class="controls">
@@ -128,6 +155,16 @@
     <button data-v="dropped" aria-pressed="false">Monitored in 2024, not this year</button>
   </div>
 </div>
+
+<div id="answer" aria-live="polite"></div>
+
+<section class="maparea">
+  <div class="stats" id="stats"></div>
+  <div class="mapwrap" id="mapwrap" aria-label="Map of listed counties; select a county to show it below">
+    <div id="tip"></div>
+  </div>
+  <div class="legend"><span><i style="background:#F2C230;border-color:#7A5B00"></i>New this year</span><span><i style="background:#000"></i>Also on 2022 or 2024 list</span><span><i style="background:#C8CBCD;border-color:#8A8F94"></i>Monitored in 2024, not this year</span><span>Tap a county to see it below. Cities are shown by their county.</span></div>
+</section>
 
 <section class="reports" id="reports" hidden></section>
 
@@ -185,7 +222,7 @@
   const safeUrl = u => /^https?:\/\//.test(u||'') ? u : '#';
   const storiesFor = r => STORIES.filter(s => s.places.some(p => p.st===r.st && p.j===r.j));
   function repItem(s, withPlaces){
-    const where = withPlaces ? ' · ' + esc(s.places.length ? s.places.map(p => ST ? p.j : p.j+', '+p.st).join('; ') : (s.states||[]).join(', ')) : '';
+    const where = withPlaces ? ': ' + esc(s.places.length ? s.places.map(p => ST ? p.j : p.j+', '+p.st).join('; ') : (s.states||[]).join(', ')) : '';
     return `<li class="${s.kind==='DOJ monitors'?'mon':''}"><span class="k">${esc(s.kind)}${where}</span><a href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener">${esc(s.title)}</a> <span class="src">${esc(s.source)}</span></li>`;
   }
   const REPORT = 'https://github.com/TransparencyCascade/TransparencyCascade.github.io/issues/new?template=monitors-report.yml';
@@ -231,13 +268,13 @@
     body.innerHTML = html;
   })();
   function line(r){
-    const hist = r.y22 && r.y24 ? 'also 2022 & 2024' : r.y24 ? 'also 2024' : r.y22 ? 'also 2022' : 'new';
-    const cnty = (r.kind!=='county' && r.cty) ? ` · figures for ${esc(r.cty)}` : '';
-    const vote = r.dem!=null ? ` · 2024: Harris ${r.dem}%, Trump ${r.gop}%` : '';
-    const lang = r.lang.length ? ` · language assistance: ${esc(r.lang.join(', '))}` : '';
+    const hist = r.y22 && r.y24 ? 'Also 2022 and 2024' : r.y24 ? 'Also 2024' : r.y22 ? 'Also 2022' : 'New this year';
+    const cnty = (r.kind!=='county' && r.cty) ? `<dt>Figures for</dt><dd>${esc(r.cty)}</dd>` : '';
+    const vote = r.dem!=null ? `<dt>2024 vote</dt><dd>Harris ${r.dem}%, Trump ${r.gop}%</dd>` : '';
+    const lang = r.lang.length ? `<dt>Language help</dt><dd>${esc(r.lang.join(', '))}</dd>` : '';
     return `<div class="row"><span class="name">${esc(r.j)}, ${esc(r.st)}</span>` +
-      `<span class="tag ${hist==='new'?'new':''}">${hist}</span>` +
-      `<div class="meta">Pop. ${fmt(r.pop)}${cnty}${vote}<br>White (non-Hispanic) ${r.w}% · Black ${r.b}% · Hispanic ${r.h}% · Asian ${r.a}% · Native American ${r.ai}%${lang}</div>` +
+      `<span class="tag ${hist==='New this year'?'new':''}">${hist}</span>` +
+      `<div class="meta"><dl><dt>Population</dt><dd>${fmt(r.pop)}</dd>${cnty}${vote}<dt>Residents</dt><dd>${r.w}% white (non-Hispanic), ${r.b}% Black, ${r.h}% Hispanic, ${r.a}% Asian, ${r.ai}% Native American</dd>${lang}</dl></div>` +
       (storiesFor(r).length ? `<ul class="rep">${storiesFor(r).map(s=>repItem(s,false)).join('')}</ul>` : '') +
       `<div class="tip">${reportLink(r.j+', '+r.st, 'Report a story from '+esc(r.j))}</div></div>`;
   }
@@ -263,6 +300,23 @@
       }
     }
     el.innerHTML = html;
+    renderAnswer(q);
+  }
+  function renderAnswer(q){
+    const box = document.getElementById('answer');
+    let hits = sel ? rows.filter(r=>r.fips===sel) : (q.length >= 3 ? rows.filter(r => (r.j+' '+r.st+' '+(r.cty||'')).toLowerCase().includes(q)) : []);
+    if (!sel && q.length < 3) { box.innerHTML = ''; return; }
+    if (hits.length > 3) { box.innerHTML = ''; return; }
+    const placeName = hits.length ? hits.map(r=>r.j+', '+r.st).join('; ') : document.getElementById('q').value.trim();
+    const yes = hits.length > 0;
+    const inDropped = !yes && dropped.some(d => (d.j+' '+d.st).toLowerCase().includes(q));
+    const yesNote = yes ? hits.map(r => { const h = r.y22 && r.y24 ? 'also on its 2022 and 2024 lists' : r.y24 ? 'also on its 2024 list' : r.y22 ? 'also on its 2022 list' : 'new this year'; return `${esc(r.j)}: ${h}.`; }).join(' ') : '';
+    const noNote = inDropped ? 'Not on the Nov. 3 list, though DOJ monitored it in 2024.' : 'Not on the Nov. 3 list. The list names counties and some cities; your city may be inside a listed county.';
+    box.innerHTML = `<div class="ballot"><div class="b-head">Is DOJ monitoring <b>${esc(placeName)}</b>?</div>` +
+      `<p class="b-inst">From DOJ's Nov. 3, 2026 list of places it said it intends to monitor or observe.</p>` +
+      `<p class="opt ${yes?'on':'off'}"><span class="oval"></span><span>Yes${yes ? `<small>${yesNote}</small>` : ''}</span></p>` +
+      `<p class="opt ${yes?'off':'on'}"><span class="oval"></span><span>No${yes ? '' : `<small>${esc(noNote)}</small>`}</span></p>` +
+      `<div class="marks" aria-hidden="true"></div></div>`;
   }
   document.getElementById('q').addEventListener('input', () => { sel=null; render(); });
   document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
@@ -289,20 +343,21 @@
       vb = `${x0-pad} ${y0-pad} ${x1-x0+2*pad} ${y1-y0+2*pad}`;
     }
     const svg = wrap.append('svg').attr('viewBox', vb).attr('role','img');
-    const fill = f => { const L=listed[f.id]; if (L) return L.some(r=>!r.y22&&!r.y24) ? '#8A1C1C' : '#16130E'; return drop[f.id] ? '#C9C1B2' : '#E5E0D5'; };
+    const fill = f => { const L=listed[f.id]; if (L) return L.some(r=>!r.y22&&!r.y24) ? '#F2C230' : '#000000'; return drop[f.id] ? '#C8CBCD' : '#EEF0EE'; };
     svg.append('g').selectAll('path').data(counties).join('path')
       .attr('class', f => 'c' + (listed[f.id]||drop[f.id] ? ' on' : ''))
-      .attr('d', path).attr('fill', fill);
+      .attr('d', path).attr('fill', fill)
+      .attr('stroke', f => (listed[f.id] && listed[f.id].some(r=>!r.y22&&!r.y24)) ? '#7A5B00' : null).attr('stroke-width', f => (listed[f.id] && listed[f.id].some(r=>!r.y22&&!r.y24)) ? 0.8 : null);
     if (ST) {
       const sw = 0.7;
       svg.append('path').datum(topojson.mesh(topo, topo.objects.counties, (a,b)=>a!==b && a.id.slice(0,2)===stFeat.id && b.id.slice(0,2)===stFeat.id))
-        .attr('fill','none').attr('stroke','#EDE9E0').attr('stroke-width',sw).attr('d', path);
-      svg.append('path').datum(stFeat).attr('fill','none').attr('stroke','#6B6459').attr('stroke-width',sw*1.5).attr('d', path);
+        .attr('fill','none').attr('stroke','#FFFFFF').attr('stroke-width',sw).attr('d', path);
+      svg.append('path').datum(stFeat).attr('fill','none').attr('stroke','#5B6168').attr('stroke-width',sw*1.5).attr('d', path);
     } else {
     svg.append('path').datum(topojson.mesh(topo, topo.objects.states, (a,b)=>a!==b))
-      .attr('fill','none').attr('stroke','#EDE9E0').attr('stroke-width',0.8).attr('d', path);
+      .attr('fill','none').attr('stroke','#FFFFFF').attr('stroke-width',0.8).attr('d', path);
     svg.append('path').datum(topojson.feature(topo, topo.objects.nation))
-      .attr('fill','none').attr('stroke','#6B6459').attr('stroke-width',0.6).attr('d', path);
+      .attr('fill','none').attr('stroke','#5B6168').attr('stroke-width',0.6).attr('d', path);
     }
     const tip = document.getElementById('tip');
     const label = f => { const L=listed[f.id]; if (L) return L.map(r=>r.j+', '+r.st).join(' · '); const D=drop[f.id]; return D ? D.map(d=>d.j+', '+d.st).join(' · ')+' (2024 only)' : ''; };
