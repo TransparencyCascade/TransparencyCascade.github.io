@@ -78,6 +78,15 @@
   nav#states div{display:flex; flex-wrap:wrap; gap:4px 14px; font:500 13px/1.6 var(--mono);}
   nav#states a{color:var(--ink); text-decoration-color:var(--rule);}
   nav#states a.cur{color:var(--seal); font-weight:700; text-decoration:none;}
+  .reports{margin-top:30px;}
+  .reports .why{font-size:15px; color:var(--graphite); margin:0 0 6px;}
+  ul.rep{list-style:none; margin:6px 0 0; padding:0;}
+  ul.rep li{padding:8px 0 8px 12px; border-left:3px solid var(--rule); margin:6px 0; font-size:16px; line-height:1.4;}
+  ul.rep li.mon{border-left-color:var(--seal);}
+  ul.rep .k{display:block; font:500 11px/1.4 var(--mono); text-transform:uppercase; letter-spacing:.06em; color:var(--graphite);}
+  ul.rep .src{color:var(--graphite); font-size:14px;}
+  .row ul.rep li{font-size:15px; padding:4px 0 4px 10px; margin:4px 0;}
+  .more{font:500 13px var(--mono); padding:0; border:0; background:none; color:var(--seal); cursor:pointer; text-decoration:underline; margin-top:6px;}
   @media (max-width:520px){ body{font-size:17px;} .stats b{font-size:24px;} }
 </style>
 </head>
@@ -107,6 +116,8 @@
   </div>
 </div>
 
+<section class="reports" id="reports" hidden></section>
+
 <div id="list"></div>
 
 <nav id="states" aria-label="State pages"></nav>
@@ -135,6 +146,8 @@
   const ST = window.MON_STATE || null, BASE = window.MON_BASE || '';
   const res = await fetch(BASE+'data.json?v=20261103c', {cache:'no-cache'}); const D = await res.json();
   const slug = s => s.toLowerCase().replace(/[^a-z]+/g,'-');
+  let STORIES = [];
+  try { STORIES = (await (await fetch(BASE+'stories.json', {cache:'no-cache'})).json()).stories || []; } catch (e) { STORIES = []; }
   const allStates = [...new Set(D.rows.map(r=>r.st))].sort();
   document.getElementById('states').innerHTML = '<h2>State pages</h2><div>' + (ST ? `<a href="${BASE}">All states</a>` : '') +
     allStates.map(s => `<a href="${BASE}${slug(s)}/" class="${s===ST?'cur':''}">${s}</a>`).join('') + '</div>';
@@ -149,6 +162,26 @@
     `<div><b>${nNew}</b>new this year</div><div><b>${dropped.length}</b>dropped from 2024</div>`;
   let view = 'state'; let sel = null;
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const safeUrl = u => /^https?:\/\//.test(u||'') ? u : '#';
+  const storiesFor = r => STORIES.filter(s => s.places.some(p => p.st===r.st && p.j===r.j));
+  function repItem(s, withPlaces){
+    const where = withPlaces ? ' · ' + esc(s.places.map(p => ST ? p.j : p.j+', '+p.st).join('; ')) : '';
+    return `<li class="${s.kind==='DOJ monitors'?'mon':''}"><span class="k">${esc(s.kind)}${where}</span><a href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener">${esc(s.title)}</a> <span class="src">${esc(s.source)}</span></li>`;
+  }
+  let showAllReports = false;
+  function renderReports(){
+    const box = document.getElementById('reports');
+    const mine = ST ? STORIES.filter(s => s.places.some(p => p.st===ST)) : STORIES;
+    if (!mine.length) { box.hidden = true; return; }
+    const cap = ST ? 99 : 8, shown = showAllReports ? mine : mine.slice(0, cap);
+    box.hidden = false;
+    box.innerHTML = `<h2>Election Day reports${ST ? ' from ' + esc(ST) : ''} (${mine.length})</h2>` +
+      `<p class="why">News reports about voting problems and DOJ monitors in the places on DOJ's list. We opened and read each one before listing it. Links go to the outlet's own reporting, or to our timeline entry where we wrote one.</p>` +
+      `<ul class="rep">${shown.map(s=>repItem(s, true)).join('')}</ul>` +
+      (mine.length > cap ? `<button class="more" id="morerep">${showAllReports ? 'Show fewer' : 'Show all ' + mine.length}</button>` : '');
+    const b = document.getElementById('morerep'); if (b) b.addEventListener('click', () => { showAllReports = !showAllReports; renderReports(); });
+  }
+  renderReports();
   function line(r){
     const hist = r.y22 && r.y24 ? 'also 2022 & 2024' : r.y24 ? 'also 2024' : r.y22 ? 'also 2022' : 'new';
     const cnty = (r.kind!=='county' && r.cty) ? ` · figures for ${esc(r.cty)}` : '';
@@ -156,7 +189,8 @@
     const lang = r.lang.length ? ` · language assistance: ${esc(r.lang.join(', '))}` : '';
     return `<div class="row"><span class="name">${esc(r.j)}, ${esc(r.st)}</span>` +
       `<span class="tag ${hist==='new'?'new':''}">${hist}</span>` +
-      `<div class="meta">Pop. ${fmt(r.pop)}${cnty}${vote}<br>White (non-Hispanic) ${r.w}% · Black ${r.b}% · Hispanic ${r.h}% · Asian ${r.a}% · Native American ${r.ai}%${lang}</div></div>`;
+      `<div class="meta">Pop. ${fmt(r.pop)}${cnty}${vote}<br>White (non-Hispanic) ${r.w}% · Black ${r.b}% · Hispanic ${r.h}% · Asian ${r.a}% · Native American ${r.ai}%${lang}</div>` +
+      (storiesFor(r).length ? `<ul class="rep">${storiesFor(r).map(s=>repItem(s,false)).join('')}</ul>` : '') + `</div>`;
   }
   function render(){
     const q = document.getElementById('q').value.trim().toLowerCase();

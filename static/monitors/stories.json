@@ -1,0 +1,390 @@
+{
+ "updated": "2026-11-03",
+ "note": "Reporting from Election Day, linked to the places on DOJ's list. Each link was opened and read before it was listed.",
+ "stories": [
+  {
+   "url": "https://www.wsbtv.com/news/local/fulton-county/georgia-election-2026-fulton-asks-rescan-some-early-voting-ballots-after-scanner-issues/BD6TN7P27ZDIJBGG2OE3SY35BM/",
+   "title": "Georgia election 2026: Fulton asks to rescan more than 1,000 early voting ballots - WSB-TV",
+   "source": "WSB-TV",
+   "kind": "Voting equipment",
+   "places": [
+    {
+     "st": "Georgia",
+     "j": "Fulton"
+    }
+   ]
+  },
+  {
+   "url": "https://www.kcrg.com/2026/11/03/voting-machines-down-two-linn-county-locations/",
+   "title": "Voting machines down at two Linn County locations",
+   "source": "KCRG",
+   "kind": "Voting equipment",
+   "places": [
+    {
+     "st": "Iowa",
+     "j": "Linn"
+    }
+   ]
+  },
+  {
+   "url": "https://www.kcrg.com/2026/11/02/about-20-federal-monitors-expected-linn-county-what-voters-should-know/",
+   "title": "About 20 federal monitors expected in Linn County: What voters should know",
+   "source": "KCRG",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "Iowa",
+     "j": "Linn"
+    }
+   ]
+  },
+  {
+   "url": "https://www.lohud.com/story/news/2026/11/03/westchester-voting-problems-ballot-scanners-election-day/92582847007/",
+   "title": "Westchester voting problems: Ballot scanners not accepting ballots",
+   "source": "Lohud",
+   "kind": "Voting equipment",
+   "places": [
+    {
+     "st": "New York",
+     "j": "Westchester"
+    }
+   ]
+  },
+  {
+   "url": "https://www.ktnv.com/13-investigates/judge-bans-bullhorn-becky-from-desert-breeze-park-after-voter-intimidation",
+   "title": "Judge prohibits 'Bullhorn Becky' from intimidating voters at polling location",
+   "source": "KTNV",
+   "kind": "Voter intimidation",
+   "places": [
+    {
+     "st": "Nevada",
+     "j": "Clark"
+    }
+   ]
+  },
+  {
+   "url": "https://www.ktvq.com/news/longer-lines-possible-at-montana-polls-due-to-statewide-ballot-printing-issue",
+   "title": "Longer lines possible at Montana polls due to statewide ballot printing issue",
+   "source": "KTVQ (Q2 News)",
+   "kind": "Voting equipment",
+   "places": [
+    {
+     "st": "Montana",
+     "j": "Yellowstone"
+    }
+   ]
+  },
+  {
+   "url": "http://www.hometownsource.com/press_and_news/psa/doj-again-asks-to-monitor-hennepin-county-polling-places-county-attorney-says/article_f59aa7b7-d26b-4b09-9c4f-928ed36355f6.html",
+   "title": "DOJ again asks to monitor Hennepin County polling places, county attorney says",
+   "source": "Hometown Source (Sun Post)",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "Minnesota",
+     "j": "Hennepin"
+    }
+   ]
+  },
+  {
+   "url": "https://bismarcktribune.com/news/state-regional/government-politics/elections/article_af27fd86-be8b-47cb-99ff-33e906c129cd.html",
+   "title": "Federal monitors heading to Cass County polls on Election Day",
+   "source": "Bismarck Tribune (North Dakota Monitor)",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "North Dakota",
+     "j": "Cass"
+    }
+   ]
+  },
+  {
+   "url": "https://www.qcnews.com/news/politics/election/north-carolina-elections/doj-sends-federal-election-monitors-to-mecklenburg-county-voting-sites/",
+   "title": "DOJ sends federal election monitors to Mecklenburg County voting sites",
+   "source": "Queen City News (QCNews)",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "North Carolina",
+     "j": "Mecklenburg"
+    }
+   ]
+  },
+  {
+   "url": "https://myfox8.com/news/north-carolina/alamance/doj-election-monitors-to-be-present-in-alamance-county-on-election-day/",
+   "title": "DOJ election monitors to be present in Alamance County on Election Day",
+   "source": "FOX8 WGHP",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "North Carolina",
+     "j": "Alamance"
+    }
+   ]
+  },
+  {
+   "url": "https://dailyprogress.com/news/local/government-politics/elections/article_0d02273f-0742-4942-b094-4fd7be717f14.html",
+   "title": "'Militia activity' prompted Trump to send election monitors to Charlottesville, DOJ says",
+   "source": "The Daily Progress",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "Virginia",
+     "j": "Charlottesville"
+    }
+   ]
+  },
+  {
+   "url": "https://cvillerightnow.com/news/208802-federal-department-of-justice-election-monitors-are-at-charlottesville-polling-places-tuesday/",
+   "title": "Federal Department of Justice election monitors are at Charlottesville polling places Tuesday",
+   "source": "Cville Right Now",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "Virginia",
+     "j": "Charlottesville"
+    }
+   ]
+  },
+  {
+   "url": "https://www.thedp.com/article/2026/11/penn-philadelphia-polls-doj-election-moniters-trump",
+   "title": "Justice Department officials to monitor Philadelphia polling locations",
+   "source": "The Daily Pennsylvanian",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "Pennsylvania",
+     "j": "Philadelphia"
+    }
+   ]
+  },
+  {
+   "url": "https://www.wvlt.tv/2026/11/03/doj-deploys-federal-election-monitors-knox-county-select-sites-nationwide/",
+   "title": "DOJ deploys federal election monitors to Knox County, select sites nationwide",
+   "source": "WVLT",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "Tennessee",
+     "j": "Knox"
+    }
+   ]
+  },
+  {
+   "url": "https://www.wsmv.com/2026/11/03/heres-where-doj-is-monitoring-voting-tennessee-kentucky-other-states-election-day/",
+   "title": "Here's where the DOJ is monitoring voting in Tennessee, Kentucky and other states on Election Day",
+   "source": "WSMV",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "Tennessee",
+     "j": "Davidson"
+    }
+   ]
+  },
+  {
+   "url": "https://www.detroitnews.com/story/news/politics/elections/2026/11/03/michigan-ag-contacts-doj-about-monitors-speaking-to-poll-workers/92590124007/",
+   "title": "Michigan officials contact DOJ about monitors speaking to poll workers",
+   "source": "The Detroit News",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "Michigan",
+     "j": "Dearborn"
+    },
+    {
+     "st": "Michigan",
+     "j": "Flint"
+    }
+   ]
+  },
+  {
+   "url": "https://www.sun-sentinel.com/2026/11/03/broward-palm-beach-county-officials-confident-about-election-day-heres-how-to-vote-if-you-havent-already/",
+   "title": "Rainy Election Day begins in South Florida, technical glitch hits Broward",
+   "source": "Sun Sentinel",
+   "kind": "Voting equipment",
+   "places": [
+    {
+     "st": "Florida",
+     "j": "Broward"
+    }
+   ]
+  },
+  {
+   "url": "https://www.sun-sentinel.com/2026/11/03/list-of-south-florida-polling-places-moved-because-of-flooding/",
+   "title": "List of South Florida polling places moved because of flooding",
+   "source": "Sun Sentinel",
+   "kind": "Flooding and weather",
+   "places": [
+    {
+     "st": "Florida",
+     "j": "Broward"
+    },
+    {
+     "st": "Florida",
+     "j": "Palm Beach"
+    }
+   ]
+  },
+  {
+   "url": "https://www.koco.com/article/westchester-county-voting-machines-paper-ballots/74322211",
+   "title": "Voting continues in suburban county outside New York City, despite machine issue (AP via KOCO)",
+   "source": "AP, via KOCO",
+   "kind": "Voting equipment",
+   "places": [
+    {
+     "st": "New York",
+     "j": "Westchester"
+    }
+   ]
+  },
+  {
+   "url": "https://cronkitenews.azpbs.org/2026/11/03/arizona-2026-midterm-election-live-updates/",
+   "title": "Live updates: Navajo Nation offers free rides for flood-impacted voters as Phoenix lines grow",
+   "source": "Cronkite News",
+   "kind": "Flooding and weather",
+   "places": [
+    {
+     "st": "Arizona",
+     "j": "Navajo"
+    },
+    {
+     "st": "Arizona",
+     "j": "Apache"
+    }
+   ]
+  },
+  {
+   "url": "https://newjerseyglobe.com/judiciary/judges-consider-emergent-voter-applications/",
+   "title": "Judges consider emergent voter applications",
+   "source": "New Jersey Globe",
+   "kind": "Courts",
+   "places": [
+    {
+     "st": "New Jersey",
+     "j": "Bergen"
+    }
+   ]
+  },
+  {
+   "url": "https://www.kctv5.com/2026/11/03/federal-election-monitors-ground-kansas-city-metro-counties-election-day/",
+   "title": "Federal election monitors on the ground in Kansas City metro counties on Election Day",
+   "source": "KCTV",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "Kansas",
+     "j": "Johnson"
+    },
+    {
+     "st": "Kansas",
+     "j": "Wyandotte"
+    },
+    {
+     "st": "Kansas",
+     "j": "Sedgwick"
+    },
+    {
+     "st": "Missouri",
+     "j": "Jackson"
+    },
+    {
+     "st": "Missouri",
+     "j": "Clay"
+    },
+    {
+     "st": "Missouri",
+     "j": "St. Louis"
+    }
+   ]
+  },
+  {
+   "url": "https://www.wjcl.com/article/savannah-georgia-poll-watchers-justice-department/74324344",
+   "title": "Chatham County voters see poll watchers but no Justice Department monitors at voting locations",
+   "source": "WJCL",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "Georgia",
+     "j": "Chatham"
+    }
+   ]
+  },
+  {
+   "url": "https://www.appenmedia.com/alpharetta_roswell/fulton-county-election-updates-fake-texts-rescan-plans/article_d7c8f06e-2ed2-45b0-95fe-4b76ac83293e.html",
+   "title": "Fulton County election updates: Fake texts, rescan plans",
+   "source": "Appen Media",
+   "kind": "Misinformation",
+   "places": [
+    {
+     "st": "Georgia",
+     "j": "Fulton"
+    }
+   ]
+  },
+  {
+   "url": "https://mirrorindy.org/indiana-elections-2026-mirror-indy-blog-marion-county-vote/",
+   "title": "Mirror Indy's live blog: Federal election monitors spotted at City-County Building",
+   "source": "Mirror Indy",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "Indiana",
+     "j": "Marion"
+    }
+   ]
+  },
+  {
+   "url": "https://www.koco.com/article/oklahoma-voting-machine-issues-polling-place-2026-election/74324721",
+   "title": "Oklahoma polling places see brief issue with voting machine on Midterm Election Day",
+   "source": "KOCO",
+   "kind": "Voting equipment",
+   "places": [
+    {
+     "st": "Oklahoma",
+     "j": "Oklahoma"
+    }
+   ]
+  },
+  {
+   "url": "https://www.news9.com/oklahoma-elections/oklahoma-county-election-board-polling-machine-issues",
+   "title": "Oklahoma County Election Board addresses voting machine issues on Election Day",
+   "source": "News 9",
+   "kind": "Voting equipment",
+   "places": [
+    {
+     "st": "Oklahoma",
+     "j": "Oklahoma"
+    }
+   ]
+  },
+  {
+   "url": "https://capturecascade.org/event/2026-11-03--michigan-officials-contact-doj-after-monitors-question-poll-workers-in-dearborn-and-flint/",
+   "title": "Michigan officials contact DOJ after reports its election monitors questioned poll workers in Dearborn and Flint",
+   "source": "Capture Cascade timeline",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "Michigan",
+     "j": "Dearborn"
+    },
+    {
+     "st": "Michigan",
+     "j": "Flint"
+    }
+   ]
+  },
+  {
+   "url": "https://capturecascade.org/event/2026-11-03--fulton-county-asks-to-rescan-1069-early-voting-ballots-after-two-scanner-problems/",
+   "title": "Fulton County asks Georgia to let it rescan just over 1,000 early voting ballots after two scanner problems",
+   "source": "Capture Cascade timeline",
+   "kind": "Voting equipment",
+   "places": [
+    {
+     "st": "Georgia",
+     "j": "Fulton"
+    }
+   ]
+  }
+ ]
+}
