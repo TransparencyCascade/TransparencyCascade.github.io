@@ -89,6 +89,16 @@
   .tip{font:500 13px var(--mono); color:var(--graphite); margin-top:10px;}
   .row .tip{margin-top:4px; font-size:12px;}
   .more{font:500 13px var(--mono); padding:0; border:0; background:none; color:var(--seal); cursor:pointer; text-decoration:underline; margin-top:6px;}
+  .lanes{display:flex; flex-wrap:wrap; gap:4px 18px; margin:0 0 10px; font:700 13px/1.4 var(--mono);}
+  .lanes a{color:var(--ink); text-decoration-color:var(--rule); text-underline-offset:3px;}
+  #count, #top-watchers{scroll-margin-top:150px;}
+  #count{margin-top:44px; padding-top:6px; border-top:2px solid var(--ink);}
+  #count h2.lane{font:700 clamp(22px,4vw,30px)/1.1 var(--mono); text-transform:none; letter-spacing:0; border:0; margin:14px 0 6px;}
+  .cal{list-style:none; padding:0; margin:8px 0;}
+  .cal li{display:grid; grid-template-columns:6.5em 1fr; gap:2px 12px; padding:7px 0; border-bottom:1px dotted var(--rule); font-size:16px;}
+  .cal time{font:500 13px/1.6 var(--mono); color:var(--seal);}
+  .cal .st{font:700 13px var(--mono);}
+  .cal li.past{opacity:.55;}
   @media (max-width:520px){ body{font-size:17px;} .stats b{font-size:24px;} }
 </style>
 </head>
@@ -96,8 +106,9 @@
 <div class="wrap">
 <header>
   <div class="stamp">Election Day · Nov. 3, 2026</div>
+  <nav class="lanes" aria-label="Sections"><a href="#top-watchers">Watching the watchers</a><a href="#count">Watching the count</a></nav>
   <div id="back"></div>
-  <h1>Is DOJ monitoring your county in North Dakota?</h1>
+  <h1 id="top-watchers">Is DOJ monitoring your county?</h1>
   <p class="dek">On Election Day morning the Justice Department said it intends to "monitor or observe" voting in 1 place in North Dakota: Cass. 1 is new this year. <a href="https://www.justice.gov/opa/pr/doj-monitor-elections-all-50-states-first-time">DOJ's release</a>.</p>
   <div class="stats" id="stats"></div>
   <div class="mapwrap" id="mapwrap" aria-label="Map of listed counties; select a county to show it below">
@@ -121,6 +132,12 @@
 <section class="reports" id="reports" hidden></section>
 
 <div id="list"></div>
+
+<section id="count" aria-labelledby="count-h">
+  <h2 class="lane" id="count-h">Watching the count</h2>
+  <p class="dek" style="font-size:17px">After the polls close, the fight moves to the count: canvasses, rescans, certification deadlines and lawsuits. We follow it here through certification.</p>
+  <div id="countbody"></div>
+</section>
 
 <nav id="states" aria-label="State pages"></nav>
 
@@ -168,7 +185,7 @@
   const safeUrl = u => /^https?:\/\//.test(u||'') ? u : '#';
   const storiesFor = r => STORIES.filter(s => s.places.some(p => p.st===r.st && p.j===r.j));
   function repItem(s, withPlaces){
-    const where = withPlaces ? ' · ' + esc(s.places.map(p => ST ? p.j : p.j+', '+p.st).join('; ')) : '';
+    const where = withPlaces ? ' · ' + esc(s.places.length ? s.places.map(p => ST ? p.j : p.j+', '+p.st).join('; ') : (s.states||[]).join(', ')) : '';
     return `<li class="${s.kind==='DOJ monitors'?'mon':''}"><span class="k">${esc(s.kind)}${where}</span><a href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener">${esc(s.title)}</a> <span class="src">${esc(s.source)}</span></li>`;
   }
   const REPORT = 'https://github.com/TransparencyCascade/TransparencyCascade.github.io/issues/new?template=monitors-report.yml';
@@ -176,18 +193,43 @@
   let showAllReports = false;
   function renderReports(){
     const box = document.getElementById('reports');
-    const mine = ST ? STORIES.filter(s => s.places.some(p => p.st===ST)) : STORIES;
+    const mine = (ST ? STORIES.filter(s => (s.states||[]).includes(ST)) : STORIES).filter(s => s.lane !== 'count');
     const tipLine = `<p class="tip">Know of a report we missed? ${reportLink(ST || '', 'Send us the link')}. It opens a public GitHub form; we read every link before listing it.</p>`;
-    if (!mine.length) { box.hidden = false; box.innerHTML = `<h2>Election Day reports${ST ? ' from ' + esc(ST) : ''}</h2><p class="why">No verified reports yet.</p>` + tipLine; return; }
+    if (!mine.length) { box.hidden = false; box.innerHTML = `<h2>Watching the watchers: Election Day reports${ST ? ' from ' + esc(ST) : ''}</h2><p class="why">No verified reports yet.</p>` + tipLine; return; }
     const cap = ST ? 99 : 8, shown = showAllReports ? mine : mine.slice(0, cap);
     box.hidden = false;
-    box.innerHTML = `<h2>Election Day reports${ST ? ' from ' + esc(ST) : ''} (${mine.length})</h2>` +
+    box.innerHTML = `<h2>Watching the watchers: Election Day reports${ST ? ' from ' + esc(ST) : ''} (${mine.length})</h2>` +
       `<p class="why">News reports about voting problems and DOJ monitors in the places on DOJ's list. We opened and read each one before listing it. Links go to the outlet's own reporting, or to our timeline entry where we wrote one.</p>` +
       `<ul class="rep">${shown.map(s=>repItem(s, true)).join('')}</ul>` +
       (mine.length > cap ? `<button class="more" id="morerep">${showAllReports ? 'Show fewer' : 'Show all ' + mine.length}</button>` : '') + tipLine;
     const b = document.getElementById('morerep'); if (b) b.addEventListener('click', () => { showAllReports = !showAllReports; renderReports(); });
   }
   renderReports();
+  // ---- watching the count ----
+  let COUNT = null;
+  try { COUNT = await (await fetch(BASE+'count.json', {cache:'no-cache'})).json(); } catch (e) { COUNT = null; }
+  (function renderCount(){
+    const body = document.getElementById('countbody'); if (!body) return;
+    const today = new Date().toISOString().slice(0,10);
+    const day = iso => new Date(iso+'T12:00:00').toLocaleDateString('en-US',{weekday:'short', month:'short', day:'numeric'});
+    let html = '';
+    if (COUNT) {
+      let items = [];
+      Object.entries(COUNT.calendar).forEach(([st, rows]) => { if (!ST || st===ST) rows.forEach(([d,t]) => items.push({d, st, t})); });
+      if (!ST) COUNT.national.forEach(([d,t]) => items.push({d, st:'Congress', t}));
+      items.sort((a,b) => a.d.localeCompare(b.d));
+      html += `<h2>Certification calendar${ST ? ' for ' + esc(ST) : ''}</h2>`;
+      if (items.length) {
+        html += `<ul class="cal">${items.map(x => `<li class="${x.d < today ? 'past' : ''}"><time datetime="${x.d}">${day(x.d)}</time><span>${ST ? '' : `<span class="st">${esc(x.st)}</span> `}${esc(x.t)}</span></li>`).join('')}</ul><p class="why">${esc(COUNT.note)}</p>`;
+      } else {
+        html += `<p class="why">We have not compiled ${esc(ST)}'s certification deadlines yet. So far the calendar covers Arizona, California, Georgia, Michigan, Nevada, North Carolina, Pennsylvania and Wisconsin.</p>`;
+      }
+    }
+    const cs = (ST ? STORIES.filter(s => (s.states||[]).includes(ST)) : STORIES).filter(s => s.lane === 'count');
+    html += `<h2>Count and certification reports${ST ? ' from ' + esc(ST) : ''} (${cs.length})</h2>` +
+      (cs.length ? `<ul class="rep">${cs.map(s => repItem(s, true)).join('')}</ul>` : '<p class="why">Nothing yet. Reports about rescans, canvasses, certification and count lawsuits will appear here.</p>');
+    body.innerHTML = html;
+  })();
   function line(r){
     const hist = r.y22 && r.y24 ? 'also 2022 & 2024' : r.y24 ? 'also 2024' : r.y22 ? 'also 2022' : 'new';
     const cnty = (r.kind!=='county' && r.cty) ? ` · figures for ${esc(r.cty)}` : '';

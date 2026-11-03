@@ -1,0 +1,14 @@
+{
+ "note": "Each date is the last day the state's statute allows, unless marked fixed (a day the statute sets) or conditional. Recounts and election contests extend this calendar. We read the statutes for these seven states; California's dates are from its Secretary of State's calendar.",
+ "calendar": {
+  "Pennsylvania": [["2026-11-06", "County boards begin computing the returns at 9 a.m. (fixed)."], ["2026-11-23", "Counties certify to the Secretary of the Commonwealth."]],
+  "Georgia": [["2026-11-09", "County superintendents certify, by 5 p.m."], ["2026-11-20", "The Secretary of State certifies, by 5 p.m. A superior court judge may alter the time \"for just cause.\""]],
+  "Nevada": [["2026-11-13", "Counties finish their canvass."], ["2026-11-24", "State canvass by the Supreme Court justices with the Secretary of State (fixed)."]],
+  "North Carolina": [["2026-11-13", "County boards meet to finish their canvass (fixed)."], ["2026-11-24", "State Board of Elections canvass (fixed; it may adjourn up to 10 days)."], ["2026-11-30", "Certificate, six days after the canvass, if no protest is pending (conditional)."]],
+  "Michigan": [["2026-11-17", "County canvassers finish."], ["2026-11-23", "Board of State Canvassers. Michigan law calls certifying a \"ministerial, clerical, and nondiscretionary duty.\""]],
+  "Wisconsin": [["2026-11-17", "County clerks send results to the Elections Commission."], ["2026-12-01", "The Elections Commission chair certifies."]],
+  "Arizona": [["2026-11-19", "Counties canvass."], ["2026-11-23", "Statewide canvass (fixed), held \"in the presence of the governor and the attorney general.\""]],
+  "California": [["2026-12-03", "Counties certify."], ["2026-12-11", "The Secretary of State certifies the Statement of Vote."]]
+ },
+ "national": [["2027-01-03", "New House and Senate terms begin at noon."]]
+}

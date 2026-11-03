@@ -4,7 +4,7 @@
  "stories": [
   {
    "url": "https://www.wsbtv.com/news/local/fulton-county/georgia-election-2026-fulton-asks-rescan-some-early-voting-ballots-after-scanner-issues/BD6TN7P27ZDIJBGG2OE3SY35BM/",
-   "title": "Georgia election 2026: Fulton asks to rescan more than 1,000 early voting ballots - WSB-TV",
+   "title": "Georgia election 2026: Fulton asks to rescan more than 1,000 early voting ballots",
    "source": "WSB-TV",
    "kind": "Voting equipment",
    "places": [
@@ -12,6 +12,10 @@
      "st": "Georgia",
      "j": "Fulton"
     }
+   ],
+   "lane": "count",
+   "states": [
+    "Georgia"
    ]
   },
   {
@@ -24,6 +28,10 @@
      "st": "Iowa",
      "j": "Linn"
     }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Iowa"
    ]
   },
   {
@@ -36,6 +44,10 @@
      "st": "Iowa",
      "j": "Linn"
     }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Iowa"
    ]
   },
   {
@@ -48,6 +60,10 @@
      "st": "New York",
      "j": "Westchester"
     }
+   ],
+   "lane": "watchers",
+   "states": [
+    "New York"
    ]
   },
   {
@@ -60,6 +76,10 @@
      "st": "Nevada",
      "j": "Clark"
     }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Nevada"
    ]
   },
   {
@@ -72,6 +92,10 @@
      "st": "Montana",
      "j": "Yellowstone"
     }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Montana"
    ]
   },
   {
@@ -84,6 +108,10 @@
      "st": "Minnesota",
      "j": "Hennepin"
     }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Minnesota"
    ]
   },
   {
@@ -96,6 +124,10 @@
      "st": "North Dakota",
      "j": "Cass"
     }
+   ],
+   "lane": "watchers",
+   "states": [
+    "North Dakota"
    ]
   },
   {
@@ -108,6 +140,10 @@
      "st": "North Carolina",
      "j": "Mecklenburg"
     }
+   ],
+   "lane": "watchers",
+   "states": [
+    "North Carolina"
    ]
   },
   {
@@ -120,6 +156,10 @@
      "st": "North Carolina",
      "j": "Alamance"
     }
+   ],
+   "lane": "watchers",
+   "states": [
+    "North Carolina"
    ]
   },
   {
@@ -132,6 +172,10 @@
      "st": "Virginia",
      "j": "Charlottesville"
     }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Virginia"
    ]
   },
   {
@@ -144,6 +188,10 @@
      "st": "Virginia",
      "j": "Charlottesville"
     }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Virginia"
    ]
   },
   {
@@ -156,6 +204,10 @@
      "st": "Pennsylvania",
      "j": "Philadelphia"
     }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Pennsylvania"
    ]
   },
   {
@@ -168,6 +220,10 @@
      "st": "Tennessee",
      "j": "Knox"
     }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Tennessee"
    ]
   },
   {
@@ -180,6 +236,10 @@
      "st": "Tennessee",
      "j": "Davidson"
     }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Tennessee"
    ]
   },
   {
@@ -196,6 +256,10 @@
      "st": "Michigan",
      "j": "Flint"
     }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Michigan"
    ]
   },
   {
@@ -208,6 +272,10 @@
      "st": "Florida",
      "j": "Broward"
     }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Florida"
    ]
   },
   {
@@ -224,6 +292,10 @@
      "st": "Florida",
      "j": "Palm Beach"
     }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Florida"
    ]
   },
   {
@@ -236,6 +308,10 @@
      "st": "New York",
      "j": "Westchester"
     }
+   ],
+   "lane": "watchers",
+   "states": [
+    "New York"
    ]
   },
   {
@@ -252,6 +328,10 @@
      "st": "Arizona",
      "j": "Apache"
     }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Arizona"
    ]
   },
   {
@@ -264,6 +344,10 @@
      "st": "New Jersey",
      "j": "Bergen"
     }
+   ],
+   "lane": "watchers",
+   "states": [
+    "New Jersey"
    ]
   },
   {
@@ -296,6 +380,11 @@
      "st": "Missouri",
      "j": "St. Louis"
     }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Kansas",
+    "Missouri"
    ]
   },
   {
@@ -308,6 +397,10 @@
      "st": "Georgia",
      "j": "Chatham"
     }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Georgia"
    ]
   },
   {
@@ -320,6 +413,10 @@
      "st": "Georgia",
      "j": "Fulton"
     }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Georgia"
    ]
   },
   {
@@ -332,6 +429,10 @@
      "st": "Indiana",
      "j": "Marion"
     }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Indiana"
    ]
   },
   {
@@ -344,6 +445,10 @@
      "st": "Oklahoma",
      "j": "Oklahoma"
     }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Oklahoma"
    ]
   },
   {
@@ -356,6 +461,10 @@
      "st": "Oklahoma",
      "j": "Oklahoma"
     }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Oklahoma"
    ]
   },
   {
@@ -372,6 +481,10 @@
      "st": "Michigan",
      "j": "Flint"
     }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Michigan"
    ]
   },
   {
@@ -384,7 +497,44 @@
      "st": "Georgia",
      "j": "Fulton"
     }
+   ],
+   "lane": "count",
+   "states": [
+    "Georgia"
    ]
+  },
+  {
+   "url": "https://capturecascade.org/event/2026-11-02--doj-asks-supreme-court-make-california-set-aside-20000-flagged-mail-ballots-sauer-application/",
+   "title": "Supreme Court rejects DOJ's request to make California set aside 20,000 flagged mail ballots",
+   "source": "Capture Cascade timeline",
+   "kind": "Courts",
+   "states": [
+    "California"
+   ],
+   "lane": "count",
+   "places": []
+  },
+  {
+   "url": "https://capturecascade.org/event/2026-10-22--doj-sues-alaska-to-bar-senate-certification-if-sullivan-loses-nvra/",
+   "title": "DOJ's suit to bar certifying Alaska's Senate result is dismissed; DOJ appeals",
+   "source": "Capture Cascade timeline",
+   "kind": "Certification",
+   "states": [
+    "Alaska"
+   ],
+   "lane": "count",
+   "places": []
+  },
+  {
+   "url": "https://capturecascade.org/event/2026-10-30--thompson-tro-bars-doj-dhs-demands-and-prosecution-threats-election-officials-seiu-v-doj-3-26-cv-12800/",
+   "title": "Judge bars DOJ and DHS demands and prosecution threats against election officials; order runs to Nov. 13",
+   "source": "Capture Cascade timeline",
+   "kind": "Courts",
+   "states": [
+    "California"
+   ],
+   "lane": "count",
+   "places": []
   }
  ]
 }

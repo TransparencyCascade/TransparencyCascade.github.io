@@ -32,6 +32,21 @@ FIX_KIND = {"https://www.ktvq.com/news/longer-lines-possible-at-montana-polls-du
             "https://dailyprogress.com/news/local/government-politics/elections/article_0d02273f-0742-4942-b094-4fd7be717f14.html": "monitors"}
 FIX_SRC = {"https://www.koco.com/article/westchester-county-voting-machines-paper-ballots/74322211": "AP, via KOCO",
            "https://mirrorindy.org/indiana-elections-2026-mirror-indy-blog-marion-county-vote/": "Mirror Indy"}
+COUNT_URLS = {  # these concern the count and certification, not the monitors
+    "https://www.wsbtv.com/news/local/fulton-county/georgia-election-2026-fulton-asks-rescan-some-early-voting-ballots-after-scanner-issues/BD6TN7P27ZDIJBGG2OE3SY35BM/",
+    "https://capturecascade.org/event/2026-11-03--fulton-county-asks-to-rescan-1069-early-voting-ballots-after-two-scanner-problems/",
+}
+COUNT_EXTRA = [  # count-lane items about a whole state (no single listed place)
+    {"url": "https://capturecascade.org/event/2026-11-02--doj-asks-supreme-court-make-california-set-aside-20000-flagged-mail-ballots-sauer-application/",
+     "title": "Supreme Court rejects DOJ's request to make California set aside 20,000 flagged mail ballots",
+     "source": "Capture Cascade timeline", "kind": "Courts", "states": ["California"]},
+    {"url": "https://capturecascade.org/event/2026-10-22--doj-sues-alaska-to-bar-senate-certification-if-sullivan-loses-nvra/",
+     "title": "DOJ's suit to bar certifying Alaska's Senate result is dismissed; DOJ appeals",
+     "source": "Capture Cascade timeline", "kind": "Certification", "states": ["Alaska"]},
+    {"url": "https://capturecascade.org/event/2026-10-30--thompson-tro-bars-doj-dhs-demands-and-prosecution-threats-election-officials-seiu-v-doj-3-26-cv-12800/",
+     "title": "Judge bars DOJ and DHS demands and prosecution threats against election officials; order runs to Nov. 13",
+     "source": "Capture Cascade timeline", "kind": "Courts", "states": ["California"]},
+]
 EXTRA = [  # read by hand this session
     {"url": "https://www.news9.com/oklahoma-elections/oklahoma-county-election-board-polling-machine-issues",
      "title": "Oklahoma County Election Board addresses voting machine issues on Election Day", "source": "News 9",
@@ -47,6 +62,8 @@ EXTRA = [  # read by hand this session
 
 def split_headline(h, publisher):
     h = (h or "").strip()
+    if publisher and h.endswith(" - " + publisher):
+        return h[: -len(" - " + publisher)].strip(), publisher
     m = re.match(r"^(.*)\s+-\s+([^-]{2,60})$", h)
     if m:
         return m.group(1).strip(), (publisher or m.group(2)).strip()
@@ -81,8 +98,12 @@ for e in EXTRA:
         seen.add(e["url"])
         stories.append(dict(e, kind=KIND.get(e["kind"], e["kind"])))
 
+for s_ in stories:
+    s_["lane"] = "count" if s_["url"] in COUNT_URLS else "watchers"
+for e in COUNT_EXTRA:
+    stories.append(dict(e, lane="count", places=[]))
 out = {"updated": "2026-11-03", "note": "Reporting from Election Day, linked to the places on DOJ's list. Each link was opened and read before it was listed.",
-       "stories": [dict(s, places=[{"st": a, "j": b} for a, b in s["places"]]) for s in stories]}
+       "stories": [dict(s, places=[{"st": a, "j": b} for a, b in s["places"]], states=s.get("states") or sorted({a for a, b in s["places"]})) for s in stories]}
 json.dump(out, open(os.path.join(SITE, "stories.json"), "w"), indent=1)
 print(len(stories), "stories")
 for s in stories:
