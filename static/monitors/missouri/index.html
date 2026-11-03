@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<!--
+  Where DOJ said it would send election monitors, Nov. 3, 2026.
+  Transparency Cascade Press. Data: DOJ release 26-1310 (Nov. 3, 2026); DOJ releases of Nov. 7, 2022
+  and Nov. 1, 2024; Census Bureau county estimates (July 2024); 2024 county presidential results;
+  Census Section 203 determinations (Dec. 2021). Nothing you type here leaves your browser.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DOJ Election Monitors in Missouri</title>
+<meta name="description" content="The Justice Department said it intends to monitor or observe voting in 3 places in Missouri on Nov. 3, 2026: St. Louis, Jackson, Clay.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<script async src="https://plausible.io/js/pa-M-497ZEFkxmAoPGY4QkPC.js"></script>
+<script>
+  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
+  plausible.init()
+</script>
+<style>
+  :root{
+    --paper:#EDE9E0; --ink:#16130E; --seal:#8A1C1C; --graphite:#6B6459; --rule:#C9C1B2; --paper2:#E5E0D5;
+    --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+    --serif:'Newsreader',Georgia,'Times New Roman',serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--paper); color:var(--ink); font:18px/1.6 var(--serif);}
+  .wrap{max-width:860px; margin:0 auto; padding:0 18px 100px;}
+  header{padding:42px 0 22px; border-bottom:2px solid var(--ink);}
+  .stamp{font:600 12px/1 var(--mono); letter-spacing:.24em; text-transform:uppercase; color:var(--seal);
+         display:inline-block; border:1.5px solid var(--seal); padding:5px 9px; margin-bottom:18px;}
+  h1{font:700 clamp(28px,5.5vw,46px)/1.05 var(--mono); margin:.1em 0 .3em;}
+  .dek{font-size:19px; max-width:62ch; margin:0;}
+  a{color:var(--seal); text-underline-offset:2px;}
+  .stats{display:flex; flex-wrap:wrap; gap:10px 28px; margin:22px 0 4px; font:500 13px/1.3 var(--mono);
+         text-transform:uppercase; letter-spacing:.05em; color:var(--graphite);}
+  .stats b{display:block; font-size:28px; color:var(--ink);}
+  .controls{position:sticky; top:0; background:var(--paper); padding:16px 0 12px; border-bottom:1px solid var(--rule); z-index:2;}
+  input[type=search]{width:100%; font:500 18px var(--mono); padding:12px 14px; border:2px solid var(--ink); background:#fff; color:var(--ink);}
+  .tabs{display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 14px; margin-top:8px; font:500 12px/1.4 var(--mono); color:var(--graphite);}
+  .tabs span{text-transform:uppercase; letter-spacing:.06em;}
+  .tabs button{font:inherit; padding:0; border:0; background:none; color:var(--graphite); cursor:pointer; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px;}
+  .tabs button[aria-pressed=true]{color:var(--ink); font-weight:700; text-decoration:none;}
+  .mapwrap{margin:22px 0 4px; position:relative;}
+  .mapwrap svg{width:100%; height:auto; max-height:560px; display:block;}
+  .mapwrap path{vector-effect:non-scaling-stroke;}
+  .mapwrap path.c{stroke:none;}
+  .mapwrap path.c.on{cursor:pointer;}
+  .mapwrap path.c.on:hover{stroke:var(--ink); stroke-width:1.5;}
+  .legend{display:flex; flex-wrap:wrap; gap:4px 16px; font:500 12px var(--mono); color:var(--graphite); margin-top:6px;}
+  .legend i{display:inline-block; width:12px; height:12px; vertical-align:-1px; margin-right:5px; border:1px solid var(--graphite);}
+  #tip{position:absolute; pointer-events:none; background:var(--ink); color:var(--paper); font:500 12px/1.3 var(--mono); padding:5px 8px; display:none; white-space:nowrap;}
+  h2{font:700 15px/1.3 var(--mono); text-transform:uppercase; letter-spacing:.08em; margin:28px 0 6px; padding-bottom:4px; border-bottom:1px solid var(--rule);}
+  .row{padding:10px 0; border-bottom:1px dotted var(--rule);}
+  .name{font:700 17px var(--mono);}
+  .tag{display:inline-block; font:500 11px/1 var(--mono); text-transform:uppercase; letter-spacing:.06em; padding:3px 6px; margin-left:6px; border:1px solid var(--graphite); color:var(--graphite); vertical-align:2px;}
+  .tag.new{border-color:var(--seal); color:var(--seal);}
+  .meta{font-size:15px; color:var(--graphite); margin-top:2px;}
+  .empty{font-style:italic; color:var(--graphite); padding:16px 0;}
+  section.box{margin-top:36px; padding:18px 20px; background:var(--paper2); border-left:4px solid var(--seal);}
+  section.box h3{font:700 14px var(--mono); text-transform:uppercase; letter-spacing:.08em; margin:0 0 6px;}
+  .notes{font-size:15px; color:var(--graphite); margin-top:36px;}
+  .notes li{margin-bottom:6px;}
+  #back a{font:500 13px var(--mono); color:var(--graphite);}
+  nav#states{margin-top:30px;}
+  nav#states div{display:flex; flex-wrap:wrap; gap:4px 14px; font:500 13px/1.6 var(--mono);}
+  nav#states a{color:var(--ink); text-decoration-color:var(--rule);}
+  nav#states a.cur{color:var(--seal); font-weight:700; text-decoration:none;}
+  @media (max-width:520px){ body{font-size:17px;} .stats b{font-size:24px;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="stamp">Election Day · Nov. 3, 2026</div>
+  <div id="back"></div>
+  <h1>Is DOJ monitoring your county in Missouri?</h1>
+  <p class="dek">On Election Day morning the Justice Department said it intends to "monitor or observe" voting in 3 places in Missouri: St. Louis, Jackson, Clay. 2 are new this year. <a href="https://www.justice.gov/opa/pr/doj-monitor-elections-all-50-states-first-time">DOJ's release</a>.</p>
+  <div class="stats" id="stats"></div>
+  <div class="mapwrap" id="mapwrap" aria-label="Map of listed counties; select a county to show it below">
+    <div id="tip"></div>
+  </div>
+  <div class="legend"><span><i style="background:#8A1C1C;border-color:#8A1C1C"></i>New this year</span><span><i style="background:#16130E;border-color:#16130E"></i>Also on 2022 or 2024 list</span><span><i style="background:#C9C1B2"></i>Monitored in 2024, not this year</span><span>Tap a county to see it below. Cities are shown by their county.</span></div>
+</header>
+
+<div class="controls">
+  <label for="q" style="position:absolute;left:-9999px">Search by county, city or state</label>
+  <input id="q" type="search" placeholder="Type a county, city or state" autocomplete="off">
+  <div class="tabs" role="group" aria-label="Group the list">
+    <span>Show:</span>
+    <button data-v="state" aria-pressed="true">By state</button>
+    <button data-v="new" aria-pressed="false">New this year</button>
+    <button data-v="returning" aria-pressed="false">Also on 2022 or 2024 list</button>
+    <button data-v="dropped" aria-pressed="false">Monitored in 2024, not this year</button>
+  </div>
+</div>
+
+<div id="list"></div>
+
+<nav id="states" aria-label="State pages"></nav>
+
+<section class="box">
+  <h3>What a DOJ monitor can and cannot do</h3>
+  <p style="margin:0">DOJ says monitors check compliance with federal voting rights laws. Reuters reports they cannot investigate on the spot or stop anyone from voting, and some state and local laws let election officials keep them outside polling places. If you have a problem voting, call the nonpartisan Election Protection hotline: <b>866-OUR-VOTE (866-687-8683)</b>.</p>
+</section>
+
+<div class="notes">
+  <h2>About the numbers</h2>
+  <ul>
+    <li>The list is DOJ's stated plan, not a record of where monitors actually went or how many went to each place.</li>
+    <li>Population, race and ethnicity are Census Bureau county estimates for July 2024. Cities are shown with their whole county's figures, so Dearborn and Hamtramck carry Wayne County's numbers.</li>
+    <li>The 2024 presidential vote is by county, from a public compilation of official results; places with no county-level result show no vote, including Alaska, which reports by state house district. Black, Asian and Native American include people of more than one race, and Hispanic people can be of any race, so the shares can add to more than 100%.</li>
+    <li>"Language assistance" means the county or city must provide voting materials in that language under Section 203 of the Voting Rights Act (Census determinations, December 2021). Statewide Spanish coverage in California, Florida and Texas is not shown.</li>
+    <li>Earlier lists: DOJ's releases of <a href="https://www.justice.gov/archives/opa/pr/justice-department-monitor-polls-24-states-compliance-federal-voting-rights-laws">Nov. 7, 2022</a> (64 jurisdictions) and <a href="https://www.justice.gov/archives/opa/pr/justice-department-monitor-polls-27-states-compliance-federal-voting-rights-laws">Nov. 1, 2024</a> (86). Matches are by name.</li>
+    <li>Larger, denser counties vote more Democratic, and this list is weighted toward large counties, so its lean cannot by itself show why any place was chosen.</li>
+  </ul>
+  <p>Compiled by <a href="https://theramm.transparencycascade.org">The RAMM</a>, Transparency Cascade Press. Found an error? Tell us and we will correct it.</p>
+</div>
+</div>
+
+<script>window.MON_STATE="Missouri"; window.MON_BASE='../';</script>
+<script>
+(async function(){
+  const ST = window.MON_STATE || null, BASE = window.MON_BASE || '';
+  const res = await fetch(BASE+'data.json?v=20261103c', {cache:'no-cache'}); const D = await res.json();
+  const slug = s => s.toLowerCase().replace(/[^a-z]+/g,'-');
+  const allStates = [...new Set(D.rows.map(r=>r.st))].sort();
+  document.getElementById('states').innerHTML = '<h2>State pages</h2><div>' + (ST ? `<a href="${BASE}">All states</a>` : '') +
+    allStates.map(s => `<a href="${BASE}${slug(s)}/" class="${s===ST?'cur':''}">${s}</a>`).join('') + '</div>';
+  if (ST) document.getElementById('back').innerHTML = `<a href="${BASE}">&larr; All 50 states</a>`;
+  const rows = ST ? D.rows.filter(r=>r.st===ST) : D.rows, dropped = ST ? D.dropped.filter(d=>d.st===ST) : D.dropped;
+  const fmt = n => n==null ? '' : n.toLocaleString('en-US');
+  const isNew = r => !r.y22 && !r.y24;
+  const states = new Set(rows.map(r=>r.st));
+  const nNew = rows.filter(isNew).length;
+  document.getElementById('stats').innerHTML =
+    `<div><b>${rows.length}</b>places listed</div>` + (ST ? '' : `<div><b>${states.size}</b>states</div>`) +
+    `<div><b>${nNew}</b>new this year</div><div><b>${dropped.length}</b>dropped from 2024</div>`;
+  let view = 'state'; let sel = null;
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  function line(r){
+    const hist = r.y22 && r.y24 ? 'also 2022 & 2024' : r.y24 ? 'also 2024' : r.y22 ? 'also 2022' : 'new';
+    const cnty = (r.kind!=='county' && r.cty) ? ` · figures for ${esc(r.cty)}` : '';
+    const vote = r.dem!=null ? ` · 2024: Harris ${r.dem}%, Trump ${r.gop}%` : '';
+    const lang = r.lang.length ? ` · language assistance: ${esc(r.lang.join(', '))}` : '';
+    return `<div class="row"><span class="name">${esc(r.j)}, ${esc(r.st)}</span>` +
+      `<span class="tag ${hist==='new'?'new':''}">${hist}</span>` +
+      `<div class="meta">Pop. ${fmt(r.pop)}${cnty}${vote}<br>White (non-Hispanic) ${r.w}% · Black ${r.b}% · Hispanic ${r.h}% · Asian ${r.a}% · Native American ${r.ai}%${lang}</div></div>`;
+  }
+  function render(){
+    const q = document.getElementById('q').value.trim().toLowerCase();
+    const match = r => sel ? r.fips===sel : (!q || (r.j+' '+r.st+' '+(r.cty||'')).toLowerCase().includes(q));
+    const el = document.getElementById('list'); let html = '';
+    if (view==='dropped'){
+      const d = dropped.filter(match);
+      html = `<h2>Monitored in 2024, not on this year's list (${d.length})</h2>` +
+        (d.length ? d.map(x=>`<div class="row"><span class="name">${esc(x.j)}, ${esc(x.st)}</span></div>`).join('') : '<div class="empty">None.</div>');
+    } else {
+      let rs = rows.filter(match);
+      if (view==='new') rs = rs.filter(isNew);
+      if (view==='returning') rs = rs.filter(r=>!isNew(r));
+      if (!rs.length){
+        const inDropped = q && dropped.some(match);
+        html = `<div class="empty">Not on DOJ's Nov. 3 list.${inDropped ? ' It was on DOJ\'s 2024 list.' : ''} The list names counties and some cities; your city may be inside a listed county.</div>`;
+      } else {
+        const by = {}; rs.forEach(r => (by[r.st]=by[r.st]||[]).push(r));
+        Object.keys(by).sort().forEach(st => { html += `<h2>${ST ? esc(st) : `<a href="${BASE}${slug(st)}/" style="color:inherit">${esc(st)}</a>`} (${by[st].length})</h2>` + by[st].map(line).join(''); });
+        if (ST && view==='state' && dropped.length && !q) html += `<h2>Monitored in 2024, not this year (${dropped.length})</h2>` + dropped.map(x=>`<div class="row"><span class="name">${esc(x.j)}, ${esc(x.st)}</span></div>`).join('');
+      }
+    }
+    el.innerHTML = html;
+  }
+  document.getElementById('q').addEventListener('input', () => { sel=null; render(); });
+  document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
+    view = b.dataset.v;
+    document.querySelectorAll('.tabs button').forEach(x => x.setAttribute('aria-pressed', x===b));
+    render();
+  }));
+  render();
+
+  // ---- map ----
+  try {
+    const [topo] = await Promise.all([fetch('https://cdn.jsdelivr.net/npm/us-atlas@3.0.1/counties-albers-10m.json').then(r=>r.json())]);
+    const listed = {}; rows.forEach(r => { if (r.fips) (listed[r.fips]=listed[r.fips]||[]).push(r); });
+    const drop = {}; dropped.forEach(d => { if (d.fips && !listed[d.fips]) (drop[d.fips]=drop[d.fips]||[]).push(d); });
+    let counties = topojson.feature(topo, topo.objects.counties).features;
+    const path = d3.geoPath();
+    const wrap = d3.select('#mapwrap');
+    let vb = '0 0 975 610', stFeat = null;
+    if (ST) {
+      const sf = rows[0].fips.slice(0,2);
+      stFeat = topojson.feature(topo, topo.objects.states).features.find(f => f.id===sf);
+      counties = counties.filter(f => f.id.slice(0,2)===sf);
+      const [[x0,y0],[x1,y1]] = path.bounds(stFeat), pad = Math.max(x1-x0, y1-y0)*0.04;
+      vb = `${x0-pad} ${y0-pad} ${x1-x0+2*pad} ${y1-y0+2*pad}`;
+    }
+    const svg = wrap.append('svg').attr('viewBox', vb).attr('role','img');
+    const fill = f => { const L=listed[f.id]; if (L) return L.some(r=>!r.y22&&!r.y24) ? '#8A1C1C' : '#16130E'; return drop[f.id] ? '#C9C1B2' : '#E5E0D5'; };
+    svg.append('g').selectAll('path').data(counties).join('path')
+      .attr('class', f => 'c' + (listed[f.id]||drop[f.id] ? ' on' : ''))
+      .attr('d', path).attr('fill', fill);
+    if (ST) {
+      const sw = 0.7;
+      svg.append('path').datum(topojson.mesh(topo, topo.objects.counties, (a,b)=>a!==b && a.id.slice(0,2)===stFeat.id && b.id.slice(0,2)===stFeat.id))
+        .attr('fill','none').attr('stroke','#EDE9E0').attr('stroke-width',sw).attr('d', path);
+      svg.append('path').datum(stFeat).attr('fill','none').attr('stroke','#6B6459').attr('stroke-width',sw*1.5).attr('d', path);
+    } else {
+    svg.append('path').datum(topojson.mesh(topo, topo.objects.states, (a,b)=>a!==b))
+      .attr('fill','none').attr('stroke','#EDE9E0').attr('stroke-width',0.8).attr('d', path);
+    svg.append('path').datum(topojson.feature(topo, topo.objects.nation))
+      .attr('fill','none').attr('stroke','#6B6459').attr('stroke-width',0.6).attr('d', path);
+    }
+    const tip = document.getElementById('tip');
+    const label = f => { const L=listed[f.id]; if (L) return L.map(r=>r.j+', '+r.st).join(' · '); const D=drop[f.id]; return D ? D.map(d=>d.j+', '+d.st).join(' · ')+' (2024 only)' : ''; };
+    svg.selectAll('path.c.on')
+      .on('mousemove', (e,f) => { const b=wrap.node().getBoundingClientRect(); tip.textContent=label(f); tip.style.display='block'; tip.style.left=(e.clientX-b.left+12)+'px'; tip.style.top=(e.clientY-b.top-28)+'px'; })
+      .on('mouseleave', () => { tip.style.display='none'; })
+      .on('click', (e,f) => {
+        const L=listed[f.id], D=drop[f.id];
+        const pick = L ? L[0] : D[0];
+        view = L ? 'state' : 'dropped';
+        document.querySelectorAll('.tabs button').forEach(x => x.setAttribute('aria-pressed', x.dataset.v===view));
+        sel = f.id; const q=document.getElementById('q'); q.value = L ? (L.length>1 ? pick.cty : pick.j+', '+pick.st) : pick.j+', '+pick.st; render();
+        document.querySelector('.controls').scrollIntoView({behavior:'smooth'});
+        if (window.plausible) plausible('map-click');
+      });
+  } catch (err) { document.getElementById('mapwrap').style.display='none'; }
+})();
+</script>
+</body>
+</html>

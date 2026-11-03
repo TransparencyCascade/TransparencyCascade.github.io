@@ -46,7 +46,8 @@
   .tabs button{font:inherit; padding:0; border:0; background:none; color:var(--graphite); cursor:pointer; text-decoration:underline; text-decoration-color:var(--rule); text-underline-offset:3px;}
   .tabs button[aria-pressed=true]{color:var(--ink); font-weight:700; text-decoration:none;}
   .mapwrap{margin:22px 0 4px; position:relative;}
-  .mapwrap svg{width:100%; height:auto; display:block;}
+  .mapwrap svg{width:100%; height:auto; max-height:560px; display:block;}
+  .mapwrap path{vector-effect:non-scaling-stroke;}
   .mapwrap path.c{stroke:none;}
   .mapwrap path.c.on{cursor:pointer;}
   .mapwrap path.c.on:hover{stroke:var(--ink); stroke-width:1.5;}
@@ -64,6 +65,11 @@
   section.box h3{font:700 14px var(--mono); text-transform:uppercase; letter-spacing:.08em; margin:0 0 6px;}
   .notes{font-size:15px; color:var(--graphite); margin-top:36px;}
   .notes li{margin-bottom:6px;}
+  #back a{font:500 13px var(--mono); color:var(--graphite);}
+  nav#states{margin-top:30px;}
+  nav#states div{display:flex; flex-wrap:wrap; gap:4px 14px; font:500 13px/1.6 var(--mono);}
+  nav#states a{color:var(--ink); text-decoration-color:var(--rule);}
+  nav#states a.cur{color:var(--seal); font-weight:700; text-decoration:none;}
   @media (max-width:520px){ body{font-size:17px;} .stats b{font-size:24px;} }
 </style>
 </head>
@@ -71,6 +77,7 @@
 <div class="wrap">
 <header>
   <div class="stamp">Election Day · Nov. 3, 2026</div>
+  <div id="back"></div>
   <h1>Is DOJ monitoring your county?</h1>
   <p class="dek">On Election Day morning the Justice Department published the places where it said it intends to "monitor or observe" voting: 126 counties, cities and towns across all 50 states. Search for yours, and see whether DOJ watched it in 2022 or 2024. <a href="https://www.justice.gov/opa/pr/doj-monitor-elections-all-50-states-first-time">DOJ's release</a>.</p>
   <div class="stats" id="stats"></div>
@@ -94,6 +101,8 @@
 
 <div id="list"></div>
 
+<nav id="states" aria-label="State pages"></nav>
+
 <section class="box">
   <h3>What a DOJ monitor can and cannot do</h3>
   <p style="margin:0">DOJ says monitors check compliance with federal voting rights laws. Reuters reports they cannot investigate on the spot or stop anyone from voting, and some state and local laws let election officials keep them outside polling places. If you have a problem voting, call the nonpartisan Election Protection hotline: <b>866-OUR-VOTE (866-687-8683)</b>.</p>
@@ -115,14 +124,20 @@
 
 <script>
 (async function(){
-  const res = await fetch('data.json?v=20261103b', {cache:'no-cache'}); const D = await res.json();
-  const rows = D.rows, dropped = D.dropped;
+  const ST = window.MON_STATE || null, BASE = window.MON_BASE || '';
+  const res = await fetch(BASE+'data.json?v=20261103c', {cache:'no-cache'}); const D = await res.json();
+  const slug = s => s.toLowerCase().replace(/[^a-z]+/g,'-');
+  const allStates = [...new Set(D.rows.map(r=>r.st))].sort();
+  document.getElementById('states').innerHTML = '<h2>State pages</h2><div>' + (ST ? `<a href="${BASE}">All states</a>` : '') +
+    allStates.map(s => `<a href="${BASE}${slug(s)}/" class="${s===ST?'cur':''}">${s}</a>`).join('') + '</div>';
+  if (ST) document.getElementById('back').innerHTML = `<a href="${BASE}">&larr; All 50 states</a>`;
+  const rows = ST ? D.rows.filter(r=>r.st===ST) : D.rows, dropped = ST ? D.dropped.filter(d=>d.st===ST) : D.dropped;
   const fmt = n => n==null ? '' : n.toLocaleString('en-US');
   const isNew = r => !r.y22 && !r.y24;
   const states = new Set(rows.map(r=>r.st));
   const nNew = rows.filter(isNew).length;
   document.getElementById('stats').innerHTML =
-    `<div><b>${rows.length}</b>places listed</div><div><b>${states.size}</b>states</div>` +
+    `<div><b>${rows.length}</b>places listed</div>` + (ST ? '' : `<div><b>${states.size}</b>states</div>`) +
     `<div><b>${nNew}</b>new this year</div><div><b>${dropped.length}</b>dropped from 2024</div>`;
   let view = 'state'; let sel = null;
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -142,7 +157,7 @@
     if (view==='dropped'){
       const d = dropped.filter(match);
       html = `<h2>Monitored in 2024, not on this year's list (${d.length})</h2>` +
-        (d.length ? d.map(x=>`<div class="row"><span class="name">${esc(x.j)}, ${esc(x.st)}</span></div>`).join('') : '<div class="empty">No match.</div>');
+        (d.length ? d.map(x=>`<div class="row"><span class="name">${esc(x.j)}, ${esc(x.st)}</span></div>`).join('') : '<div class="empty">None.</div>');
     } else {
       let rs = rows.filter(match);
       if (view==='new') rs = rs.filter(isNew);
@@ -152,7 +167,8 @@
         html = `<div class="empty">Not on DOJ's Nov. 3 list.${inDropped ? ' It was on DOJ\'s 2024 list.' : ''} The list names counties and some cities; your city may be inside a listed county.</div>`;
       } else {
         const by = {}; rs.forEach(r => (by[r.st]=by[r.st]||[]).push(r));
-        Object.keys(by).sort().forEach(st => { html += `<h2>${esc(st)} (${by[st].length})</h2>` + by[st].map(line).join(''); });
+        Object.keys(by).sort().forEach(st => { html += `<h2>${ST ? esc(st) : `<a href="${BASE}${slug(st)}/" style="color:inherit">${esc(st)}</a>`} (${by[st].length})</h2>` + by[st].map(line).join(''); });
+        if (ST && view==='state' && dropped.length && !q) html += `<h2>Monitored in 2024, not this year (${dropped.length})</h2>` + dropped.map(x=>`<div class="row"><span class="name">${esc(x.j)}, ${esc(x.st)}</span></div>`).join('');
       }
     }
     el.innerHTML = html;
@@ -170,18 +186,33 @@
     const [topo] = await Promise.all([fetch('https://cdn.jsdelivr.net/npm/us-atlas@3.0.1/counties-albers-10m.json').then(r=>r.json())]);
     const listed = {}; rows.forEach(r => { if (r.fips) (listed[r.fips]=listed[r.fips]||[]).push(r); });
     const drop = {}; dropped.forEach(d => { if (d.fips && !listed[d.fips]) (drop[d.fips]=drop[d.fips]||[]).push(d); });
-    const counties = topojson.feature(topo, topo.objects.counties).features;
+    let counties = topojson.feature(topo, topo.objects.counties).features;
     const path = d3.geoPath();
     const wrap = d3.select('#mapwrap');
-    const svg = wrap.append('svg').attr('viewBox','0 0 975 610').attr('role','img');
+    let vb = '0 0 975 610', stFeat = null;
+    if (ST) {
+      const sf = rows[0].fips.slice(0,2);
+      stFeat = topojson.feature(topo, topo.objects.states).features.find(f => f.id===sf);
+      counties = counties.filter(f => f.id.slice(0,2)===sf);
+      const [[x0,y0],[x1,y1]] = path.bounds(stFeat), pad = Math.max(x1-x0, y1-y0)*0.04;
+      vb = `${x0-pad} ${y0-pad} ${x1-x0+2*pad} ${y1-y0+2*pad}`;
+    }
+    const svg = wrap.append('svg').attr('viewBox', vb).attr('role','img');
     const fill = f => { const L=listed[f.id]; if (L) return L.some(r=>!r.y22&&!r.y24) ? '#8A1C1C' : '#16130E'; return drop[f.id] ? '#C9C1B2' : '#E5E0D5'; };
     svg.append('g').selectAll('path').data(counties).join('path')
       .attr('class', f => 'c' + (listed[f.id]||drop[f.id] ? ' on' : ''))
       .attr('d', path).attr('fill', fill);
+    if (ST) {
+      const sw = 0.7;
+      svg.append('path').datum(topojson.mesh(topo, topo.objects.counties, (a,b)=>a!==b && a.id.slice(0,2)===stFeat.id && b.id.slice(0,2)===stFeat.id))
+        .attr('fill','none').attr('stroke','#EDE9E0').attr('stroke-width',sw).attr('d', path);
+      svg.append('path').datum(stFeat).attr('fill','none').attr('stroke','#6B6459').attr('stroke-width',sw*1.5).attr('d', path);
+    } else {
     svg.append('path').datum(topojson.mesh(topo, topo.objects.states, (a,b)=>a!==b))
       .attr('fill','none').attr('stroke','#EDE9E0').attr('stroke-width',0.8).attr('d', path);
     svg.append('path').datum(topojson.feature(topo, topo.objects.nation))
       .attr('fill','none').attr('stroke','#6B6459').attr('stroke-width',0.6).attr('d', path);
+    }
     const tip = document.getElementById('tip');
     const label = f => { const L=listed[f.id]; if (L) return L.map(r=>r.j+', '+r.st).join(' · '); const D=drop[f.id]; return D ? D.map(d=>d.j+', '+d.st).join(' · ')+' (2024 only)' : ''; };
     svg.selectAll('path.c.on')
