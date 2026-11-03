@@ -27,6 +27,7 @@ KC = [("Kansas", "Johnson"), ("Kansas", "Wyandotte"), ("Kansas", "Sedgwick"), ("
 DROP = {  # verified but not an Election Day item for that place
     "https://www.kwch.com/2026/11/02/hundreds-stand-line-sedgwick-county-election-office-final-day-early-voting-midterm/",
     "https://newjerseyglobe.com/campaigns/bergen-county-election-error-wiped-mercer-voters-registration-and-voting-history/",
+    "https://www.votebeat.org/national/2026/11/03/election-day-2026-live-blog-midterms-trump/",  # one line on Milwaukee, no detail
 }
 FIX_KIND = {"https://www.ktvq.com/news/longer-lines-possible-at-montana-polls-due-to-statewide-ballot-printing-issue": "machines",
             "https://dailyprogress.com/news/local/government-politics/elections/article_0d02273f-0742-4942-b094-4fd7be717f14.html": "monitors"}
@@ -57,6 +58,15 @@ EXTRA = [  # read by hand this session
     {"url": "https://capturecascade.org/event/2026-11-03--fulton-county-asks-to-rescan-1069-early-voting-ballots-after-two-scanner-problems/",
      "title": "Fulton County asks Georgia to let it rescan just over 1,000 early voting ballots after two scanner problems",
      "source": "Capture Cascade timeline", "kind": "machines", "places": [("Georgia", "Fulton")]},
+    {"url": "https://www.newsfromthestates.com/node/435528",
+     "title": "Arkansas' most populous county votes to bar DOJ monitors from entering polling sites",
+     "source": "Arkansas Advocate", "kind": "monitors", "places": [("Arkansas", "Pulaski"), ("Arkansas", "Washington")]},
+    {"url": "https://www.timesleader.com/news/1764336/kingston-ward-6-voting-at-hoyt-library-may-be-extended-to-9-p-m-after-false-fire-alarm",
+     "title": "Kingston Ward 6 voting at Hoyt Library may be extended to 9 p.m. after false fire alarm",
+     "source": "Times Leader", "kind": "legal", "places": [("Pennsylvania", "Luzerne")]},
+    {"url": "https://blockclubchicago.org/2026/11/03/illinois-midterm-election-2026-pritzker-seeks-3rd-term-voters-to-choose-fully-elected-school-board/",
+     "title": "Illinois Midterm Election 2026: Far North Side Precinct Runs Out Of Ballots, Leading To Long Waits",
+     "source": "Block Club Chicago", "kind": "lines", "places": [("Illinois", "Chicago")]},
 ]
 
 

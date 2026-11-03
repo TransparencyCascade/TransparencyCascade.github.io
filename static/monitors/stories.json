@@ -19,6 +19,70 @@
    ]
   },
   {
+   "url": "https://www.wkar.org/election-2026/2026-11-03/federal-election-monitors-spotted-at-lansing-polls",
+   "title": "Federal election monitors spotted at Lansing polls",
+   "source": "WKAR Public Media",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "Michigan",
+     "j": "Lansing"
+    }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Michigan"
+   ]
+  },
+  {
+   "url": "https://mississippitoday.org/2026/11/03/mississippi-voters-report-problems-amid-heavy-midterm-turnout/?utm_medium=rss",
+   "title": "Mississippi voters report problems amid heavy midterm turnout",
+   "source": "Mississippi Today",
+   "kind": "Lines and delays",
+   "places": [
+    {
+     "st": "Mississippi",
+     "j": "Hinds"
+    }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Mississippi"
+   ]
+  },
+  {
+   "url": "https://www.wcax.com/2026/11/03/election-day-polls-being-monitored-by-doj-across-region/",
+   "title": "Election Day polls being monitored by DOJ across the region",
+   "source": "WCAX",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "New Hampshire",
+     "j": "Manchester"
+    }
+   ],
+   "lane": "watchers",
+   "states": [
+    "New Hampshire"
+   ]
+  },
+  {
+   "url": "https://www.wsmv.com/2026/11/03/early-election-day-lines-clear-nashville-polling-location-officials-offer-voter-tips/",
+   "title": "Early Election Day lines clear at Nashville polling location; officials offer voter tips",
+   "source": "WSMV",
+   "kind": "Lines and delays",
+   "places": [
+    {
+     "st": "Tennessee",
+     "j": "Davidson"
+    }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Tennessee"
+   ]
+  },
+  {
    "url": "https://www.kcrg.com/2026/11/03/voting-machines-down-two-linn-county-locations/",
    "title": "Voting machines down at two Linn County locations",
    "source": "KCRG",
@@ -501,6 +565,58 @@
    "lane": "count",
    "states": [
     "Georgia"
+   ]
+  },
+  {
+   "url": "https://www.newsfromthestates.com/node/435528",
+   "title": "Arkansas' most populous county votes to bar DOJ monitors from entering polling sites",
+   "source": "Arkansas Advocate",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "Arkansas",
+     "j": "Pulaski"
+    },
+    {
+     "st": "Arkansas",
+     "j": "Washington"
+    }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Arkansas"
+   ]
+  },
+  {
+   "url": "https://www.timesleader.com/news/1764336/kingston-ward-6-voting-at-hoyt-library-may-be-extended-to-9-p-m-after-false-fire-alarm",
+   "title": "Kingston Ward 6 voting at Hoyt Library may be extended to 9 p.m. after false fire alarm",
+   "source": "Times Leader",
+   "kind": "Courts",
+   "places": [
+    {
+     "st": "Pennsylvania",
+     "j": "Luzerne"
+    }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Pennsylvania"
+   ]
+  },
+  {
+   "url": "https://blockclubchicago.org/2026/11/03/illinois-midterm-election-2026-pritzker-seeks-3rd-term-voters-to-choose-fully-elected-school-board/",
+   "title": "Illinois Midterm Election 2026: Far North Side Precinct Runs Out Of Ballots, Leading To Long Waits",
+   "source": "Block Club Chicago",
+   "kind": "Lines and delays",
+   "places": [
+    {
+     "st": "Illinois",
+     "j": "Chicago"
+    }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Illinois"
    ]
   },
   {
