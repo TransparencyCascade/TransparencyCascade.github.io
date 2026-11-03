@@ -1,0 +1,38 @@
+name: Report an Election Day story
+description: Send us a news report about voting problems or DOJ election monitors in a place on DOJ's list.
+title: "[Report] "
+labels: ["monitors-report"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping. This form is public: anyone can read what you post here, so please don't include personal information about yourself or anyone else.
+        We list a report only after we open and read it ourselves. If you have a problem voting right now, call the Election Protection hotline: 866-OUR-VOTE (866-687-8683).
+  - type: input
+    id: place
+    attributes:
+      label: Place
+      description: County or city, and state.
+      placeholder: Dearborn, Michigan
+    validations:
+      required: true
+  - type: input
+    id: link
+    attributes:
+      label: Link to the reporting
+      description: A news story, official statement, or court filing. One link per report.
+      placeholder: https://
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: One or two sentences, in your words.
+    validations:
+      required: true
+  - type: input
+    id: when
+    attributes:
+      label: When it happened
+      placeholder: Nov. 3, morning

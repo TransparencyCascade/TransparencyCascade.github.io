@@ -86,6 +86,8 @@
   ul.rep .k{display:block; font:500 11px/1.4 var(--mono); text-transform:uppercase; letter-spacing:.06em; color:var(--graphite);}
   ul.rep .src{color:var(--graphite); font-size:14px;}
   .row ul.rep li{font-size:15px; padding:4px 0 4px 10px; margin:4px 0;}
+  .tip{font:500 13px var(--mono); color:var(--graphite); margin-top:10px;}
+  .row .tip{margin-top:4px; font-size:12px;}
   .more{font:500 13px var(--mono); padding:0; border:0; background:none; color:var(--seal); cursor:pointer; text-decoration:underline; margin-top:6px;}
   @media (max-width:520px){ body{font-size:17px;} .stats b{font-size:24px;} }
 </style>
@@ -169,17 +171,20 @@
     const where = withPlaces ? ' · ' + esc(s.places.map(p => ST ? p.j : p.j+', '+p.st).join('; ')) : '';
     return `<li class="${s.kind==='DOJ monitors'?'mon':''}"><span class="k">${esc(s.kind)}${where}</span><a href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener">${esc(s.title)}</a> <span class="src">${esc(s.source)}</span></li>`;
   }
+  const REPORT = 'https://github.com/TransparencyCascade/TransparencyCascade.github.io/issues/new?template=monitors-report.yml';
+  const reportLink = (place, text) => `<a href="${REPORT}&place=${encodeURIComponent(place)}&title=${encodeURIComponent('[Report] '+place)}" target="_blank" rel="noopener">${text}</a>`;
   let showAllReports = false;
   function renderReports(){
     const box = document.getElementById('reports');
     const mine = ST ? STORIES.filter(s => s.places.some(p => p.st===ST)) : STORIES;
-    if (!mine.length) { box.hidden = true; return; }
+    const tipLine = `<p class="tip">Know of a report we missed? ${reportLink(ST || '', 'Send us the link')}. It opens a public GitHub form; we read every link before listing it.</p>`;
+    if (!mine.length) { box.hidden = false; box.innerHTML = `<h2>Election Day reports${ST ? ' from ' + esc(ST) : ''}</h2><p class="why">No verified reports yet.</p>` + tipLine; return; }
     const cap = ST ? 99 : 8, shown = showAllReports ? mine : mine.slice(0, cap);
     box.hidden = false;
     box.innerHTML = `<h2>Election Day reports${ST ? ' from ' + esc(ST) : ''} (${mine.length})</h2>` +
       `<p class="why">News reports about voting problems and DOJ monitors in the places on DOJ's list. We opened and read each one before listing it. Links go to the outlet's own reporting, or to our timeline entry where we wrote one.</p>` +
       `<ul class="rep">${shown.map(s=>repItem(s, true)).join('')}</ul>` +
-      (mine.length > cap ? `<button class="more" id="morerep">${showAllReports ? 'Show fewer' : 'Show all ' + mine.length}</button>` : '');
+      (mine.length > cap ? `<button class="more" id="morerep">${showAllReports ? 'Show fewer' : 'Show all ' + mine.length}</button>` : '') + tipLine;
     const b = document.getElementById('morerep'); if (b) b.addEventListener('click', () => { showAllReports = !showAllReports; renderReports(); });
   }
   renderReports();
@@ -191,7 +196,8 @@
     return `<div class="row"><span class="name">${esc(r.j)}, ${esc(r.st)}</span>` +
       `<span class="tag ${hist==='new'?'new':''}">${hist}</span>` +
       `<div class="meta">Pop. ${fmt(r.pop)}${cnty}${vote}<br>White (non-Hispanic) ${r.w}% · Black ${r.b}% · Hispanic ${r.h}% · Asian ${r.a}% · Native American ${r.ai}%${lang}</div>` +
-      (storiesFor(r).length ? `<ul class="rep">${storiesFor(r).map(s=>repItem(s,false)).join('')}</ul>` : '') + `</div>`;
+      (storiesFor(r).length ? `<ul class="rep">${storiesFor(r).map(s=>repItem(s,false)).join('')}</ul>` : '') +
+      `<div class="tip">${reportLink(r.j+', '+r.st, 'Report a story from '+esc(r.j))}</div></div>`;
   }
   function render(){
     const q = document.getElementById('q').value.trim().toLowerCase();
