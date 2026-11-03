@@ -115,7 +115,7 @@
 
 <script>
 (async function(){
-  const res = await fetch('data.json'); const D = await res.json();
+  const res = await fetch('data.json?v=20261103b', {cache:'no-cache'}); const D = await res.json();
   const rows = D.rows, dropped = D.dropped;
   const fmt = n => n==null ? '' : n.toLocaleString('en-US');
   const isNew = r => !r.y22 && !r.y24;
