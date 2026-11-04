@@ -651,6 +651,18 @@
    ],
    "lane": "count",
    "places": []
+  },
+  {
+   "url": "https://www.wctv.tv/2026/11/04/live-blog-election-results-start-roll-across-florida/",
+   "title": "The Associated Press calls the U.S. Senate race for Jon Ossoff",
+   "source": "WCTV (call: AP)",
+   "states": [
+    "Georgia"
+   ],
+   "race": "U.S. Senate",
+   "kind": "Race calls",
+   "lane": "count",
+   "places": []
   }
  ]
 }
