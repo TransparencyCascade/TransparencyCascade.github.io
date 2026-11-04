@@ -12,13 +12,13 @@
 <title>DOJ Election Monitors in Alaska</title>
 <meta name="description" content="The Justice Department said it intends to monitor or observe voting in 3 places in Alaska on Nov. 3, 2026: Anchorage, Dillingham, Kusilvak.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Watching the watchers, watching the count">
+<meta property="og:title" content="Alaska: watching the watchers, watching the count">
 <meta property="og:description" content="The Justice Department said it intends to monitor or observe voting in 3 places in Alaska on Nov. 3, 2026: Anchorage, Dillingham, Kusilvak.">
 <meta property="og:url" content="https://transparencycascade.org/monitors/alaska/">
-<meta property="og:image" content="https://transparencycascade.org/monitors/cards/watching.png">
+<meta property="og:image" content="https://transparencycascade.org/monitors/cards/alaska.png">
 <meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://transparencycascade.org/monitors/cards/watching.png">
+<meta name="twitter:image" content="https://transparencycascade.org/monitors/cards/alaska.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,400;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
@@ -46,14 +46,18 @@
   :focus-visible{outline:3px solid var(--ink); outline-offset:2px; background:var(--mark);}
   header{padding:28px 0 14px;}
   .stamp{font:600 14px/1.3 var(--sans); color:var(--graphite); margin-bottom:10px;}
-  .lanes{display:flex; flex-wrap:wrap; gap:6px 10px; margin:0 0 18px;}
-  .lanes a{font:700 14px/1 var(--sans); text-decoration:none; padding:8px 12px; border:2px solid var(--ink); border-radius:999px;}
-  .lanes a:first-child{background:var(--ink); color:var(--paper);}
-  .lanes a:hover{background:var(--mark); color:var(--ink);}
+  /* one bar for the whole page: where you are, and the way to the other sections */
+  .site{position:sticky; top:0; z-index:5; background:var(--paper); border-bottom:2px solid var(--ink);}
+  .site .in{max-width:1560px; margin:0 auto; padding:0 18px; display:flex; align-items:stretch; gap:22px; height:52px; overflow-x:auto; scrollbar-width:none;}
+  .site .in::-webkit-scrollbar{display:none;}
+  .site a{display:flex; align-items:center; white-space:nowrap; text-decoration:none; font:600 15px/1 var(--sans); border-bottom:5px solid transparent; padding-top:5px;}
+  .site a.brand{font-weight:800; margin-right:6px;}
+  .site a[aria-current=true]{border-bottom-color:var(--mark);}
+  .site a:hover{background:none; border-bottom-color:var(--ink);}
   h1{font:800 clamp(34px,8vw,58px)/1.0 var(--sans); letter-spacing:-0.025em; margin:0 0 14px; max-width:14ch;}
   .dek{font-size:18px; line-height:1.5; max-width:60ch; margin:0;}
   #back a{font:600 14px var(--sans); color:var(--graphite);}
-  .controls{position:sticky; top:0; background:var(--paper); padding:14px 0 10px; z-index:3; border-bottom:2px solid var(--ink);}
+  .controls{position:sticky; top:52px; background:var(--paper); padding:14px 0 10px; z-index:3; border-bottom:2px solid var(--ink);}
   input[type=search]{width:100%; font:600 19px var(--sans); padding:14px 16px; border:3px solid var(--ink); border-radius:0; background:var(--paper); color:var(--ink); -webkit-appearance:none;}
   input[type=search]::-webkit-search-cancel-button{-webkit-appearance:none; height:18px; width:18px; cursor:pointer;
     background:linear-gradient(45deg,transparent 44%,#000 44%,#000 56%,transparent 56%),linear-gradient(-45deg,transparent 44%,#000 44%,#000 56%,transparent 56%);}
@@ -122,9 +126,11 @@
   .tip{font:400 14px var(--sans); color:var(--graphite); margin-top:10px;}
   .row .tip{margin-top:6px; font-size:14px;}
   .more{font:700 14px var(--sans); padding:8px 0; border:0; background:none; color:var(--ink); cursor:pointer; text-decoration:underline; text-decoration-color:var(--mark); text-decoration-thickness:2px;}
-  #count, #top-watchers{scroll-margin-top:170px;}
-  #count{margin-top:52px; padding-top:22px; border-top:6px solid var(--ink);}
-  #count h2.lane{font:800 clamp(30px,6vw,44px)/1.05 var(--sans); letter-spacing:-0.02em; border:0; margin:0 0 10px; padding:0;}
+  section[id], nav#states{scroll-margin-top:64px;}
+  .lanesec{margin-top:52px; padding-top:22px; border-top:6px solid var(--ink);}
+  #watchers.lanesec{margin-top:30px;}
+  .lanesec > .dek{font-size:17px;}
+  h2.lane{font:800 clamp(30px,6vw,44px)/1.05 var(--sans); letter-spacing:-0.02em; border:0; margin:0 0 10px; padding:0;}
   .cal{list-style:none; padding:0; margin:8px 0;}
   .cal li{display:grid; grid-template-columns:7.2em 1fr; gap:2px 14px; padding:9px 0; border-bottom:1px solid var(--rule); font-size:16px;}
   .cal time{font:700 15px/1.5 var(--sans);}
@@ -139,14 +145,15 @@
   .mk:focus{outline:none;}
   .mapwrap path.c.sel{stroke:#000; stroke-width:3;}
   .legend .dot{display:inline-block; width:14px; height:14px; border-radius:50%; background:#000; vertical-align:-2px; margin-right:6px;}
-  /* laptop and wider: the map is the navigation, pinned on the left; the answer and the reporting scroll on the right */
-  @media (min-width:1100px){
-    .wrap{max-width:1500px; display:grid; grid-template-columns:minmax(0,1.25fr) minmax(400px,0.75fr); column-gap:48px; padding:0 32px 100px;}
+  /* laptop and wider: the map is the navigation, pinned on the left; the reading column on the right gets a full line length (up to 720px), the map takes what is left */
+  @media (min-width:1240px){
+    .wrap{max-width:1560px; display:grid; grid-template-columns:minmax(480px,1fr) minmax(520px,720px); column-gap:56px; padding:0 40px 100px;}
     .wrap > *{grid-column:2; min-width:0;}
-    .wrap > .maparea{grid-column:1; grid-row:1 / span 40; position:sticky; top:0; align-self:start; height:100vh;
+    .wrap > .maparea{grid-column:1; grid-row:1 / span 40; position:sticky; top:52px; align-self:start; height:calc(100vh - 52px);
       display:flex; flex-direction:column; justify-content:center; padding:24px 0;}
     .maparea .stats{margin-top:0;}
-    .maparea .mapwrap svg{max-height:calc(100vh - 210px);}
+    .maparea .mapwrap svg{max-height:calc(100vh - 262px);}
+    .site .in{padding:0 40px;}
     h1{max-width:none; font-size:clamp(34px,3.4vw,52px);}
   }
   @media (max-width:640px){
@@ -155,15 +162,45 @@
 </style>
 </head>
 <body>
+<nav class="site" aria-label="On this page"><div class="in">
+  <a class="brand" href="https://theramm.transparencycascade.org">The RAMM</a>
+  <a href="#watchers">Watching the watchers</a>
+  <a href="#count">Watching the count</a>
+  <a href="#lookup">Look up a place</a>
+  <a href="#states">State pages</a>
+  <a href="#about">About the data</a>
+</div></nav>
 <div class="wrap">
 <header>
   <p class="stamp">The RAMM, election night, Nov. 3, 2026</p>
-  <nav class="lanes" aria-label="Sections"><a href="#top-watchers">Watching the watchers</a><a href="#count">Watching the count</a></nav>
   <div id="back"></div>
-  <h1 id="top-watchers">Is DOJ monitoring your county?</h1>
+  <h1>Alaska: watching the watchers, watching the count</h1>
   <p class="dek">On Election Day morning the Justice Department said it intends to "monitor or observe" voting in 3 places in Alaska: Anchorage, Dillingham, Kusilvak. 1 is new this year. DOJ also monitored Bethel, North Slope, Northwest Arctic in 2024; they are not on this year&#x27;s list. <a href="https://www.justice.gov/opa/pr/doj-monitor-elections-all-50-states-first-time">DOJ's release</a>.</p>
 </header>
 
+
+<section class="maparea">
+  <div class="stats" id="stats"></div>
+  <div class="mapwrap" id="mapwrap" aria-label="Map of listed counties; select a county to show it below">
+    <div id="tip"></div>
+  </div>
+  <div class="legend"><span><i style="background:#F2C230;border-color:#7A5B00"></i>New this year</span><span><i style="background:#000"></i>Also on 2022 or 2024 list</span><span><i style="background:#C8CBCD;border-color:#8A8F94"></i>Monitored in 2024, not this year</span><span><i class="dot" style="border:0"></i>Reports from that place</span><span>Tap a county or a dot to see it. Cities are shown by their county.</span></div>
+</section>
+
+<section id="watchers" class="lanesec" aria-labelledby="watchers-h">
+  <h2 class="lane" id="watchers-h">Watching the watchers</h2>
+  <p class="dek">What was reported on Election Day from the places on DOJ's list: monitors, intimidation, court fights and voting problems.</p>
+  <div class="reports" id="reports"></div>
+</section>
+<section id="count" class="lanesec" aria-labelledby="count-h">
+  <h2 class="lane" id="count-h">Watching the count</h2>
+  <p class="dek">After the polls close, the fight moves to the count: canvasses, rescans, certification deadlines and lawsuits. We follow it here through certification.</p>
+  <div id="countbody"></div>
+</section>
+
+<section id="lookup" class="lanesec" aria-labelledby="lookup-h">
+  <h2 class="lane" id="lookup-h">Look up a place</h2>
+  <p class="dek">Search DOJ's list, or tap a county on the map. Each place shows whether DOJ also watched it in 2022 or 2024, its population and 2024 vote, and any reports from it.</p>
 <div class="controls">
   <label for="q" style="position:absolute;left:-9999px">Search by county, city or state</label>
   <input id="q" type="search" placeholder="Type a county, city or state" autocomplete="off">
@@ -177,34 +214,21 @@
 </div>
 
 <div id="answer" aria-live="polite"></div>
-
-<section class="maparea">
-  <div class="stats" id="stats"></div>
-  <div class="mapwrap" id="mapwrap" aria-label="Map of listed counties; select a county to show it below">
-    <div id="tip"></div>
-  </div>
-  <div class="legend"><span><i style="background:#F2C230;border-color:#7A5B00"></i>New this year</span><span><i style="background:#000"></i>Also on 2022 or 2024 list</span><span><i style="background:#C8CBCD;border-color:#8A8F94"></i>Monitored in 2024, not this year</span><span><i class="dot" style="border:0"></i>Reports from that place</span><span>Tap a county or a dot to see it. Cities are shown by their county.</span></div>
-</section>
-
-<section class="reports" id="reports" hidden></section>
-<section id="count" aria-labelledby="count-h">
-  <h2 class="lane" id="count-h">Watching the count</h2>
-  <p class="dek" style="font-size:17px">After the polls close, the fight moves to the count: canvasses, rescans, certification deadlines and lawsuits. We follow it here through certification.</p>
-  <div id="countbody"></div>
-</section>
-
 <div id="list"></div>
+</section>
 
 
 <nav id="states" aria-label="State pages"></nav>
 
+
+<section id="about" class="lanesec" aria-labelledby="about-h">
+  <h2 class="lane" id="about-h">About the data</h2>
 <section class="box">
   <h3>What a DOJ monitor can and cannot do</h3>
   <p style="margin:0">DOJ says monitors check compliance with federal voting rights laws. Reuters reports they cannot investigate on the spot or stop anyone from voting, and some state and local laws let election officials keep them outside polling places. If you have a problem voting, call the nonpartisan Election Protection hotline: <b>866-OUR-VOTE (866-687-8683)</b>.</p>
 </section>
-
 <div class="notes">
-  <h2>About the numbers</h2>
+  <h2>How the list and figures were compiled</h2>
   <ul>
     <li>The list is DOJ's stated plan, not a record of where monitors actually went or how many went to each place.</li>
     <li>Population, race and ethnicity are Census Bureau county estimates for July 2024. Cities are shown with their whole county's figures, so Dearborn and Hamtramck carry Wayne County's numbers.</li>
@@ -215,6 +239,7 @@
   </ul>
   <p>Compiled by <a href="https://theramm.transparencycascade.org">The RAMM</a>, Transparency Cascade Press. Found an error? Tell us and we will correct it.</p>
 </div>
+</section>
 </div>
 
 <script>window.MON_STATE="Alaska"; window.MON_BASE='../';</script>
@@ -254,10 +279,10 @@
     const mine = (ST ? STORIES.filter(s => (s.states||[]).includes(ST)) : STORIES).filter(s => s.lane !== 'count')
       .map((s,i) => [s,i]).sort((a,b) => ((ORD[a[0].kind] ?? 9) - (ORD[b[0].kind] ?? 9)) || (b[1] - a[1])).map(x => x[0]);
     const tipLine = `<p class="tip">Know of a report we missed? ${reportLink(ST || '', 'Send us the link')}. It opens a public GitHub form; we read every link before listing it.</p>`;
-    if (!mine.length) { box.hidden = false; box.innerHTML = `<h2>Watching the watchers: Election Day reports${ST ? ' from ' + esc(ST) : ''}</h2><p class="why">No verified reports yet.</p>` + tipLine; return; }
+    if (!mine.length) { box.hidden = false; box.innerHTML = `<h2>Election Day reports${ST ? ' from ' + esc(ST) : ''}</h2><p class="why">No verified reports yet.</p>` + tipLine; return; }
     const cap = ST ? 99 : 8, shown = showAllReports ? mine : mine.slice(0, cap);
     box.hidden = false;
-    box.innerHTML = `<h2>Watching the watchers: Election Day reports${ST ? ' from ' + esc(ST) : ''} (${mine.length})</h2>` +
+    box.innerHTML = `<h2>Election Day reports${ST ? ' from ' + esc(ST) : ''} (${mine.length})</h2>` +
       `<p class="why">News reports about voting problems and DOJ monitors in the places on DOJ's list. We opened and read each one before listing it. Links go to the outlet's own reporting, or to our timeline entry where we wrote one.</p>` +
       `<ul class="rep">${shown.map(s=>repItem(s, true)).join('')}</ul>` +
       (mine.length > cap ? `<button class="more" id="morerep">${showAllReports ? 'Show fewer' : 'Show all ' + mine.length}</button>` : '') + tipLine;
@@ -350,6 +375,26 @@
   }));
   render();
 
+  // ---- the bar: mark the section being read ----
+  try {
+    const links = [...document.querySelectorAll('.site a[href^="#"]')];
+    const secs = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+    const bar = document.querySelector('.site .in');
+    let last = null, ticking = false;
+    const mark = () => {
+      ticking = false;
+      let cur = null; secs.forEach(x => { if (x.getBoundingClientRect().top < innerHeight*0.35) cur = x; });
+      if (cur === last) return; last = cur;
+      links.forEach(a => {
+        const on = !!cur && a.getAttribute('href') === '#'+cur.id;
+        a.setAttribute('aria-current', on ? 'true' : 'false');
+        if (on && bar.scrollWidth > bar.clientWidth) bar.scrollTo({left: a.offsetLeft - 18, behavior:'smooth'});
+      });
+    };
+    addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(mark); } }, {passive:true});
+    mark();
+  } catch (e) {}
+
   // ---- map ----
   try {
     const [topo] = await Promise.all([fetch('https://cdn.jsdelivr.net/npm/us-atlas@3.0.1/counties-albers-10m.json').then(r=>r.json())]);
@@ -393,7 +438,7 @@
       document.querySelectorAll('.tabs button').forEach(x => x.setAttribute('aria-pressed', x.dataset.v===view));
       sel = f.id; const q=document.getElementById('q'); q.value = L ? (L.length>1 ? pick.cty : pick.j+', '+pick.st) : pick.j+', '+pick.st; render();
       svg.selectAll('path.c').classed('sel', d => d.id===sel);
-      const target = document.querySelector('.controls');
+      const target = document.getElementById('lookup');
       target.scrollIntoView({behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start'});
       if (window.plausible) plausible('map-click');
     }
