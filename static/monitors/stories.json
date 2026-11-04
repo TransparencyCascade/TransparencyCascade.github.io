@@ -1470,6 +1470,20 @@
    "kind": "Race calls",
    "lane": "count",
    "places": []
+  },
+  {
+   "url": "https://www.opb.org/article/2026/11/03/democrat-xavier-becerra-wins-california-governors-race-defeating-republican-steve-hilton/",
+   "title": "Democrat Xavier Becerra wins California governor\u2019s race, defeating Republican Steve Hilton",
+   "source": "opb",
+   "states": [
+    "California"
+   ],
+   "race": "Governor",
+   "party": "D",
+   "recorded": "2026-11-04T00:31",
+   "kind": "Race calls",
+   "lane": "count",
+   "places": []
   }
  ]
 }
