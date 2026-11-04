@@ -38,7 +38,7 @@
  {
   "url": "https://www.fox19.com/2026/11/04/dem-chris-pappas-wins-senate-seat-new-hampshire-becomes-first-openly-gay-male-senator/",
   "title": "Dem. Chris Pappas wins Senate seat in New Hampshire, becomes first openly gay male senator",
-  "source": "FOX19 (AP) (call: AP)",
+  "source": "FOX19 (call: AP)",
   "states": [
    "New Hampshire"
   ],
@@ -82,7 +82,7 @@
  },
  {
   "url": "https://newjerseymonitor.com/2026/11/03/sen-cory-booker-handily-wins-reelection/",
-  "title": "Sen. Cory Booker handily wins reelection \u2022 New Jersey Monitor",
+  "title": "Sen. Cory Booker handily wins reelection",
   "source": "New Jersey Monitor (call: AP)",
   "states": [
    "New Jersey"
@@ -119,7 +119,7 @@
  {
   "url": "https://www.wcax.com/2026/11/04/new-york-gov-hochul-wins-reelection/",
   "title": "New York Gov. Hochul wins reelection",
-  "source": "https://www.wcax.com (call: AP)",
+  "source": "WCAX (call: AP)",
   "states": [
    "New York"
   ],
@@ -127,7 +127,7 @@
  },
  {
   "url": "https://wyofile.com/republican-eric-barlow-wins-wyoming-governors-race/",
-  "title": "Republican Eric Barlow wins Wyoming governor\u2019s race - WyoFile",
+  "title": "Republican Eric Barlow wins Wyoming governor\u2019s race",
   "source": "WyoFile (call: AP)",
   "states": [
    "Wyoming"

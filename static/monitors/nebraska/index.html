@@ -67,6 +67,17 @@
   .tabs span{color:var(--graphite); margin-right:4px;}
   .tabs button{font:inherit; padding:7px 11px; border:1.5px solid var(--rule); border-radius:999px; background:var(--paper); color:var(--ink); cursor:pointer;}
   .tabs button[aria-pressed=true]{border-color:var(--ink); background:var(--ink); color:var(--paper);}
+  .seg{display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:10px 0 4px; font:600 14px/1 var(--sans);}
+  .seg span{color:var(--graphite); margin-right:4px;}
+  .seg button{font:inherit; padding:7px 11px; border:1.5px solid var(--rule); border-radius:999px; background:var(--paper); color:var(--ink); cursor:pointer;}
+  .seg button[aria-pressed=true]{border-color:var(--ink); background:var(--ink); color:var(--paper);}
+  h3.race{font:800 18px/1.3 var(--sans); margin:22px 0 2px;}
+  .awaiting{font-size:15px; color:var(--graphite); margin:6px 0 0;}
+  .awaiting b{color:var(--ink); font-weight:600;}
+  .mapwrap .stl{display:none;} .mapwrap svg.callsmode .stl{display:inline;}
+  .mapwrap svg.callsmode .cty, .mapwrap svg.callsmode .mk{display:none;}
+  .mapwrap .stl path{cursor:pointer;} .mapwrap .stl path:hover{stroke:var(--ink); stroke-width:2.5;}
+  .legend[hidden]{display:none;}
 
   /* the answer, printed as a ballot */
   #answer:empty{display:none;}
@@ -181,10 +192,12 @@
 
 <section class="maparea">
   <div class="stats" id="stats"></div>
+  <div class="seg" id="mapmode" role="group" aria-label="What the map shows"><span>Map:</span><button data-m="places" aria-pressed="true">Places DOJ listed</button><button data-m="calls" aria-pressed="false">Race calls</button></div>
   <div class="mapwrap" id="mapwrap" aria-label="Map of listed counties; select a county to show it below">
     <div id="tip"></div>
   </div>
-  <div class="legend"><span><i style="background:#F2C230;border-color:#7A5B00"></i>New this year</span><span><i style="background:#000"></i>Also on 2022 or 2024 list</span><span><i style="background:#C8CBCD;border-color:#8A8F94"></i>Monitored in 2024, not this year</span><span><i class="dot" style="border:0"></i>Reports from that place</span><span>Tap a county or a dot to see it. Cities are shown by their county.</span></div>
+  <div class="legend" id="legend-places"><span><i style="background:#F2C230;border-color:#7A5B00"></i>New this year</span><span><i style="background:#000"></i>Also on 2022 or 2024 list</span><span><i style="background:#C8CBCD;border-color:#8A8F94"></i>Monitored in 2024, not this year</span><span><i class="dot" style="border:0"></i>Reports from that place</span><span>Tap a county or a dot to see it. Cities are shown by their county.</span></div>
+  <div class="legend" id="legend-calls" hidden><span><i style="background:#000"></i>Called, as an outlet reported it</span><span><i style="background:#F2C230;border-color:#7A5B00"></i>No call recorded yet</span><span><i style="background:#EEF0EE;border-color:#8A8F94"></i>No race of this kind</span><span>Tap a state to see its races.</span></div>
 </section>
 
 <section id="watchers" class="lanesec" aria-labelledby="watchers-h">
@@ -289,6 +302,41 @@
     const b = document.getElementById('morerep'); if (b) b.addEventListener('click', () => { showAllReports = !showAllReports; renderReports(); });
   }
   renderReports();
+  // ---- race calls: which statewide races an outlet has called (we do not call races) ----
+  const RACES = {
+    'U.S. Senate': ['Alabama','Alaska','Arkansas','Colorado','Delaware','Florida','Georgia','Idaho','Illinois','Iowa','Kansas','Kentucky','Louisiana','Maine','Massachusetts','Michigan','Minnesota','Mississippi','Montana','Nebraska','New Hampshire','New Jersey','New Mexico','North Carolina','Ohio','Oklahoma','Oregon','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Virginia','West Virginia','Wyoming'],
+    'Governor': ['Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut','Florida','Georgia','Hawaii','Idaho','Illinois','Iowa','Kansas','Maine','Maryland','Massachusetts','Michigan','Minnesota','Nebraska','Nevada','New Hampshire','New Mexico','New York','Ohio','Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Vermont','Wisconsin','Wyoming']
+  };
+  const RLABEL = {'U.S. Senate':'Senate', 'Governor':'Governor'};
+  let raceSel = 'both', callState = null, mapHook = null;
+  const callList = () => STORIES.filter(s => s.kind === 'Race calls');
+  const racesShown = () => raceSel === 'both' ? Object.keys(RACES) : [raceSel];
+  function callStatus(st){   // for the map: 'called' | 'open' | null (no race of the kinds shown)
+    const rs = racesShown().filter(r => RACES[r].includes(st));
+    if (!rs.length) return null;
+    return rs.every(r => callList().some(s => s.race === r && (s.states||[]).includes(st))) ? 'called' : 'open';
+  }
+  function renderCalls(){
+    const box = document.getElementById('calls'); if (!box) return;
+    const only = ST || callState;
+    let h = `<h2>Races called${only ? ' in ' + esc(only) : ''}</h2><p class="why">Statewide races for Senate and governor, as news outlets reported the calls, each linked to the outlet. We do not call races. "No call recorded yet" means we have not seen a call, not that the race is close.</p>` +
+      `<div class="seg" id="raceseg" role="group" aria-label="Which races"><span>Show:</span>` +
+      ['U.S. Senate','Governor','both'].map(r => `<button data-r="${r}" aria-pressed="${raceSel===r}">${r==='both' ? 'Both' : RLABEL[r]}</button>`).join('') + `</div>`;
+    if (callState && !ST) h += `<p class="awaiting">Showing ${esc(callState)} only. <button class="more" id="callall">Show all states</button></p>`;
+    racesShown().forEach(r => {
+      const sts = RACES[r].filter(x => !only || x === only);
+      if (!sts.length) { if (only) h += `<h3 class="race">${RLABEL[r]}</h3><p class="awaiting">No ${RLABEL[r].toLowerCase()} race in ${esc(only)} this year.</p>`; return; }
+      const got = sts.map(x => [x, callList().filter(s => s.race === r && (s.states||[]).includes(x))]);
+      const called = got.filter(g => g[1].length), open = got.filter(g => !g[1].length).map(g => g[0]);
+      h += `<h3 class="race">${RLABEL[r]}: ${called.length} of ${sts.length} called</h3>`;
+      if (called.length) h += `<ul class="rep">${called.map(([x, ss]) => `<li><span class="k">${esc(x)}</span><a href="${esc(safeUrl(ss[0].url))}" target="_blank" rel="noopener">${esc(ss[0].title)}</a> <span class="src">${esc(ss[0].source)}</span></li>`).join('')}</ul>`;
+      if (open.length) h += `<p class="awaiting">No call recorded yet: <b>${open.map(esc).join(', ')}</b></p>`;
+    });
+    box.innerHTML = h;
+    box.querySelectorAll('#raceseg button').forEach(b => b.addEventListener('click', () => { raceSel = b.dataset.r; renderCalls(); }));
+    const ca = document.getElementById('callall'); if (ca) ca.addEventListener('click', () => { callState = null; renderCalls(); });
+    if (mapHook) mapHook();
+  }
   // ---- watching the count ----
   let COUNT = null;
   try { COUNT = await (await fetch(BASE+'count.json', {cache:'no-cache'})).json(); } catch (e) { COUNT = null; }
@@ -311,10 +359,11 @@
     }
     const all = (ST ? STORIES.filter(s => (s.states||[]).includes(ST)) : STORIES).filter(s => s.lane === 'count');
     const calls = all.filter(s => s.kind === 'Race calls'), cs = all.filter(s => s.kind !== 'Race calls');
-    if (calls.length) html += `<h2>Races called${ST ? ' in ' + esc(ST) : ''} (${calls.length})</h2><p class="why">As local outlets reported them, with the outlet that made the call. We do not call races.</p><ul class="rep">${calls.map(s => repItem(s, true)).join('')}</ul>`;
+    html += `<div id="calls"></div>`;
     html += `<h2>Count and certification reports${ST ? ' from ' + esc(ST) : ''} (${cs.length})</h2>` +
       (cs.length ? `<ul class="rep">${cs.map(s => repItem(s, true)).join('')}</ul>` : '<p class="why">Nothing yet. Reports about rescans, canvasses, certification and count lawsuits will appear here.</p>');
     body.innerHTML = html;
+    renderCalls();
   })();
   function line(r){
     const hist = r.y22 && r.y24 ? 'Also 2022 and 2024' : r.y24 ? 'Also 2024' : r.y22 ? 'Also 2022' : 'New this year';
@@ -385,6 +434,7 @@
       ticking = false;
       let cur = null; secs.forEach(x => { if (x.getBoundingClientRect().top < innerHeight*0.35) cur = x; });
       if (cur === last) return; last = cur;
+      if (cur && window.__mapMode) window.__mapMode(cur.id === 'count' ? 'calls' : 'places');
       links.forEach(a => {
         const on = !!cur && a.getAttribute('href') === '#'+cur.id;
         a.setAttribute('aria-current', on ? 'true' : 'false');
@@ -413,7 +463,7 @@
     }
     const svg = wrap.append('svg').attr('viewBox', vb).attr('role','img');
     const fill = f => { const L=listed[f.id]; if (L) return L.some(r=>!r.y22&&!r.y24) ? '#F2C230' : '#000000'; return drop[f.id] ? '#C8CBCD' : '#EEF0EE'; };
-    svg.append('g').selectAll('path').data(counties).join('path')
+    svg.append('g').attr('class','cty').selectAll('path').data(counties).join('path')
       .attr('class', f => 'c' + (listed[f.id]||drop[f.id] ? ' on' : ''))
       .attr('d', path).attr('fill', fill)
       .attr('stroke', f => (listed[f.id] && listed[f.id].some(r=>!r.y22&&!r.y24)) ? '#7A5B00' : null).attr('stroke-width', f => (listed[f.id] && listed[f.id].some(r=>!r.y22&&!r.y24)) ? 0.8 : null);
@@ -429,6 +479,31 @@
       .attr('fill','none').attr('stroke','#5B6168').attr('stroke-width',0.6).attr('d', path);
     }
     const tip = document.getElementById('tip');
+    // states layer, shown in race-calls mode
+    const stFeats = topojson.feature(topo, topo.objects.states).features.filter(f => !ST || f.properties.name === ST);
+    const stl = svg.insert('g', '.cty + *').attr('class','stl');
+    const STFILL = {called:'#000000', open:'#F2C230'};
+    stl.selectAll('path').data(stFeats).join('path').attr('d', path)
+      .attr('tabindex', 0).attr('role','button').attr('aria-label', f => f.properties.name + ' races')
+      .on('click', (e,f) => pickState(f.properties.name))
+      .on('keydown', (e,f) => { if (e.key==='Enter' || e.key===' ') { e.preventDefault(); pickState(f.properties.name); } })
+      .on('mousemove', (e,f) => { const st = callStatus(f.properties.name); const b=wrap.node().getBoundingClientRect(); tip.textContent = f.properties.name + (st==='called' ? ': called' : st==='open' ? ': no call recorded yet' : ': no race shown'); tip.style.display='block'; tip.style.left=(e.clientX-b.left+12)+'px'; tip.style.top=(e.clientY-b.top-28)+'px'; })
+      .on('mouseleave', () => { tip.style.display='none'; });
+    function pickState(name){
+      callState = ST ? null : name; renderCalls();
+      document.getElementById('calls').scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start'});
+    }
+    mapHook = () => stl.selectAll('path').attr('fill', f => STFILL[callStatus(f.properties.name)] || '#EEF0EE')
+      .attr('stroke', f => callStatus(f.properties.name)==='open' ? '#7A5B00' : null).attr('stroke-width', f => callStatus(f.properties.name)==='open' ? 0.8 : null);
+    mapHook();
+    const setMode = m => {
+      svg.classed('callsmode', m === 'calls');
+      document.getElementById('legend-places').hidden = m === 'calls';
+      document.getElementById('legend-calls').hidden = m !== 'calls';
+      document.querySelectorAll('#mapmode button').forEach(b => b.setAttribute('aria-pressed', b.dataset.m === m));
+    };
+    document.querySelectorAll('#mapmode button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.m)));
+    window.__mapMode = setMode;
     const label = f => { const L=listed[f.id]; if (L) return L.map(r=>r.j+', '+r.st).join(' · '); const D=drop[f.id]; return D ? D.map(d=>d.j+', '+d.st).join(' · ')+' (2024 only)' : ''; };
     function choose(f){
       const L=listed[f.id], D=drop[f.id];
