@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<!--
+  Where DOJ said it would send election monitors, Nov. 3, 2026.
+  Transparency Cascade Press. Data: DOJ release 26-1310 (Nov. 3, 2026); DOJ releases of Nov. 7, 2022
+  and Nov. 1, 2024; Census Bureau county estimates (July 2024); 2024 county presidential results;
+  Census Section 203 determinations (Dec. 2021). Nothing you type here leaves your browser.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Watching the Count: Calls, Canvasses and Certification, 2026</title>
+<meta name="description" content="Race calls as outlets reported them, the certification calendar and reports on the count after Election Day 2026.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Watching the count">
+<meta property="og:description" content="The 126 places DOJ said it would monitor on Election Day 2026, what was reported from each, and the count and certification that come next.">
+<meta property="og:url" content="https://transparencycascade.org/monitors/count/">
+<meta property="og:image" content="https://transparencycascade.org/monitors/cards/watching.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://transparencycascade.org/monitors/cards/watching.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,400;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<script async src="https://plausible.io/js/pa-M-497ZEFkxmAoPGY4QkPC.js"></script>
+<script>
+  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
+  plausible.init()
+</script>
+<style>
+  /* The paper ballot: white stock, black ink, one highlighter. Public Sans, the U.S. government's own design-system face.
+     Red and blue only for race calls, where they mean the parties (the usual convention); nowhere else. */
+  :root{
+    --paper:#FFFFFF; --ink:#000000; --graphite:#5B6168; --rule:#C8CBCD; --field:#F3F4F1; --mark:#F2C230; --mark-ink:#7A5B00;
+    --sans:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+    --mono:var(--sans); --serif:var(--sans); --seal:var(--ink); --paper2:var(--field);
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{margin:0; background:var(--paper); color:var(--ink); font:400 17px/1.55 var(--sans); font-variant-numeric:tabular-nums;}
+  .wrap{max-width:760px; margin:0 auto; padding:0 18px 100px;}
+  a{color:var(--ink); text-decoration-thickness:2px; text-decoration-color:var(--mark); text-underline-offset:3px;}
+  a:hover{background:var(--mark);}
+  :focus-visible{outline:3px solid var(--ink); outline-offset:2px; background:var(--mark);}
+  header{padding:28px 0 14px;}
+  .stamp{font:600 14px/1.3 var(--sans); color:var(--graphite); margin-bottom:10px;}
+  /* one bar for the whole page: where you are, and the way to the other sections */
+  .site{position:sticky; top:0; z-index:5; background:var(--paper); border-bottom:2px solid var(--ink);}
+  .site .in{max-width:1560px; margin:0 auto; padding:0 18px; display:flex; align-items:stretch; gap:22px; height:52px; overflow-x:auto; scrollbar-width:none;}
+  .site .in::-webkit-scrollbar{display:none;}
+  .site a{display:flex; align-items:center; white-space:nowrap; text-decoration:none; font:600 15px/1 var(--sans); border-bottom:5px solid transparent; padding-top:5px;}
+  .site a.brand{font-weight:800; margin-right:6px;}
+  .site a[aria-current=true]{border-bottom-color:var(--mark);}
+  .site a:hover{background:none; border-bottom-color:var(--ink);}
+  h1{font:800 clamp(34px,8vw,58px)/1.0 var(--sans); letter-spacing:-0.025em; margin:0 0 14px; max-width:14ch;}
+  .dek{font-size:18px; line-height:1.5; max-width:60ch; margin:0;}
+  #back a{font:600 14px var(--sans); color:var(--graphite);}
+  .controls{position:sticky; top:52px; background:var(--paper); padding:14px 0 10px; z-index:3; border-bottom:2px solid var(--ink);}
+  input[type=search]{width:100%; font:600 19px var(--sans); padding:14px 16px; border:3px solid var(--ink); border-radius:0; background:var(--paper); color:var(--ink); -webkit-appearance:none;}
+  input[type=search]::-webkit-search-cancel-button{-webkit-appearance:none; height:18px; width:18px; cursor:pointer;
+    background:linear-gradient(45deg,transparent 44%,#000 44%,#000 56%,transparent 56%),linear-gradient(-45deg,transparent 44%,#000 44%,#000 56%,transparent 56%);}
+  input[type=search]::placeholder{color:var(--graphite); font-weight:400;}
+  input[type=search]:focus{outline:none; box-shadow:0 0 0 4px var(--mark);}
+  .tabs{display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:10px; font:600 14px/1 var(--sans);}
+  .tabs span{color:var(--graphite); margin-right:4px;}
+  .tabs button{font:inherit; padding:7px 11px; border:1.5px solid var(--rule); border-radius:999px; background:var(--paper); color:var(--ink); cursor:pointer;}
+  .tabs button[aria-pressed=true]{border-color:var(--ink); background:var(--ink); color:var(--paper);}
+  .seg{display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:10px 0 4px; font:600 14px/1 var(--sans);}
+  .seg span{color:var(--graphite); margin-right:4px;}
+  .seg button{font:inherit; padding:7px 11px; border:1.5px solid var(--rule); border-radius:999px; background:var(--paper); color:var(--ink); cursor:pointer;}
+  .seg button[aria-pressed=true]{border-color:var(--ink); background:var(--ink); color:var(--paper);}
+  h3.race{font:800 18px/1.3 var(--sans); margin:22px 0 2px;}
+  .awaiting{font-size:15px; color:var(--graphite); margin:6px 0 0;}
+  .awaiting b{color:var(--ink); font-weight:600;}
+  .mapwrap .stl{display:none;} .mapwrap svg.callsmode .stl{display:inline;}
+  .mapwrap svg.callsmode .cty, .mapwrap svg.callsmode .mk{display:none;}
+  .mapwrap .stl path{cursor:pointer;} .mapwrap .stl path:hover{stroke:var(--ink); stroke-width:2.5;}
+  .legend[hidden]{display:none;}
+  /* two pages from one file: the watchers page (default) and the count page (body data-page="count") */
+  body[data-page=count] .pw{display:none !important;}
+  body:not([data-page=count]) .pc{display:none !important;}
+  #mapmode{display:none;}
+
+  /* the answer, printed as a ballot */
+  #answer:empty{display:none;}
+  .ballot{position:relative; margin:18px 0 6px; border:3px solid var(--ink); padding:0 34px 0 0; background:var(--paper);}
+  .ballot .b-head{background:var(--ink); color:var(--paper); font:700 17px/1.3 var(--sans); padding:10px 16px;}
+  .ballot .b-head b{font-weight:800;}
+  .ballot .b-inst{font:400 13px/1.4 var(--sans); color:var(--graphite); padding:10px 16px 0;}
+  .ballot .opt{display:flex; gap:14px; align-items:flex-start; padding:12px 16px; margin:0; font:700 20px/1.25 var(--sans); border-bottom:1px solid var(--rule);}
+  .ballot .opt:last-of-type{border-bottom:0;}
+  .ballot .opt small{display:block; font:400 15px/1.45 var(--sans); margin-top:4px; color:var(--ink);}
+  .ballot .opt.off{color:var(--graphite); font-weight:600;}
+  .oval{flex:0 0 auto; width:34px; height:20px; border:2.5px solid var(--ink); border-radius:50%; margin-top:2px;}
+  .opt.on .oval{background:var(--ink); box-shadow:inset 0 0 0 3px var(--ink);}
+  @media (prefers-reduced-motion:no-preference){ .opt.on .oval{animation:mark .35s ease-out both;} @keyframes mark{from{background:transparent;} to{background:var(--ink);}} }
+  .ballot .marks{position:absolute; right:8px; top:56px; bottom:10px; width:14px;
+    background:repeating-linear-gradient(to bottom, var(--ink) 0 6px, transparent 6px 22px);}
+
+  .stats{display:flex; flex-wrap:wrap; gap:8px 26px; margin:26px 0 6px; font:400 15px/1.3 var(--sans); color:var(--graphite);}
+  .stats b{display:block; font:800 32px/1 var(--sans); color:var(--ink); letter-spacing:-0.02em;}
+  .mapwrap{margin:16px 0 4px; position:relative;}
+  .mapwrap svg{width:100%; height:auto; max-height:560px; display:block;}
+  .mapwrap path{vector-effect:non-scaling-stroke;}
+  .mapwrap path.c{stroke:none;}
+  .mapwrap path.c.on{cursor:pointer;}
+  .mapwrap path.c.on:hover{stroke:var(--ink); stroke-width:2;}
+  .legend{display:flex; flex-wrap:wrap; gap:6px 18px; font:400 14px var(--sans); color:var(--graphite); margin-top:8px;}
+  .legend i{display:inline-block; width:14px; height:14px; vertical-align:-2px; margin-right:6px; border:1.5px solid var(--ink);}
+  #tip{position:absolute; pointer-events:none; background:var(--ink); color:var(--paper); font:600 13px/1.3 var(--sans); padding:6px 9px; display:none; white-space:nowrap;}
+
+  h2{font:800 22px/1.2 var(--sans); letter-spacing:-0.01em; margin:34px 0 8px; padding-bottom:6px; border-bottom:2px solid var(--ink);}
+  h2 a{text-decoration:none;}
+  .row{padding:14px 0; border-bottom:1px solid var(--rule);}
+  .name{font:700 19px/1.3 var(--sans);}
+  .tag{display:inline-block; font:600 13px/1 var(--sans); padding:4px 8px; margin-left:8px; border-radius:999px; border:1.5px solid var(--ink); vertical-align:2px;}
+  .tag.new{background:var(--mark); border-color:var(--mark-ink);}
+  .meta{font-size:15px; color:var(--graphite); margin-top:4px;}
+  .meta dl{display:grid; grid-template-columns:max-content 1fr; gap:1px 12px; margin:4px 0 0;}
+  .meta dt{color:var(--graphite);} .meta dd{margin:0; color:var(--ink);}
+  .empty{color:var(--graphite); padding:16px 0;}
+  section.box{margin-top:40px; padding:18px 20px; background:var(--field); border-left:6px solid var(--mark);}
+  section.box h3{font:800 18px/1.3 var(--sans); margin:0 0 6px;}
+  .notes{font-size:15px; color:var(--graphite); margin-top:36px;}
+  .notes li{margin-bottom:6px;}
+  nav#states{margin-top:34px;}
+  nav#states div{display:flex; flex-wrap:wrap; gap:6px 14px; font:600 15px/1.7 var(--sans);}
+  nav#states a{text-decoration-color:var(--rule);}
+  nav#states a.cur{background:var(--mark); text-decoration:none; padding:0 4px;}
+
+  .reports{margin-top:30px;}
+  .reports .why, #count .why{font-size:15px; color:var(--graphite); margin:0 0 8px; max-width:62ch;}
+  ul.rep{list-style:none; margin:8px 0 0; padding:0;}
+  ul.rep li{padding:9px 0 9px 14px; border-left:4px solid var(--rule); margin:8px 0; font-size:16px; line-height:1.4;}
+  ul.rep li.mon{border-left-color:var(--ink);}
+  ul.rep li.pD{border-left-color:#1F5BA8;} ul.rep li.pR{border-left-color:#C42B2B;}
+  ul.rep .k{display:block; font:600 13px/1.4 var(--sans); color:var(--graphite);}
+  ul.rep .src{color:var(--graphite); font-size:14px;}
+  .row ul.rep li{font-size:15px; padding:5px 0 5px 12px; margin:6px 0;}
+  .tip{font:400 14px var(--sans); color:var(--graphite); margin-top:10px;}
+  .row .tip{margin-top:6px; font-size:14px;}
+  .more{font:700 14px var(--sans); padding:8px 0; border:0; background:none; color:var(--ink); cursor:pointer; text-decoration:underline; text-decoration-color:var(--mark); text-decoration-thickness:2px;}
+  section[id], nav#states{scroll-margin-top:64px;}
+  .lanesec{margin-top:52px; padding-top:22px; border-top:6px solid var(--ink);}
+  #watchers.lanesec, #count.lanesec{margin-top:8px; border-top:0; padding-top:0;}
+  .lanesec > .dek{font-size:17px;}
+  h2.lane{font:800 clamp(30px,6vw,44px)/1.05 var(--sans); letter-spacing:-0.02em; border:0; margin:0 0 10px; padding:0;}
+  .cal{list-style:none; padding:0; margin:8px 0;}
+  .cal li{display:grid; grid-template-columns:7.2em 1fr; gap:2px 14px; padding:9px 0; border-bottom:1px solid var(--rule); font-size:16px;}
+  .cal time{font:700 15px/1.5 var(--sans);}
+  .cal .st{font-weight:700;}
+  .cal li.past{color:var(--graphite);} .cal li.past time{text-decoration:line-through; text-decoration-color:var(--graphite);}
+  /* story markers and the selected county */
+  .mk{cursor:pointer;}
+  .mk circle{fill:#000; stroke:#fff; stroke-width:1.5; vector-effect:non-scaling-stroke;}
+  .mk text{fill:#fff; font-family:var(--sans); font-weight:800; text-anchor:middle; dominant-baseline:central; pointer-events:none;}
+  .mk:hover circle, .mk:focus circle{fill:var(--mark); stroke:#000;}
+  .mk:hover text, .mk:focus text{fill:#000;}
+  .mk:focus{outline:none;}
+  .mapwrap path.c.sel{stroke:#000; stroke-width:3;}
+  .legend .dot{display:inline-block; width:14px; height:14px; border-radius:50%; background:#000; vertical-align:-2px; margin-right:6px;}
+  /* laptop and wider: the map is the navigation, pinned on the left; the reading column on the right gets a full line length (up to 720px), the map takes what is left */
+  @media (min-width:1240px){
+    .wrap{max-width:1560px; display:grid; grid-template-columns:minmax(480px,1fr) minmax(520px,720px); column-gap:56px; padding:0 40px 100px;}
+    .wrap > *{grid-column:2; min-width:0;}
+    .wrap > .maparea{grid-column:1; grid-row:1 / span 40; position:sticky; top:52px; align-self:start; height:calc(100vh - 52px);
+      display:flex; flex-direction:column; justify-content:center; padding:24px 0;}
+    .maparea .stats{margin-top:0;}
+    .maparea .mapwrap svg{max-height:calc(100vh - 262px);}
+    .site .in{padding:0 40px;}
+    h1{max-width:none; font-size:clamp(34px,3.4vw,52px);}
+  }
+  @media (max-width:640px){
+    .mk text{display:none;} .tabs{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; margin-right:-18px; padding-right:18px;} .tabs::-webkit-scrollbar{display:none;} .tabs button{white-space:nowrap;} }
+  @media (max-width:520px){ body{font-size:16px;} .stats b{font-size:26px;} .ballot .opt{font-size:18px;} .cal li{grid-template-columns:6.4em 1fr;} }
+</style>
+</head>
+<body data-page="count">
+<nav class="site" aria-label="On this page"><div class="in">
+  <a class="brand" href="https://theramm.transparencycascade.org">The RAMM</a>
+  <a href="/monitors/" data-sec="watchers">Watching the watchers</a>
+  <a href="/monitors/count/" data-page="count">Watching the count</a>
+  <a href="/monitors/#lookup" data-sec="lookup">Look up a place</a>
+  <a href="/monitors/#states" data-sec="states">State pages</a>
+  <a href="/monitors/#about" data-sec="about">About the data</a>
+</div></nav>
+<div class="wrap">
+<header>
+  <p class="stamp">The RAMM, election night, Nov. 3, 2026</p>
+  <div id="back"></div>
+  <h1 id="count-title">Watching the count</h1>
+  <p class="dek">After the polls close, the fight moves to the count: race calls, canvasses, rescans, certification deadlines and lawsuits. We follow it through certification. Where DOJ sent monitors on Election Day is on <a href="/monitors/">Watching the watchers</a>.</p>
+</header>
+
+
+<section class="maparea">
+  <div class="stats pw" id="stats"></div>
+  <div class="seg" id="mapmode" role="group" aria-label="What the map shows"><span>Map:</span><button data-m="places" aria-pressed="true">Places DOJ listed</button><button data-m="calls" aria-pressed="false">Race calls</button></div>
+  <div class="mapwrap" id="mapwrap" aria-label="Map of listed counties; select a county to show it below">
+    <div id="tip"></div>
+  </div>
+  <div class="legend" id="legend-places"><span><i style="background:#F2C230;border-color:#7A5B00"></i>New this year</span><span><i style="background:#000"></i>Also on 2022 or 2024 list</span><span><i style="background:#C8CBCD;border-color:#8A8F94"></i>Monitored in 2024, not this year</span><span><i class="dot" style="border:0"></i>Reports from that place</span><span>Tap a county or a dot to see it. Cities are shown by their county.</span></div>
+  <div class="legend" id="legend-calls" hidden><span><i style="background:#1F5BA8;border-color:#1F5BA8"></i>Called for the Democrat</span><span><i style="background:#C42B2B;border-color:#C42B2B"></i>Called for the Republican</span><span><i style="background:#7B4FA0;border-color:#7B4FA0"></i>Split (both races shown)</span><span><i style="background:#C3C7CB;border-color:#8A8F94"></i>No call recorded yet</span><span><i style="background:#FAFAF8;border-color:#C3C7CB"></i>No race of this kind</span><span>Tap a state to see its races.</span></div>
+</section>
+
+<section id="watchers" class="lanesec pw" aria-labelledby="watchers-h">
+  <h2 class="lane" id="watchers-h" style="position:absolute;left:-9999px">Watching the watchers</h2>
+  <div class="reports" id="reports"></div>
+</section>
+<section id="count" class="lanesec pc" aria-labelledby="count-h">
+  <h2 class="lane" id="count-h" style="position:absolute;left:-9999px">Watching the count</h2>
+  <p class="dek pw">After the polls close, the fight moves to the count: canvasses, rescans, certification deadlines and lawsuits. We follow it here through certification.</p>
+  <div id="countbody"></div>
+</section>
+
+<section id="lookup" class="lanesec pw" aria-labelledby="lookup-h">
+  <h2 class="lane" id="lookup-h">Look up a place</h2>
+  <p class="dek">Search DOJ's list, or tap a county on the map. Each place shows whether DOJ also watched it in 2022 or 2024, its population and 2024 vote, and any reports from it.</p>
+<div class="controls">
+  <label for="q" style="position:absolute;left:-9999px">Search by county, city or state</label>
+  <input id="q" type="search" placeholder="Type a county, city or state" autocomplete="off">
+  <div class="tabs" role="group" aria-label="Group the list">
+    <span>Show:</span>
+    <button data-v="state" aria-pressed="true">By state</button>
+    <button data-v="new" aria-pressed="false">New this year</button>
+    <button data-v="returning" aria-pressed="false">Also on 2022 or 2024 list</button>
+    <button data-v="dropped" aria-pressed="false">Monitored in 2024, not this year</button>
+  </div>
+</div>
+
+<div id="answer" aria-live="polite"></div>
+<div id="list"></div>
+</section>
+
+
+<nav id="states" class="pw" aria-label="State pages"></nav>
+
+
+<section id="about" class="lanesec pw" aria-labelledby="about-h">
+  <h2 class="lane" id="about-h">About the data</h2>
+<section class="box">
+  <h3>What a DOJ monitor can and cannot do</h3>
+  <p style="margin:0">DOJ says monitors check compliance with federal voting rights laws. Reuters reports they cannot investigate on the spot or stop anyone from voting, and some state and local laws let election officials keep them outside polling places. If you have a problem voting, call the nonpartisan Election Protection hotline: <b>866-OUR-VOTE (866-687-8683)</b>.</p>
+</section>
+<div class="notes">
+  <h2>How the list and figures were compiled</h2>
+  <ul>
+    <li>The list is DOJ's stated plan, not a record of where monitors actually went or how many went to each place.</li>
+    <li>Population, race and ethnicity are Census Bureau county estimates for July 2024. Cities are shown with their whole county's figures, so Dearborn and Hamtramck carry Wayne County's numbers.</li>
+    <li>The 2024 presidential vote is by county, from a public compilation of official results; places with no county-level result show no vote, including Alaska, which reports by state house district. Black, Asian and Native American include people of more than one race, and Hispanic people can be of any race, so the shares can add to more than 100%.</li>
+    <li>"Language assistance" means the county or city must provide voting materials in that language under Section 203 of the Voting Rights Act (Census determinations, December 2021). Statewide Spanish coverage in California, Florida and Texas is not shown.</li>
+    <li>Earlier lists: DOJ's releases of <a href="https://www.justice.gov/archives/opa/pr/justice-department-monitor-polls-24-states-compliance-federal-voting-rights-laws">Nov. 7, 2022</a> (64 jurisdictions) and <a href="https://www.justice.gov/archives/opa/pr/justice-department-monitor-polls-27-states-compliance-federal-voting-rights-laws">Nov. 1, 2024</a> (86). Matches are by name.</li>
+    <li>Larger, denser counties vote more Democratic, and this list is weighted toward large counties, so its lean cannot by itself show why any place was chosen.</li>
+  </ul>
+  <p>Compiled by <a href="https://theramm.transparencycascade.org">The RAMM</a>, Transparency Cascade Press. Found an error? Tell us and we will correct it.</p>
+</div>
+</section>
+</div>
+
+<script>window.MON_PAGE='count'; window.MON_BASE='../'; (function(){var s=new URLSearchParams(location.search).get('state'); if(s){window.MON_STATE=s; document.title='Watching the count in '+s; var h=document.getElementById('count-title'); if(h) h.textContent='Watching the count in '+s;}})();</script>
+<script>
+(async function(){
+  const ST = window.MON_STATE || null, BASE = window.MON_BASE || '', PAGE = window.MON_PAGE || 'watchers';
+  const COUNT_URL = '/monitors/count/' + (ST ? '?state=' + encodeURIComponent(ST) : '');
+  if (PAGE === 'watchers' && location.hash === '#count') { location.replace(COUNT_URL); return; }
+  document.querySelectorAll('.site a').forEach(a => {
+    if (a.dataset.page === 'count') { a.href = COUNT_URL; if (PAGE === 'count') a.setAttribute('aria-current', 'page'); }
+    else if (a.dataset.sec && PAGE === 'watchers') a.href = '#' + a.dataset.sec;
+    else if (a.dataset.sec && ST) a.href = '/monitors/' + ST.toLowerCase().replace(/[^a-z]+/g,'-') + '/' + (a.dataset.sec === 'watchers' ? '' : '#' + a.dataset.sec);
+  });
+  const res = await fetch(BASE+'data.json?v=20261103c', {cache:'no-cache'}); const D = await res.json();
+  const slug = s => s.toLowerCase().replace(/[^a-z]+/g,'-');
+  let STORIES = [];
+  try { STORIES = (await (await fetch(BASE+'stories.json', {cache:'no-cache'})).json()).stories || []; } catch (e) { STORIES = []; }
+  const allStates = [...new Set(D.rows.map(r=>r.st))].sort();
+  document.getElementById('states').innerHTML = '<h2>State pages</h2><div>' + (ST ? `<a href="${BASE}">All states</a>` : '') +
+    allStates.map(s => `<a href="${BASE}${slug(s)}/" class="${s===ST?'cur':''}">${s}</a>`).join('') + '</div>';
+  if (ST) document.getElementById('back').innerHTML = PAGE === 'count' ? `<a href="${BASE}count/">&larr; All states</a>` : `<a href="${BASE}">&larr; All 50 states</a>`;
+  const rows = ST ? D.rows.filter(r=>r.st===ST) : D.rows, dropped = ST ? D.dropped.filter(d=>d.st===ST) : D.dropped;
+  const fmt = n => n==null ? '' : n.toLocaleString('en-US');
+  const isNew = r => !r.y22 && !r.y24;
+  const states = new Set(rows.map(r=>r.st));
+  const nNew = rows.filter(isNew).length;
+  document.getElementById('stats').innerHTML =
+    `<div><b>${rows.length}</b>places listed</div>` + (ST ? '' : `<div><b>${states.size}</b>states</div>`) +
+    `<div><b>${nNew}</b>new this year</div><div><b>${dropped.length}</b>dropped from 2024</div>`;
+  let view = 'state'; let sel = null;
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const safeUrl = u => /^https?:\/\//.test(u||'') ? u : '#';
+  const storiesFor = r => STORIES.filter(s => s.places.some(p => p.st===r.st && p.j===r.j));
+  function repItem(s, withPlaces){
+    const where = withPlaces ? ': ' + esc(s.places.length ? s.places.map(p => ST ? p.j : p.j+', '+p.st).join('; ') : (s.states||[]).join(', ')) : '';
+    return `<li class="${s.kind==='DOJ monitors'?'mon':''}"><span class="k">${esc(s.kind)}${where}</span><a href="${esc(safeUrl(s.url))}" target="_blank" rel="noopener">${esc(s.title)}</a> <span class="src">${esc(s.source)}</span></li>`;
+  }
+  const REPORT = 'https://github.com/TransparencyCascade/TransparencyCascade.github.io/issues/new?template=monitors-report.yml';
+  const reportLink = (place, text) => `<a href="${REPORT}&place=${encodeURIComponent(place)}&title=${encodeURIComponent('[Report] '+place)}" target="_blank" rel="noopener">${text}</a>`;
+  let showAllReports = false;
+  function renderReports(){
+    const box = document.getElementById('reports');
+    const ORD = {'DOJ monitors':0, 'Voter intimidation':1, 'Courts':2};
+    const mine = (ST ? STORIES.filter(s => (s.states||[]).includes(ST)) : STORIES).filter(s => s.lane !== 'count')
+      .map((s,i) => [s,i]).sort((a,b) => ((ORD[a[0].kind] ?? 9) - (ORD[b[0].kind] ?? 9)) || (b[1] - a[1])).map(x => x[0]);
+    const tipLine = `<p class="tip">Know of a report we missed? ${reportLink(ST || '', 'Send us the link')}. It opens a public GitHub form; we read every link before listing it.</p>`;
+    if (!mine.length) { box.hidden = false; box.innerHTML = `<h2>Election Day reports${ST ? ' from ' + esc(ST) : ''}</h2><p class="why">No verified reports yet.</p>` + tipLine; return; }
+    const cap = ST ? 99 : 8, shown = showAllReports ? mine : mine.slice(0, cap);
+    box.hidden = false;
+    box.innerHTML = `<h2>Election Day reports${ST ? ' from ' + esc(ST) : ''} (${mine.length})</h2>` +
+      `<p class="why">News reports about voting problems and DOJ monitors in the places on DOJ's list. We opened and read each one before listing it. Links go to the outlet's own reporting, or to our timeline entry where we wrote one.</p>` +
+      `<ul class="rep">${shown.map(s=>repItem(s, true)).join('')}</ul>` +
+      (mine.length > cap ? `<button class="more" id="morerep">${showAllReports ? 'Show fewer' : 'Show all ' + mine.length}</button>` : '') + tipLine;
+    const b = document.getElementById('morerep'); if (b) b.addEventListener('click', () => { showAllReports = !showAllReports; renderReports(); });
+  }
+  renderReports();
+  // ---- race calls: which statewide races an outlet has called (we do not call races) ----
+  const RACES = {
+    'U.S. Senate': ['Alabama','Alaska','Arkansas','Colorado','Delaware','Florida','Georgia','Idaho','Illinois','Iowa','Kansas','Kentucky','Louisiana','Maine','Massachusetts','Michigan','Minnesota','Mississippi','Montana','Nebraska','New Hampshire','New Jersey','New Mexico','North Carolina','Ohio','Oklahoma','Oregon','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Virginia','West Virginia','Wyoming'],
+    'Governor': ['Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut','Florida','Georgia','Hawaii','Idaho','Illinois','Iowa','Kansas','Maine','Maryland','Massachusetts','Michigan','Minnesota','Nebraska','Nevada','New Hampshire','New Mexico','New York','Ohio','Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Vermont','Wisconsin','Wyoming']
+  };
+  const RLABEL = {'U.S. Senate':'Senate', 'Governor':'Governor'};
+  let raceSel = 'both', callState = null, mapHook = null;
+  const callList = () => STORIES.filter(s => s.kind === 'Race calls');
+  const racesShown = () => raceSel === 'both' ? Object.keys(RACES) : [raceSel];
+  function callStatus(st){   // for the map: 'called' | 'open' | null (no race of the kinds shown)
+    const rs = racesShown().filter(r => RACES[r].includes(st));
+    if (!rs.length) return null;
+    const got = rs.map(r => callList().find(s => s.race === r && (s.states||[]).includes(st)));
+    if (got.some(g => !g)) return 'open';
+    const ps = [...new Set(got.map(g => g.party || '?'))];
+    return ps.length === 1 ? (ps[0] === '?' ? 'D' : ps[0]) : 'split';
+  }
+  function renderCalls(){
+    const box = document.getElementById('calls'); if (!box) return;
+    const only = ST || callState;
+    let h = `<h2>Races called${only ? ' in ' + esc(only) : ''}</h2><p class="why">Statewide races for Senate and governor, as news outlets reported the calls, each linked to the outlet. We do not call races. "No call recorded yet" means we have not seen a call, not that the race is close.</p>` +
+      `<div class="seg" id="raceseg" role="group" aria-label="Which races"><span>Show:</span>` +
+      ['U.S. Senate','Governor','both'].map(r => `<button data-r="${r}" aria-pressed="${raceSel===r}">${r==='both' ? 'Both' : RLABEL[r]}</button>`).join('') + `</div>`;
+    if (callState && !ST) h += `<p class="awaiting">Showing ${esc(callState)} only. <button class="more" id="callall">Show all states</button></p>`;
+    racesShown().forEach(r => {
+      const sts = RACES[r].filter(x => !only || x === only);
+      if (!sts.length) { if (only) h += `<h3 class="race">${RLABEL[r]}</h3><p class="awaiting">No ${RLABEL[r].toLowerCase()} race in ${esc(only)} this year.</p>`; return; }
+      const got = sts.map(x => [x, callList().filter(s => s.race === r && (s.states||[]).includes(x))]);
+      const called = got.filter(g => g[1].length), open = got.filter(g => !g[1].length).map(g => g[0]);
+      h += `<h3 class="race">${RLABEL[r]}: ${called.length} of ${sts.length} called</h3>`;
+      if (called.length) h += `<ul class="rep">${called.map(([x, ss]) => `<li class="p${esc(ss[0].party||'')}"><span class="k">${esc(x)}${ss[0].party ? ', ' + (ss[0].party==='D' ? 'Democrat' : ss[0].party==='R' ? 'Republican' : 'Independent') : ''}</span><a href="${esc(safeUrl(ss[0].url))}" target="_blank" rel="noopener">${esc(ss[0].title)}</a> <span class="src">${esc(ss[0].source)}</span></li>`).join('')}</ul>`;
+      if (open.length) h += `<p class="awaiting">No call recorded yet: <b>${open.map(esc).join(', ')}</b></p>`;
+    });
+    box.innerHTML = h;
+    box.querySelectorAll('#raceseg button').forEach(b => b.addEventListener('click', () => { raceSel = b.dataset.r; renderCalls(); }));
+    const ca = document.getElementById('callall'); if (ca) ca.addEventListener('click', () => { callState = null; renderCalls(); });
+    if (mapHook) mapHook();
+  }
+  // ---- watching the count ----
+  let COUNT = null;
+  try { COUNT = await (await fetch(BASE+'count.json', {cache:'no-cache'})).json(); } catch (e) { COUNT = null; }
+  (function renderCount(){
+    const body = document.getElementById('countbody'); if (!body) return;
+    const today = new Date().toISOString().slice(0,10);
+    const day = iso => new Date(iso+'T12:00:00').toLocaleDateString('en-US',{weekday:'short', month:'short', day:'numeric'});
+    let html = `<div id="calls"></div>`;
+    if (COUNT) {
+      let items = [];
+      Object.entries(COUNT.calendar).forEach(([st, rows]) => { if (!ST || st===ST) rows.forEach(([d,t]) => items.push({d, st, t})); });
+      if (!ST) COUNT.national.forEach(([d,t]) => items.push({d, st:'Congress', t}));
+      items.sort((a,b) => a.d.localeCompare(b.d));
+      html += `<h2>Certification calendar${ST ? ' for ' + esc(ST) : ''}</h2>`;
+      if (items.length) {
+        html += `<ul class="cal">${items.map(x => `<li class="${x.d < today ? 'past' : ''}"><time datetime="${x.d}">${day(x.d)}</time><span>${ST ? '' : `<span class="st">${esc(x.st)}</span> `}${esc(x.t)}</span></li>`).join('')}</ul><p class="why">${esc(COUNT.note)}</p>`;
+      } else {
+        html += `<p class="why">We have not compiled ${esc(ST)}'s certification deadlines yet. So far the calendar covers Arizona, California, Georgia, Michigan, Nevada, North Carolina, Pennsylvania and Wisconsin.</p>`;
+      }
+    }
+    const all = (ST ? STORIES.filter(s => (s.states||[]).includes(ST)) : STORIES).filter(s => s.lane === 'count');
+    const calls = all.filter(s => s.kind === 'Race calls'), cs = all.filter(s => s.kind !== 'Race calls');
+
+    html += `<h2>Count and certification reports${ST ? ' from ' + esc(ST) : ''} (${cs.length})</h2>` +
+      (cs.length ? `<ul class="rep">${cs.map(s => repItem(s, true)).join('')}</ul>` : '<p class="why">Nothing yet. Reports about rescans, canvasses, certification and count lawsuits will appear here.</p>');
+    body.innerHTML = html;
+    renderCalls();
+  })();
+  function line(r){
+    const hist = r.y22 && r.y24 ? 'Also 2022 and 2024' : r.y24 ? 'Also 2024' : r.y22 ? 'Also 2022' : 'New this year';
+    const cnty = (r.kind!=='county' && r.cty) ? `<dt>Figures for</dt><dd>${esc(r.cty)}</dd>` : '';
+    const vote = r.dem!=null ? `<dt>2024 vote</dt><dd>Harris ${r.dem}%, Trump ${r.gop}%</dd>` : '';
+    const lang = r.lang.length ? `<dt>Language help</dt><dd>${esc(r.lang.join(', '))}</dd>` : '';
+    return `<div class="row"><span class="name">${esc(r.j)}, ${esc(r.st)}</span>` +
+      `<span class="tag ${hist==='New this year'?'new':''}">${hist}</span>` +
+      `<div class="meta"><dl><dt>Population</dt><dd>${fmt(r.pop)}</dd>${cnty}${vote}<dt>Residents</dt><dd>${r.w}% white (non-Hispanic), ${r.b}% Black, ${r.h}% Hispanic, ${r.a}% Asian, ${r.ai}% Native American</dd>${lang}</dl></div>` +
+      (storiesFor(r).length ? `<ul class="rep">${storiesFor(r).map(s=>repItem(s,false)).join('')}</ul>` : '') +
+      `<div class="tip">${reportLink(r.j+', '+r.st, 'Report a story from '+esc(r.j))}</div></div>`;
+  }
+  function render(){
+    const q = document.getElementById('q').value.trim().toLowerCase();
+    const match = r => sel ? r.fips===sel : (!q || (r.j+' '+r.st+' '+(r.cty||'')).toLowerCase().includes(q));
+    const el = document.getElementById('list'); let html = '';
+    if (view==='dropped'){
+      const d = dropped.filter(match);
+      html = `<h2>Monitored in 2024, not on this year's list (${d.length})</h2>` +
+        (d.length ? d.map(x=>`<div class="row"><span class="name">${esc(x.j)}, ${esc(x.st)}</span></div>`).join('') : '<div class="empty">None.</div>');
+    } else {
+      let rs = rows.filter(match);
+      if (view==='new') rs = rs.filter(isNew);
+      if (view==='returning') rs = rs.filter(r=>!isNew(r));
+      if (!rs.length){
+        const inDropped = q && dropped.some(match);
+        html = `<div class="empty">Not on DOJ's Nov. 3 list.${inDropped ? ' It was on DOJ\'s 2024 list.' : ''} The list names counties and some cities; your city may be inside a listed county.</div>`;
+      } else {
+        const by = {}; rs.forEach(r => (by[r.st]=by[r.st]||[]).push(r));
+        Object.keys(by).sort().forEach(st => { html += `<h2>${ST ? esc(st) : `<a href="${BASE}${slug(st)}/" style="color:inherit">${esc(st)}</a>`} (${by[st].length})</h2>` + by[st].map(line).join(''); });
+        if (ST && view==='state' && dropped.length && !q) html += `<h2>Monitored in 2024, not this year (${dropped.length})</h2>` + dropped.map(x=>`<div class="row"><span class="name">${esc(x.j)}, ${esc(x.st)}</span></div>`).join('');
+      }
+    }
+    el.innerHTML = html;
+    renderAnswer(q);
+  }
+  function renderAnswer(q){
+    const box = document.getElementById('answer');
+    let hits = sel ? rows.filter(r=>r.fips===sel) : (q.length >= 3 ? rows.filter(r => (r.j+' '+r.st+' '+(r.cty||'')).toLowerCase().includes(q)) : []);
+    if (!sel && q.length < 3) { box.innerHTML = ''; return; }
+    if (hits.length > 3) { box.innerHTML = ''; return; }
+    const placeName = hits.length ? hits.map(r=>r.j+', '+r.st).join('; ') : document.getElementById('q').value.trim();
+    const yes = hits.length > 0;
+    const inDropped = !yes && dropped.some(d => (d.j+' '+d.st).toLowerCase().includes(q));
+    const yesNote = yes ? hits.map(r => { const h = r.y22 && r.y24 ? 'also on its 2022 and 2024 lists' : r.y24 ? 'also on its 2024 list' : r.y22 ? 'also on its 2022 list' : 'new this year'; return `${esc(r.j)}: ${h}.`; }).join(' ') : '';
+    const noNote = inDropped ? 'Not on the Nov. 3 list, though DOJ monitored it in 2024.' : 'Not on the Nov. 3 list. The list names counties and some cities; your city may be inside a listed county.';
+    box.innerHTML = `<div class="ballot"><div class="b-head">Is DOJ monitoring <b>${esc(placeName)}</b>?</div>` +
+      `<p class="b-inst">From DOJ's Nov. 3, 2026 list of places it said it intends to monitor or observe.</p>` +
+      `<p class="opt ${yes?'on':'off'}"><span class="oval"></span><span>Yes${yes ? `<small>${yesNote}</small>` : ''}</span></p>` +
+      `<p class="opt ${yes?'off':'on'}"><span class="oval"></span><span>No${yes ? '' : `<small>${esc(noNote)}</small>`}</span></p>` +
+      `<div class="marks" aria-hidden="true"></div></div>`;
+  }
+  document.getElementById('q').addEventListener('input', () => { sel=null; render(); });
+  document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
+    view = b.dataset.v;
+    document.querySelectorAll('.tabs button').forEach(x => x.setAttribute('aria-pressed', x===b));
+    render();
+  }));
+  render();
+
+  // ---- the bar: mark the section being read ----
+  try {
+    if (PAGE !== 'watchers') throw 0;
+    const links = [...document.querySelectorAll('.site a[data-sec]')];
+    const secs = links.map(a => document.getElementById(a.dataset.sec)).filter(Boolean);
+    const bar = document.querySelector('.site .in');
+    let last = null, ticking = false;
+    const mark = () => {
+      ticking = false;
+      let cur = null; secs.forEach(x => { if (x.getBoundingClientRect().top < innerHeight*0.35) cur = x; });
+      if (cur === last) return; last = cur;
+      links.forEach(a => {
+        const on = !!cur && a.dataset.sec === cur.id;
+        a.setAttribute('aria-current', on ? 'true' : 'false');
+        if (on && bar.scrollWidth > bar.clientWidth) bar.scrollTo({left: a.offsetLeft - 18, behavior:'smooth'});
+      });
+    };
+    addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(mark); } }, {passive:true});
+    mark();
+  } catch (e) {}
+
+  // ---- map ----
+  try {
+    const [topo] = await Promise.all([fetch('https://cdn.jsdelivr.net/npm/us-atlas@3.0.1/counties-albers-10m.json').then(r=>r.json())]);
+    const listed = {}; rows.forEach(r => { if (r.fips) (listed[r.fips]=listed[r.fips]||[]).push(r); });
+    const drop = {}; dropped.forEach(d => { if (d.fips && !listed[d.fips]) (drop[d.fips]=drop[d.fips]||[]).push(d); });
+    let counties = topojson.feature(topo, topo.objects.counties).features;
+    const path = d3.geoPath();
+    const wrap = d3.select('#mapwrap');
+    let vb = '0 0 975 610', stFeat = null;
+    if (ST) {
+      const sf = rows[0].fips.slice(0,2);
+      stFeat = topojson.feature(topo, topo.objects.states).features.find(f => f.id===sf);
+      counties = counties.filter(f => f.id.slice(0,2)===sf);
+      const [[x0,y0],[x1,y1]] = path.bounds(stFeat), pad = Math.max(x1-x0, y1-y0)*0.04;
+      vb = `${x0-pad} ${y0-pad} ${x1-x0+2*pad} ${y1-y0+2*pad}`;
+    }
+    const svg = wrap.append('svg').attr('viewBox', vb).attr('role','img');
+    const fill = f => { const L=listed[f.id]; if (L) return L.some(r=>!r.y22&&!r.y24) ? '#F2C230' : '#000000'; return drop[f.id] ? '#C8CBCD' : '#EEF0EE'; };
+    svg.append('g').attr('class','cty').selectAll('path').data(counties).join('path')
+      .attr('class', f => 'c' + (listed[f.id]||drop[f.id] ? ' on' : ''))
+      .attr('d', path).attr('fill', fill)
+      .attr('stroke', f => (listed[f.id] && listed[f.id].some(r=>!r.y22&&!r.y24)) ? '#7A5B00' : null).attr('stroke-width', f => (listed[f.id] && listed[f.id].some(r=>!r.y22&&!r.y24)) ? 0.8 : null);
+    if (ST) {
+      const sw = 0.7;
+      svg.append('path').datum(topojson.mesh(topo, topo.objects.counties, (a,b)=>a!==b && a.id.slice(0,2)===stFeat.id && b.id.slice(0,2)===stFeat.id))
+        .attr('fill','none').attr('stroke','#FFFFFF').attr('stroke-width',sw).attr('d', path);
+      svg.append('path').datum(stFeat).attr('fill','none').attr('stroke','#5B6168').attr('stroke-width',sw*1.5).attr('d', path);
+    } else {
+    svg.append('path').datum(topojson.mesh(topo, topo.objects.states, (a,b)=>a!==b))
+      .attr('fill','none').attr('stroke','#FFFFFF').attr('stroke-width',0.8).attr('d', path);
+    svg.append('path').datum(topojson.feature(topo, topo.objects.nation))
+      .attr('fill','none').attr('stroke','#5B6168').attr('stroke-width',0.6).attr('d', path);
+    }
+    const tip = document.getElementById('tip');
+    // states layer, shown in race-calls mode
+    const stFeats = topojson.feature(topo, topo.objects.states).features.filter(f => !ST || f.properties.name === ST);
+    const stl = svg.insert('g', '.cty + *').attr('class','stl');
+    const STFILL = {D:'#1F5BA8', R:'#C42B2B', split:'#7B4FA0', open:'#C3C7CB'};
+    stl.selectAll('path').data(stFeats).join('path').attr('d', path)
+      .attr('tabindex', 0).attr('role','button').attr('aria-label', f => f.properties.name + ' races')
+      .on('click', (e,f) => pickState(f.properties.name))
+      .on('keydown', (e,f) => { if (e.key==='Enter' || e.key===' ') { e.preventDefault(); pickState(f.properties.name); } })
+      .on('mousemove', (e,f) => { const st = callStatus(f.properties.name); const b=wrap.node().getBoundingClientRect(); tip.textContent = f.properties.name + (st==='D' ? ': called for the Democrat' : st==='R' ? ': called for the Republican' : st==='split' ? ': called, split between parties' : st==='open' ? ': no call recorded yet' : ': no race shown'); tip.style.display='block'; tip.style.left=(e.clientX-b.left+12)+'px'; tip.style.top=(e.clientY-b.top-28)+'px'; })
+      .on('mouseleave', () => { tip.style.display='none'; });
+    function pickState(name){
+      if (PAGE === 'count' && !ST) { location.href = '?state=' + encodeURIComponent(name); return; }
+      callState = ST ? null : name; renderCalls();
+      document.getElementById('calls').scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start'});
+    }
+    mapHook = () => stl.selectAll('path').attr('fill', f => STFILL[callStatus(f.properties.name)] || '#FAFAF8')
+      .attr('stroke', f => callStatus(f.properties.name)==='open' ? '#8A8F94' : null).attr('stroke-width', f => callStatus(f.properties.name)==='open' ? 0.8 : null);
+    mapHook();
+    const setMode = m => {
+      svg.classed('callsmode', m === 'calls');
+      document.getElementById('legend-places').hidden = m === 'calls';
+      document.getElementById('legend-calls').hidden = m !== 'calls';
+      document.querySelectorAll('#mapmode button').forEach(b => b.setAttribute('aria-pressed', b.dataset.m === m));
+    };
+    document.querySelectorAll('#mapmode button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.m)));
+    window.__mapMode = setMode;
+    setMode(PAGE === 'count' ? 'calls' : 'places');
+    const label = f => { const L=listed[f.id]; if (L) return L.map(r=>r.j+', '+r.st).join(' · '); const D=drop[f.id]; return D ? D.map(d=>d.j+', '+d.st).join(' · ')+' (2024 only)' : ''; };
+    function choose(f){
+      const L=listed[f.id], D=drop[f.id];
+      if (!L && !D) return;
+      const pick = L ? L[0] : D[0];
+      view = L ? 'state' : 'dropped';
+      document.querySelectorAll('.tabs button').forEach(x => x.setAttribute('aria-pressed', x.dataset.v===view));
+      sel = f.id; const q=document.getElementById('q'); q.value = L ? (L.length>1 ? pick.cty : pick.j+', '+pick.st) : pick.j+', '+pick.st; render();
+      svg.selectAll('path.c').classed('sel', d => d.id===sel);
+      const target = document.getElementById('lookup');
+      target.scrollIntoView({behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start'});
+      if (window.plausible) plausible('map-click');
+    }
+    svg.selectAll('path.c.on')
+      .on('mousemove', (e,f) => { const b=wrap.node().getBoundingClientRect(); tip.textContent=label(f); tip.style.display='block'; tip.style.left=(e.clientX-b.left+12)+'px'; tip.style.top=(e.clientY-b.top-28)+'px'; })
+      .on('mouseleave', () => { tip.style.display='none'; })
+      .on('click', (e,f) => choose(f));
+    // story markers: one dot per county with verified reports, sized to the view, numbered
+    const byFips = {};
+    STORIES.forEach(st => st.places.forEach(p => { const r = rows.find(x => x.st===p.st && x.j===p.j); if (r && r.fips) (byFips[r.fips]=byFips[r.fips]||new Set()).add(st.url); }));
+    const vbw = +vb.split(' ')[2], rad = Math.max(vbw/975*8.5, vbw/140*1.1);
+    const feats = counties.filter(f => byFips[f.id]);
+    const mk = svg.append('g').selectAll('g').data(feats).join('g').attr('class','mk')
+      .attr('transform', f => { const c = path.centroid(f); return `translate(${c[0]},${c[1]})`; })
+      .attr('tabindex', 0).attr('role','button')
+      .attr('aria-label', f => label(f) + ': ' + byFips[f.id].size + (byFips[f.id].size===1 ? ' report' : ' reports'))
+      .on('click', (e,f) => choose(f))
+      .on('keydown', (e,f) => { if (e.key==='Enter' || e.key===' ') { e.preventDefault(); choose(f); } })
+      .on('mousemove', (e,f) => { const b=wrap.node().getBoundingClientRect(); tip.textContent=label(f)+': '+byFips[f.id].size+(byFips[f.id].size===1?' report':' reports'); tip.style.display='block'; tip.style.left=(e.clientX-b.left+12)+'px'; tip.style.top=(e.clientY-b.top-28)+'px'; })
+      .on('mouseleave', () => { tip.style.display='none'; });
+    mk.append('circle').attr('r', rad);
+    mk.append('text').attr('font-size', rad*1.15).text(f => byFips[f.id].size);
+    document.getElementById('q').addEventListener('input', () => svg.selectAll('path.c').classed('sel', false));
+  } catch (err) { document.getElementById('mapwrap').style.display='none'; }
+})();
+</script>
+</body>
+</html>

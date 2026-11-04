@@ -78,6 +78,10 @@
   .mapwrap svg.callsmode .cty, .mapwrap svg.callsmode .mk{display:none;}
   .mapwrap .stl path{cursor:pointer;} .mapwrap .stl path:hover{stroke:var(--ink); stroke-width:2.5;}
   .legend[hidden]{display:none;}
+  /* two pages from one file: the watchers page (default) and the count page (body data-page="count") */
+  body[data-page=count] .pw{display:none !important;}
+  body:not([data-page=count]) .pc{display:none !important;}
+  #mapmode{display:none;}
 
   /* the answer, printed as a ballot */
   #answer:empty{display:none;}
@@ -140,7 +144,7 @@
   .more{font:700 14px var(--sans); padding:8px 0; border:0; background:none; color:var(--ink); cursor:pointer; text-decoration:underline; text-decoration-color:var(--mark); text-decoration-thickness:2px;}
   section[id], nav#states{scroll-margin-top:64px;}
   .lanesec{margin-top:52px; padding-top:22px; border-top:6px solid var(--ink);}
-  #watchers.lanesec{margin-top:30px;}
+  #watchers.lanesec, #count.lanesec{margin-top:8px; border-top:0; padding-top:0;}
   .lanesec > .dek{font-size:17px;}
   h2.lane{font:800 clamp(30px,6vw,44px)/1.05 var(--sans); letter-spacing:-0.02em; border:0; margin:0 0 10px; padding:0;}
   .cal{list-style:none; padding:0; margin:8px 0;}
@@ -176,23 +180,23 @@
 <body>
 <nav class="site" aria-label="On this page"><div class="in">
   <a class="brand" href="https://theramm.transparencycascade.org">The RAMM</a>
-  <a href="#watchers">Watching the watchers</a>
-  <a href="#count">Watching the count</a>
-  <a href="#lookup">Look up a place</a>
-  <a href="#states">State pages</a>
-  <a href="#about">About the data</a>
+  <a href="/monitors/" data-sec="watchers">Watching the watchers</a>
+  <a href="/monitors/count/" data-page="count">Watching the count</a>
+  <a href="/monitors/#lookup" data-sec="lookup">Look up a place</a>
+  <a href="/monitors/#states" data-sec="states">State pages</a>
+  <a href="/monitors/#about" data-sec="about">About the data</a>
 </div></nav>
 <div class="wrap">
 <header>
   <p class="stamp">The RAMM, election night, Nov. 3, 2026</p>
   <div id="back"></div>
-  <h1>Vermont: watching the watchers, watching the count</h1>
+  <h1>Watching the watchers in Vermont</h1>
   <p class="dek">On Election Day morning the Justice Department said it intends to "monitor or observe" voting in 1 place in Vermont: Burlington. 1 is new this year. <a href="https://www.justice.gov/opa/pr/doj-monitor-elections-all-50-states-first-time">DOJ's release</a>.</p>
 </header>
 
 
 <section class="maparea">
-  <div class="stats" id="stats"></div>
+  <div class="stats pw" id="stats"></div>
   <div class="seg" id="mapmode" role="group" aria-label="What the map shows"><span>Map:</span><button data-m="places" aria-pressed="true">Places DOJ listed</button><button data-m="calls" aria-pressed="false">Race calls</button></div>
   <div class="mapwrap" id="mapwrap" aria-label="Map of listed counties; select a county to show it below">
     <div id="tip"></div>
@@ -201,18 +205,17 @@
   <div class="legend" id="legend-calls" hidden><span><i style="background:#1F5BA8;border-color:#1F5BA8"></i>Called for the Democrat</span><span><i style="background:#C42B2B;border-color:#C42B2B"></i>Called for the Republican</span><span><i style="background:#7B4FA0;border-color:#7B4FA0"></i>Split (both races shown)</span><span><i style="background:#C3C7CB;border-color:#8A8F94"></i>No call recorded yet</span><span><i style="background:#FAFAF8;border-color:#C3C7CB"></i>No race of this kind</span><span>Tap a state to see its races.</span></div>
 </section>
 
-<section id="watchers" class="lanesec" aria-labelledby="watchers-h">
-  <h2 class="lane" id="watchers-h">Watching the watchers</h2>
-  <p class="dek">What was reported on Election Day from the places on DOJ's list: monitors, intimidation, court fights and voting problems.</p>
+<section id="watchers" class="lanesec pw" aria-labelledby="watchers-h">
+  <h2 class="lane" id="watchers-h" style="position:absolute;left:-9999px">Watching the watchers</h2>
   <div class="reports" id="reports"></div>
 </section>
-<section id="count" class="lanesec" aria-labelledby="count-h">
-  <h2 class="lane" id="count-h">Watching the count</h2>
-  <p class="dek">After the polls close, the fight moves to the count: canvasses, rescans, certification deadlines and lawsuits. We follow it here through certification.</p>
+<section id="count" class="lanesec pc" aria-labelledby="count-h">
+  <h2 class="lane" id="count-h" style="position:absolute;left:-9999px">Watching the count</h2>
+  <p class="dek pw">After the polls close, the fight moves to the count: canvasses, rescans, certification deadlines and lawsuits. We follow it here through certification.</p>
   <div id="countbody"></div>
 </section>
 
-<section id="lookup" class="lanesec" aria-labelledby="lookup-h">
+<section id="lookup" class="lanesec pw" aria-labelledby="lookup-h">
   <h2 class="lane" id="lookup-h">Look up a place</h2>
   <p class="dek">Search DOJ's list, or tap a county on the map. Each place shows whether DOJ also watched it in 2022 or 2024, its population and 2024 vote, and any reports from it.</p>
 <div class="controls">
@@ -232,10 +235,10 @@
 </section>
 
 
-<nav id="states" aria-label="State pages"></nav>
+<nav id="states" class="pw" aria-label="State pages"></nav>
 
 
-<section id="about" class="lanesec" aria-labelledby="about-h">
+<section id="about" class="lanesec pw" aria-labelledby="about-h">
   <h2 class="lane" id="about-h">About the data</h2>
 <section class="box">
   <h3>What a DOJ monitor can and cannot do</h3>
@@ -259,7 +262,14 @@
 <script>window.MON_STATE="Vermont"; window.MON_BASE='../';</script>
 <script>
 (async function(){
-  const ST = window.MON_STATE || null, BASE = window.MON_BASE || '';
+  const ST = window.MON_STATE || null, BASE = window.MON_BASE || '', PAGE = window.MON_PAGE || 'watchers';
+  const COUNT_URL = '/monitors/count/' + (ST ? '?state=' + encodeURIComponent(ST) : '');
+  if (PAGE === 'watchers' && location.hash === '#count') { location.replace(COUNT_URL); return; }
+  document.querySelectorAll('.site a').forEach(a => {
+    if (a.dataset.page === 'count') { a.href = COUNT_URL; if (PAGE === 'count') a.setAttribute('aria-current', 'page'); }
+    else if (a.dataset.sec && PAGE === 'watchers') a.href = '#' + a.dataset.sec;
+    else if (a.dataset.sec && ST) a.href = '/monitors/' + ST.toLowerCase().replace(/[^a-z]+/g,'-') + '/' + (a.dataset.sec === 'watchers' ? '' : '#' + a.dataset.sec);
+  });
   const res = await fetch(BASE+'data.json?v=20261103c', {cache:'no-cache'}); const D = await res.json();
   const slug = s => s.toLowerCase().replace(/[^a-z]+/g,'-');
   let STORIES = [];
@@ -267,7 +277,7 @@
   const allStates = [...new Set(D.rows.map(r=>r.st))].sort();
   document.getElementById('states').innerHTML = '<h2>State pages</h2><div>' + (ST ? `<a href="${BASE}">All states</a>` : '') +
     allStates.map(s => `<a href="${BASE}${slug(s)}/" class="${s===ST?'cur':''}">${s}</a>`).join('') + '</div>';
-  if (ST) document.getElementById('back').innerHTML = `<a href="${BASE}">&larr; All 50 states</a>`;
+  if (ST) document.getElementById('back').innerHTML = PAGE === 'count' ? `<a href="${BASE}count/">&larr; All states</a>` : `<a href="${BASE}">&larr; All 50 states</a>`;
   const rows = ST ? D.rows.filter(r=>r.st===ST) : D.rows, dropped = ST ? D.dropped.filter(d=>d.st===ST) : D.dropped;
   const fmt = n => n==null ? '' : n.toLocaleString('en-US');
   const isNew = r => !r.y22 && !r.y24;
@@ -348,7 +358,7 @@
     const body = document.getElementById('countbody'); if (!body) return;
     const today = new Date().toISOString().slice(0,10);
     const day = iso => new Date(iso+'T12:00:00').toLocaleDateString('en-US',{weekday:'short', month:'short', day:'numeric'});
-    let html = '';
+    let html = `<div id="calls"></div>`;
     if (COUNT) {
       let items = [];
       Object.entries(COUNT.calendar).forEach(([st, rows]) => { if (!ST || st===ST) rows.forEach(([d,t]) => items.push({d, st, t})); });
@@ -363,7 +373,7 @@
     }
     const all = (ST ? STORIES.filter(s => (s.states||[]).includes(ST)) : STORIES).filter(s => s.lane === 'count');
     const calls = all.filter(s => s.kind === 'Race calls'), cs = all.filter(s => s.kind !== 'Race calls');
-    html += `<div id="calls"></div>`;
+
     html += `<h2>Count and certification reports${ST ? ' from ' + esc(ST) : ''} (${cs.length})</h2>` +
       (cs.length ? `<ul class="rep">${cs.map(s => repItem(s, true)).join('')}</ul>` : '<p class="why">Nothing yet. Reports about rescans, canvasses, certification and count lawsuits will appear here.</p>');
     body.innerHTML = html;
@@ -430,17 +440,17 @@
 
   // ---- the bar: mark the section being read ----
   try {
-    const links = [...document.querySelectorAll('.site a[href^="#"]')];
-    const secs = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+    if (PAGE !== 'watchers') throw 0;
+    const links = [...document.querySelectorAll('.site a[data-sec]')];
+    const secs = links.map(a => document.getElementById(a.dataset.sec)).filter(Boolean);
     const bar = document.querySelector('.site .in');
     let last = null, ticking = false;
     const mark = () => {
       ticking = false;
       let cur = null; secs.forEach(x => { if (x.getBoundingClientRect().top < innerHeight*0.35) cur = x; });
       if (cur === last) return; last = cur;
-      if (cur && window.__mapMode) window.__mapMode(cur.id === 'count' ? 'calls' : 'places');
       links.forEach(a => {
-        const on = !!cur && a.getAttribute('href') === '#'+cur.id;
+        const on = !!cur && a.dataset.sec === cur.id;
         a.setAttribute('aria-current', on ? 'true' : 'false');
         if (on && bar.scrollWidth > bar.clientWidth) bar.scrollTo({left: a.offsetLeft - 18, behavior:'smooth'});
       });
@@ -494,6 +504,7 @@
       .on('mousemove', (e,f) => { const st = callStatus(f.properties.name); const b=wrap.node().getBoundingClientRect(); tip.textContent = f.properties.name + (st==='D' ? ': called for the Democrat' : st==='R' ? ': called for the Republican' : st==='split' ? ': called, split between parties' : st==='open' ? ': no call recorded yet' : ': no race shown'); tip.style.display='block'; tip.style.left=(e.clientX-b.left+12)+'px'; tip.style.top=(e.clientY-b.top-28)+'px'; })
       .on('mouseleave', () => { tip.style.display='none'; });
     function pickState(name){
+      if (PAGE === 'count' && !ST) { location.href = '?state=' + encodeURIComponent(name); return; }
       callState = ST ? null : name; renderCalls();
       document.getElementById('calls').scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start'});
     }
@@ -508,6 +519,7 @@
     };
     document.querySelectorAll('#mapmode button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.m)));
     window.__mapMode = setMode;
+    setMode(PAGE === 'count' ? 'calls' : 'places');
     const label = f => { const L=listed[f.id]; if (L) return L.map(r=>r.j+', '+r.st).join(' · '); const D=drop[f.id]; return D ? D.map(d=>d.j+', '+d.st).join(' · ')+' (2024 only)' : ''; };
     function choose(f){
       const L=listed[f.id], D=drop[f.id];
