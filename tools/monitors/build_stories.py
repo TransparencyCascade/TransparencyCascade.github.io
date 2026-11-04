@@ -50,6 +50,8 @@ COUNT_EXTRA = [  # count-lane items about a whole state (no single listed place)
      "source": "Capture Cascade timeline", "kind": "Courts", "states": ["California"]},
 ]
 COUNT_EXTRA += [
+    {"url": "https://www.13abc.com/2026/11/03/attorneys-plan-lawsuit-extend-voting-hours-beverly-elementary-polling-location-after-bomb-threat-blade-reports/",
+     "title": "After a bomb threat closed a Toledo polling place for nearly two hours, a judge let its voters vote provisionally until 9:15 p.m.", "source": "13abc", "kind": "Count and certification", "states": ["Ohio"]},
     {"url": "https://www.wbtv.com/2026/11/03/north-carolina-election-officials-extend-voting-4-counties-what-we-know/",
      "title": "North Carolina extends voting at five precincts in four counties after stoppages; results delayed", "source": "WBTV", "kind": "Count and certification", "states": ["North Carolina"]},
     {"url": "https://www.wpxi.com/news/local/court-orders-precinct-remain-open-until-10-pm-voters-who-used-emergency-ballots-urged-return/DIWLVOBPFVE4NPYBY5Q5JSRXJA/",
