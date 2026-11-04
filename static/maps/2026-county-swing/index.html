@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2026 Senate swing by county</title>
+<meta name="description" content="One arrow per county: how far the 2026 Senate margin moved from the 2024 presidential margin, in the 30 states where a Democrat ran against a Republican. Unofficial AP results as of Nov. 4, 2026.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@600;700&family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+  :root {
+    --ground: #E8ECEC;   /* onionskin */
+    --ink: #23306B;      /* carbon blue, 10.3:1 on ground */
+    --red: #A8231C;      /* stamp red, marks only */
+    --graphite: #5B6168; /* outlines, secondary text, 5.3:1 on ground */
+    --paper: #F6F8F8;    /* tooltip and finder field */
+    --measure: 68ch;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: 'Courier Prime', 'Courier New', monospace; font-size: 16px; line-height: 1.55;
+  }
+  main { max-width: 1160px; margin: 0 auto; padding: 40px 24px 64px; }
+  @media (max-width: 600px) { main { padding: 28px 16px 48px; } }
+
+  .file-line { margin: 0 0 18px; font-size: 15px; }
+  h1 {
+    margin: 0 0 18px; max-width: 24ch; text-wrap: balance;
+    font-family: 'Archivo Narrow', 'Arial Narrow', sans-serif; font-weight: 600;
+    font-size: clamp(36px, 6.4vw, 68px); line-height: 1.02; letter-spacing: -0.01em;
+    text-shadow: 1px 0 0.4px rgba(35, 48, 107, 0.2);
+  }
+  .dek { margin: 0 0 28px; max-width: var(--measure); font-size: 17px; }
+
+  .map-wrap { position: relative; margin: 0 -8px; touch-action: manipulation; }
+  #map { display: block; width: 100%; height: auto; overflow: visible; }
+  #map .am-counties path { cursor: default; }
+  #map .am-counties path.has-data { cursor: crosshair; }
+  #map .am-arrows-dem, #map .am-arrows-rep, #map .am-states, #map .am-nation, #map .am-counties path,
+  #map .hl { vector-effect: non-scaling-stroke; pointer-events: none; }
+  #map .am-counties path { pointer-events: all; }
+  @media (max-width: 700px) {
+    #map .am-arrows-dem { stroke-width: 0.6px; }
+    #map .am-arrows-rep { stroke-width: 1.2px; }
+    #map .am-counties path { stroke-width: 0.2px; }
+    #map .am-states { stroke-width: 0.6px; }
+  }
+
+  .tip {
+    position: absolute; z-index: 2; pointer-events: none; min-width: 200px; max-width: 290px;
+    padding: 10px 12px; background: var(--paper); border: 1px solid var(--ink);
+    font-size: 14px; line-height: 1.4; opacity: 0; transition: opacity 0.08s;
+  }
+  .tip.on { opacity: 1; }
+  .tip .v { display: block; font-weight: 700; font-size: 16px; }
+  .tip .place { display: block; margin-bottom: 4px; }
+  .tip .sub { display: block; color: var(--graphite); }
+  @media (prefers-reduced-motion: reduce) { .tip { transition: none; } }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 32px; align-items: center; margin: 18px 0 8px; padding: 0; list-style: none; font-size: 14px; }
+  .legend li { display: flex; align-items: center; gap: 10px; }
+  .legend svg { flex: none; overflow: visible; }
+  .legend .muted { color: var(--graphite); }
+  .hint { margin: 0 0 36px; color: var(--graphite); font-size: 14px; }
+
+  h2 { margin: 40px 0 10px; font-family: 'Archivo Narrow', 'Arial Narrow', sans-serif; font-weight: 600; font-size: 26px; line-height: 1.15; }
+  .finder { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0 0 8px; }
+  .finder label { font-size: 15px; }
+  .finder input {
+    font: inherit; color: var(--ink); background: var(--paper); border: 1px solid var(--graphite);
+    padding: 8px 10px; width: min(100%, 340px); border-radius: 0;
+  }
+  .finder input::placeholder { color: var(--graphite); opacity: 1; }
+  .readout { min-height: 3em; margin: 4px 0 0; max-width: var(--measure); }
+  .readout strong { font-weight: 700; }
+
+  table { border-collapse: collapse; width: 100%; max-width: 640px; font-size: 15px; }
+  caption { text-align: left; color: var(--graphite); font-size: 14px; padding-bottom: 8px; }
+  th, td { text-align: left; padding: 5px 12px 5px 0; border-bottom: 1px solid rgba(91, 97, 104, 0.35); vertical-align: baseline; }
+  th { font-weight: 700; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td button {
+    font: inherit; color: var(--ink); background: none; border: 0; padding: 0; cursor: pointer;
+    text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; text-align: left;
+  }
+
+  .sources { margin-top: 44px; padding-top: 18px; border-top: 2px solid rgba(35, 48, 107, 0.6); max-width: var(--measure); color: var(--graphite); font-size: 14px; }
+  .sources p { margin: 0 0 10px; }
+  a { color: var(--ink); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  .sources a { color: var(--ink); }
+  .tag { margin-top: 20px; font-weight: 700; color: var(--ink); }
+
+  a:focus-visible, button:focus-visible, input:focus-visible {
+    outline: 3px solid var(--ink); outline-offset: 3px;
+  }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  .err { color: var(--ink); border: 1px solid var(--ink); padding: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <p class="file-line">2026 Senate vs. 2024 president, 30 states; one arrow per county</p>
+  <h1>Where the 2026 Senate vote moved, county by county</h1>
+  <p class="dek">Against the 2024 presidential vote, the unofficial Senate results moved toward the Democrat in <span data-k="dem">2,156</span> of <span data-k="total">2,177</span> counties in the 30 states where a Democrat ran against a Republican. The <span data-k="rep">21</span> that moved toward the Republican are in Maine, Illinois, Minnesota and Florida.</p>
+
+  <div class="map-wrap" id="wrap">
+    <svg id="map" role="img" aria-labelledby="map-desc">
+      <desc id="map-desc">Map of United States counties. In the 30 states with a Democrat-against-Republican Senate race, each counted county has an arrow from its center. Almost all lean right, toward the Democrat, longest in South Texas, where Starr County moved 71.8 points. Twenty-one short red arrows lean left, toward the Republican, in counties shaded red: 13 in Maine, four in Illinois, three in Minnesota and one in Florida. The table below lists them.</desc>
+    </svg>
+    <div class="tip" id="tip" role="status" aria-live="polite"></div>
+  </div>
+
+  <ul class="legend" id="legend" aria-label="Map key">
+    <li><span id="key-dem"></span><span>Toward the Democrat</span></li>
+    <li><span id="key-rep"></span><svg width="26" height="18" aria-hidden="true"><rect x="1" y="1" width="24" height="16" fill="#A8231C" fill-opacity="0.3" stroke="#A8231C"/></svg><span>Toward the Republican, county shaded</span></li>
+    <li><span id="key-scale"></span><span>20 points of swing; length is proportional</span></li>
+    <li><svg width="26" height="18" aria-hidden="true"><rect x="1" y="1" width="24" height="16" fill="none" stroke="#5B6168"/></svg><span class="muted">Outline only: no Democrat-against-Republican Senate race, Alaska (still counting), and six Illinois counties left out of the count</span></li>
+  </ul>
+  <p class="hint">Hover over or tap a county to see its swing, or look one up below.</p>
+
+  <h2>Look up a county</h2>
+  <div class="finder">
+    <label for="find">County and state</label>
+    <input id="find" list="county-list" autocomplete="off" placeholder="Starr County, TX">
+    <datalist id="county-list"></datalist>
+  </div>
+  <p class="readout" id="readout" aria-live="polite"></p>
+
+  <h2>The <span data-k="rep">21</span> counties that moved toward the Republican</h2>
+  <table id="rep-table">
+    <caption>Points of swing toward the Republican, 2024 president to 2026 Senate. Select a county to show it on the map.</caption>
+    <thead><tr><th scope="col">County</th><th scope="col">State</th><th scope="col" class="num">Points</th></tr></thead>
+    <tbody></tbody>
+  </table>
+
+  <section class="sources" aria-label="Sources">
+    <p>2026: AP county results via CNN, unofficial as of 2:17 p.m. ET Nov. 4, 2026. Canvass numbers will replace them.</p>
+    <p>2024 baseline: the tonmcg compilation of Fox News results, whose compiler says they are not authoritative.</p>
+    <p>Swing: Democratic margin, Democrat minus Republican, 2026 Senate minus 2024 president. A change in margins, not a count of voters who switched sides.</p>
+    <p>Not in the count: states with no Democrat-against-Republican Senate race; Alaska, which reports by state House district and was still counting; and six Illinois counties whose counts were missing or incomplete.</p>
+    <p>Map boundaries: U.S. Census Bureau, via us-atlas 3.0.1.</p>
+    <p><a href="https://github.com/TransparencyCascade/TransparencyCascade.github.io/tree/main/static/data/2026-midterms">The county data file, with a README, on GitHub</a></p>
+    <p class="tag">The RAMM</p>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+<script src="arrow-map.js"></script>
+<script>
+(function () {
+  'use strict';
+  var STATE_NAMES = { AL:'Alabama', AR:'Arkansas', CO:'Colorado', DE:'Delaware', FL:'Florida', GA:'Georgia', IA:'Iowa',
+    IL:'Illinois', KS:'Kansas', KY:'Kentucky', LA:'Louisiana', MA:'Massachusetts', ME:'Maine', MI:'Michigan',
+    MN:'Minnesota', MS:'Mississippi', NC:'North Carolina', NH:'New Hampshire', NJ:'New Jersey', NM:'New Mexico',
+    OH:'Ohio', OK:'Oklahoma', OR:'Oregon', RI:'Rhode Island', SC:'South Carolina', TN:'Tennessee', TX:'Texas',
+    VA:'Virginia', WV:'West Virginia', WY:'Wyoming' };
+  // Map units: same tuning as the article image, with strokes in screen pixels (non-scaling).
+  var OPTS = { k: 0.9, headMax: 4.2, headFrac: 0.45, demStroke: 1, demOpacity: 0.7, repStroke: 1.8,
+    repFillOpacity: 0.3, countyStroke: 0.4, countyOpacity: 0.4, stateStroke: 0.9 };
+
+  var svg = d3.select('#map');
+  var wrap = document.getElementById('wrap');
+  var tip = document.getElementById('tip');
+  var readout = document.getElementById('readout');
+
+  Promise.all([d3.json('counties-10m.json'), d3.json('swing.json')]).then(function (res) {
+    var topo = res[0], data = res[1];
+    var rows = data.rows;
+    var m = ArrowMap.draw(svg, topo, rows, OPTS);
+
+    var b = m.path.bounds(topojson.feature(topo, topo.objects.nation));
+    var pad = 4;
+    var vb = [b[0][0] - pad, b[0][1] - pad, b[1][0] - b[0][0] + 2 * pad, b[1][1] - b[0][1] + 2 * pad];
+    svg.attr('viewBox', vb.join(' '));
+
+    var dataStates = new Set(rows.map(function (r) { return r.f.slice(0, 2); }));
+    var fmt = d3.format(',');
+    var nRep = rows.filter(function (r) { return r.s < 0; }).length;
+    var nDem = rows.filter(function (r) { return r.s > 0; }).length;
+    document.querySelectorAll('[data-k="dem"]').forEach(function (el) { el.textContent = fmt(nDem); });
+    document.querySelectorAll('[data-k="total"]').forEach(function (el) { el.textContent = fmt(rows.length); });
+    document.querySelectorAll('[data-k="rep"]').forEach(function (el) { el.textContent = fmt(nRep); });
+
+    m.countyPaths.classed('has-data', function (d) { return m.byFips.has(d.id); });
+
+    // Highlight layer: outline plus a solid copy of the arrow.
+    var hl = svg.append('g').attr('class', 'hl-layer');
+    var hlShape = hl.append('path').attr('class', 'hl').attr('fill', 'none').attr('stroke', '#23306B').attr('stroke-width', 2);
+    var hlArrow = hl.append('path').attr('class', 'hl').attr('fill', 'none').attr('stroke-width', 2.4)
+      .attr('stroke-linecap', 'round').attr('stroke-linejoin', 'round');
+
+    var featureById = new Map(m.counties.map(function (d) { return [d.id, d]; }));
+
+    function marginText(v) {
+      if (v === 0) return 'even';
+      return (v > 0 ? 'R +' : 'D +') + Math.abs(v).toFixed(1);
+    }
+    function describe(id) {
+      var d = featureById.get(id);
+      var r = m.byFips.get(id);
+      var stateFips = id.slice(0, 2);
+      var stateName = m.stateName[stateFips] || '';
+      if (r) {
+        var mg = (data.margins || {})[id];
+        return {
+          place: r.n + ', ' + (STATE_NAMES[r.st] || r.st),
+          value: Math.abs(r.s).toFixed(1) + ' points toward the ' + (r.s > 0 ? 'Democrat' : 'Republican'),
+          sub: mg ? ['2024 president: ' + marginText(mg[0]), '2026 Senate: ' + marginText(mg[1]),
+                     (data.races || {})[r.st] || ''] : []
+        };
+      }
+      var why = stateFips === '02' ? 'Not in the count: Alaska was still counting.'
+        : dataStates.has(stateFips) ? 'Left out of the count: votes missing or incomplete.'
+        : 'Not in the count: no Democrat-against-Republican Senate race.';
+      return { place: (d && d.properties.name ? d.properties.name : 'County') + ', ' + stateName, value: '', sub: [why] };
+    }
+    function fill(el, info) {
+      el.textContent = '';
+      var p = document.createElement('span'); p.className = 'place'; p.textContent = info.place; el.appendChild(p);
+      if (info.value) { var v = document.createElement('span'); v.className = 'v'; v.textContent = info.value; el.appendChild(v); }
+      info.sub.forEach(function (s) {
+        if (!s) return;
+        var x = document.createElement('span'); x.className = 'sub'; x.textContent = s; el.appendChild(x);
+      });
+    }
+    function highlight(id) {
+      var d = featureById.get(id);
+      if (!d) { hlShape.attr('d', null); hlArrow.attr('d', null); return; }
+      hlShape.attr('d', m.path(d));
+      var r = m.byFips.get(id), c = m.centroid.get(id);
+      if (r && c) hlArrow.attr('d', m.arrowPath(c[0], c[1], r.s)).attr('stroke', r.s < 0 ? '#A8231C' : '#23306B');
+      else hlArrow.attr('d', null);
+    }
+    function placeTip(px, py) {
+      var w = wrap.clientWidth, tw = tip.offsetWidth, th = tip.offsetHeight;
+      var x = px + 14, y = py + 14;
+      if (x + tw > w) x = Math.max(0, px - tw - 14);
+      if (y + th > wrap.clientHeight) y = Math.max(0, py - th - 14);
+      tip.style.left = x + 'px'; tip.style.top = y + 'px';
+    }
+    function show(id, px, py) {
+      highlight(id); fill(tip, describe(id)); tip.classList.add('on'); placeTip(px, py);
+    }
+    function hide() { tip.classList.remove('on'); highlight(null); }
+    function screenOf(id) {
+      var d = featureById.get(id);
+      var c = m.centroid.get(id) || (d ? m.path.centroid(d) : [0, 0]);
+      var scale = wrap.clientWidth / vb[2];
+      var svgBox = document.getElementById('map').getBoundingClientRect(), wBox = wrap.getBoundingClientRect();
+      return [(c[0] - vb[0]) * scale + (svgBox.left - wBox.left), (c[1] - vb[1]) * scale + (svgBox.top - wBox.top)];
+    }
+
+    m.countyPaths
+      .on('pointermove', function (ev, d) {
+        var p = d3.pointer(ev, wrap); show(d.id, p[0], p[1]);
+      })
+      .on('pointerleave', function (ev) { if (ev.pointerType === 'mouse') hide(); })
+      .on('click', function (ev, d) { var p = d3.pointer(ev, wrap); show(d.id, p[0], p[1]); ev.stopPropagation(); });
+    document.addEventListener('click', function (ev) { if (!wrap.contains(ev.target)) hide(); });
+    document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') hide(); });
+
+    // Keyboard routes: the finder and the table.
+    function select(id) {
+      var s = screenOf(id); show(id, s[0], s[1]);
+      fill(readout, describe(id));
+    }
+    var list = document.getElementById('county-list');
+    var lookup = new Map();
+    rows.slice().sort(function (a, b) { return a.st.localeCompare(b.st) || a.n.localeCompare(b.n); }).forEach(function (r) {
+      var label = r.n + ', ' + r.st;
+      lookup.set(label.toLowerCase(), r.f);
+      var o = document.createElement('option'); o.value = label; list.appendChild(o);
+    });
+    var find = document.getElementById('find');
+    function tryFind() {
+      var id = lookup.get(find.value.trim().toLowerCase());
+      if (id) select(id);
+      else if (find.value.trim()) readout.textContent = 'No counted county by that name. Pick one from the list, written as "County name, ST".';
+    }
+    find.addEventListener('change', tryFind);
+    find.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') tryFind(); });
+
+    var tbody = document.querySelector('#rep-table tbody');
+    rows.filter(function (r) { return r.s < 0; })
+      .sort(function (a, b) { return a.s - b.s; })
+      .forEach(function (r) {
+        var tr = document.createElement('tr');
+        var td1 = document.createElement('td'), btn = document.createElement('button');
+        btn.type = 'button'; btn.textContent = r.n;
+        btn.addEventListener('click', function () { select(r.f); wrap.scrollIntoView({ block: 'nearest' }); });
+        td1.appendChild(btn);
+        var td2 = document.createElement('td'); td2.textContent = STATE_NAMES[r.st] || r.st;
+        var td3 = document.createElement('td'); td3.className = 'num'; td3.textContent = Math.abs(r.s).toFixed(1);
+        tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3); tbody.appendChild(tr);
+      });
+
+    // Legend arrows drawn at the map's on-screen scale, so "20 points" matches the map.
+    function keyArrow(el, s, color, w, op, label) {
+      var scale = document.getElementById('map').getBoundingClientRect().width / vb[2];
+      var L = Math.abs(s) * OPTS.k * scale, p = 4;
+      var size = Math.max(14, L * Math.SQRT1_2 + 2 * p);
+      var x0 = s > 0 ? p : size - p, y0 = size - p;
+      var d = ArrowMap.arrowPath(x0, y0, s, Object.assign({}, ArrowMap.DEFAULTS, OPTS, { k: OPTS.k * scale, headMax: OPTS.headMax * scale }));
+      el.innerHTML = '<svg width="' + size.toFixed(1) + '" height="' + size.toFixed(1) + '" aria-hidden="true"><path d="' + d +
+        '" fill="none" stroke="' + color + '" stroke-width="' + w + '" stroke-opacity="' + op + '" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    }
+    function drawKeys() {
+      keyArrow(document.getElementById('key-dem'), 20, '#23306B', 1.6, 1);
+      keyArrow(document.getElementById('key-rep'), -20, '#A8231C', 1.8, 1);
+      keyArrow(document.getElementById('key-scale'), 20, '#23306B', 1.6, 1);
+    }
+    drawKeys();
+    var t; window.addEventListener('resize', function () { clearTimeout(t); t = setTimeout(drawKeys, 120); });
+  }).catch(function (e) {
+    var p = document.createElement('p'); p.className = 'err';
+    p.textContent = 'The map data did not load. Reload the page, or download the county data file from the link under Sources.';
+    wrap.replaceWith(p);
+    console.error(e);
+  });
+})();
+</script>
+</body>
+</html>
