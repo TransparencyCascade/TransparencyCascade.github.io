@@ -31,7 +31,7 @@
 </script>
 <style>
   /* The paper ballot: white stock, black ink, one highlighter. Public Sans, the U.S. government's own design-system face.
-     No red or blue anywhere: on a U.S. map they read as parties. */
+     Red and blue only for race calls, where they mean the parties (the usual convention); nowhere else. */
   :root{
     --paper:#FFFFFF; --ink:#000000; --graphite:#5B6168; --rule:#C8CBCD; --field:#F3F4F1; --mark:#F2C230; --mark-ink:#7A5B00;
     --sans:'Public Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
@@ -131,6 +131,7 @@
   ul.rep{list-style:none; margin:8px 0 0; padding:0;}
   ul.rep li{padding:9px 0 9px 14px; border-left:4px solid var(--rule); margin:8px 0; font-size:16px; line-height:1.4;}
   ul.rep li.mon{border-left-color:var(--ink);}
+  ul.rep li.pD{border-left-color:#1F5BA8;} ul.rep li.pR{border-left-color:#C42B2B;}
   ul.rep .k{display:block; font:600 13px/1.4 var(--sans); color:var(--graphite);}
   ul.rep .src{color:var(--graphite); font-size:14px;}
   .row ul.rep li{font-size:15px; padding:5px 0 5px 12px; margin:6px 0;}
@@ -197,7 +198,7 @@
     <div id="tip"></div>
   </div>
   <div class="legend" id="legend-places"><span><i style="background:#F2C230;border-color:#7A5B00"></i>New this year</span><span><i style="background:#000"></i>Also on 2022 or 2024 list</span><span><i style="background:#C8CBCD;border-color:#8A8F94"></i>Monitored in 2024, not this year</span><span><i class="dot" style="border:0"></i>Reports from that place</span><span>Tap a county or a dot to see it. Cities are shown by their county.</span></div>
-  <div class="legend" id="legend-calls" hidden><span><i style="background:#000"></i>Called, as an outlet reported it</span><span><i style="background:#F2C230;border-color:#7A5B00"></i>No call recorded yet</span><span><i style="background:#EEF0EE;border-color:#8A8F94"></i>No race of this kind</span><span>Tap a state to see its races.</span></div>
+  <div class="legend" id="legend-calls" hidden><span><i style="background:#1F5BA8;border-color:#1F5BA8"></i>Called for the Democrat</span><span><i style="background:#C42B2B;border-color:#C42B2B"></i>Called for the Republican</span><span><i style="background:#7B4FA0;border-color:#7B4FA0"></i>Split (both races shown)</span><span><i style="background:#C3C7CB;border-color:#8A8F94"></i>No call recorded yet</span><span><i style="background:#FAFAF8;border-color:#C3C7CB"></i>No race of this kind</span><span>Tap a state to see its races.</span></div>
 </section>
 
 <section id="watchers" class="lanesec" aria-labelledby="watchers-h">
@@ -314,7 +315,10 @@
   function callStatus(st){   // for the map: 'called' | 'open' | null (no race of the kinds shown)
     const rs = racesShown().filter(r => RACES[r].includes(st));
     if (!rs.length) return null;
-    return rs.every(r => callList().some(s => s.race === r && (s.states||[]).includes(st))) ? 'called' : 'open';
+    const got = rs.map(r => callList().find(s => s.race === r && (s.states||[]).includes(st)));
+    if (got.some(g => !g)) return 'open';
+    const ps = [...new Set(got.map(g => g.party || '?'))];
+    return ps.length === 1 ? (ps[0] === '?' ? 'D' : ps[0]) : 'split';
   }
   function renderCalls(){
     const box = document.getElementById('calls'); if (!box) return;
@@ -329,7 +333,7 @@
       const got = sts.map(x => [x, callList().filter(s => s.race === r && (s.states||[]).includes(x))]);
       const called = got.filter(g => g[1].length), open = got.filter(g => !g[1].length).map(g => g[0]);
       h += `<h3 class="race">${RLABEL[r]}: ${called.length} of ${sts.length} called</h3>`;
-      if (called.length) h += `<ul class="rep">${called.map(([x, ss]) => `<li><span class="k">${esc(x)}</span><a href="${esc(safeUrl(ss[0].url))}" target="_blank" rel="noopener">${esc(ss[0].title)}</a> <span class="src">${esc(ss[0].source)}</span></li>`).join('')}</ul>`;
+      if (called.length) h += `<ul class="rep">${called.map(([x, ss]) => `<li class="p${esc(ss[0].party||'')}"><span class="k">${esc(x)}${ss[0].party ? ', ' + (ss[0].party==='D' ? 'Democrat' : ss[0].party==='R' ? 'Republican' : 'Independent') : ''}</span><a href="${esc(safeUrl(ss[0].url))}" target="_blank" rel="noopener">${esc(ss[0].title)}</a> <span class="src">${esc(ss[0].source)}</span></li>`).join('')}</ul>`;
       if (open.length) h += `<p class="awaiting">No call recorded yet: <b>${open.map(esc).join(', ')}</b></p>`;
     });
     box.innerHTML = h;
@@ -482,19 +486,19 @@
     // states layer, shown in race-calls mode
     const stFeats = topojson.feature(topo, topo.objects.states).features.filter(f => !ST || f.properties.name === ST);
     const stl = svg.insert('g', '.cty + *').attr('class','stl');
-    const STFILL = {called:'#000000', open:'#F2C230'};
+    const STFILL = {D:'#1F5BA8', R:'#C42B2B', split:'#7B4FA0', open:'#C3C7CB'};
     stl.selectAll('path').data(stFeats).join('path').attr('d', path)
       .attr('tabindex', 0).attr('role','button').attr('aria-label', f => f.properties.name + ' races')
       .on('click', (e,f) => pickState(f.properties.name))
       .on('keydown', (e,f) => { if (e.key==='Enter' || e.key===' ') { e.preventDefault(); pickState(f.properties.name); } })
-      .on('mousemove', (e,f) => { const st = callStatus(f.properties.name); const b=wrap.node().getBoundingClientRect(); tip.textContent = f.properties.name + (st==='called' ? ': called' : st==='open' ? ': no call recorded yet' : ': no race shown'); tip.style.display='block'; tip.style.left=(e.clientX-b.left+12)+'px'; tip.style.top=(e.clientY-b.top-28)+'px'; })
+      .on('mousemove', (e,f) => { const st = callStatus(f.properties.name); const b=wrap.node().getBoundingClientRect(); tip.textContent = f.properties.name + (st==='D' ? ': called for the Democrat' : st==='R' ? ': called for the Republican' : st==='split' ? ': called, split between parties' : st==='open' ? ': no call recorded yet' : ': no race shown'); tip.style.display='block'; tip.style.left=(e.clientX-b.left+12)+'px'; tip.style.top=(e.clientY-b.top-28)+'px'; })
       .on('mouseleave', () => { tip.style.display='none'; });
     function pickState(name){
       callState = ST ? null : name; renderCalls();
       document.getElementById('calls').scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start'});
     }
-    mapHook = () => stl.selectAll('path').attr('fill', f => STFILL[callStatus(f.properties.name)] || '#EEF0EE')
-      .attr('stroke', f => callStatus(f.properties.name)==='open' ? '#7A5B00' : null).attr('stroke-width', f => callStatus(f.properties.name)==='open' ? 0.8 : null);
+    mapHook = () => stl.selectAll('path').attr('fill', f => STFILL[callStatus(f.properties.name)] || '#FAFAF8')
+      .attr('stroke', f => callStatus(f.properties.name)==='open' ? '#8A8F94' : null).attr('stroke-width', f => callStatus(f.properties.name)==='open' ? 0.8 : null);
     mapHook();
     const setMode = m => {
       svg.classed('callsmode', m === 'calls');

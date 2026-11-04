@@ -26,7 +26,7 @@ def fetch(url):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("url"); ap.add_argument("--state", required=True)
-    ap.add_argument("--race", default=""); ap.add_argument("--by", default="", help="outlet that made the call, if not the publisher")
+    ap.add_argument("--race", default=""); ap.add_argument("--party", choices=["D","R","I",""], default="", help="winner's party, as the article states it"); ap.add_argument("--by", default="", help="outlet that made the call, if not the publisher")
     ap.add_argument("--source", default="", help="publisher name as shown (default: og:site_name)")
     ap.add_argument("--title", default="", help="override the headline (use the article's own words)")
     ap.add_argument("--dry-run", action="store_true"); ap.add_argument("--no-push", action="store_true")
@@ -46,6 +46,7 @@ def main():
         sys.exit("the page never says called/projected/declared/wins/conceded; check the link")
     entry = {"url": a.url, "title": title, "source": source + (f" (call: {a.by})" if a.by else ""), "states": [a.state]}
     if a.race: entry["race"] = a.race
+    if a.party: entry["party"] = a.party
     print(json.dumps(entry, indent=1))
     if a.dry_run: return
     site = os.path.join(REPO, "static", "monitors", "stories.json")

@@ -6,7 +6,8 @@
   "states": [
    "Georgia"
   ],
-  "race": "U.S. Senate"
+  "race": "U.S. Senate",
+  "party": "D"
  },
  {
   "url": "https://www.wbtv.com/2026/11/04/roy-cooper-wins-2026-us-senate-race-north-carolina-ap-projects/",
@@ -15,7 +16,8 @@
   "states": [
    "North Carolina"
   ],
-  "race": "U.S. Senate"
+  "race": "U.S. Senate",
+  "party": "D"
  },
  {
   "url": "https://www.fox5dc.com/news/va-senate-election-mark-warner-fourth-term",
@@ -24,7 +26,8 @@
   "states": [
    "Virginia"
   ],
-  "race": "U.S. Senate"
+  "race": "U.S. Senate",
+  "party": "D"
  },
  {
   "url": "https://www.fox29.com/news/chris-coons-wins-reelection-delaware-senate-race-ap-projects",
@@ -33,7 +36,8 @@
   "states": [
    "Delaware"
   ],
-  "race": "U.S. Senate"
+  "race": "U.S. Senate",
+  "party": "D"
  },
  {
   "url": "https://www.fox19.com/2026/11/04/dem-chris-pappas-wins-senate-seat-new-hampshire-becomes-first-openly-gay-male-senator/",
@@ -42,7 +46,8 @@
   "states": [
    "New Hampshire"
   ],
-  "race": "U.S. Senate"
+  "race": "U.S. Senate",
+  "party": "D"
  },
  {
   "url": "https://www.smdailyjournal.com/news/national/democrat-wes-moore-wins-reelection-for-governor-in-maryland/article_394812d4-1944-56b6-ad66-ac56414d986a.html",
@@ -51,7 +56,8 @@
   "states": [
    "Maryland"
   ],
-  "race": "Governor"
+  "race": "Governor",
+  "party": "D"
  },
  {
   "url": "https://whyy.org/articles/election-2026-pennsylvania-governor-shapiro-garrity/",
@@ -60,7 +66,8 @@
   "states": [
    "Pennsylvania"
   ],
-  "race": "Governor"
+  "race": "Governor",
+  "party": "D"
  },
  {
   "url": "https://www.kristv.com/politics/america-votes/republican-ashley-moody-wins-reelection-to-us-senate-from-florida",
@@ -69,7 +76,8 @@
   "states": [
    "Florida"
   ],
-  "race": "U.S. Senate"
+  "race": "U.S. Senate",
+  "party": "R"
  },
  {
   "url": "https://www.wgbh.org/news/politics/2026-11-03/markey-wins-3rd-senate-term-as-deaton-struggles-to-break-through-in-deep-blue-mass",
@@ -78,7 +86,8 @@
   "states": [
    "Massachusetts"
   ],
-  "race": "U.S. Senate"
+  "race": "U.S. Senate",
+  "party": "D"
  },
  {
   "url": "https://newjerseymonitor.com/2026/11/03/sen-cory-booker-handily-wins-reelection/",
@@ -87,7 +96,8 @@
   "states": [
    "New Jersey"
   ],
-  "race": "U.S. Senate"
+  "race": "U.S. Senate",
+  "party": "D"
  },
  {
   "url": "https://blockclubchicago.org/2026/11/03/jb-pritzker-wins-3rd-term-as-illinois-governor/",
@@ -96,7 +106,8 @@
   "states": [
    "Illinois"
   ],
-  "race": "Governor"
+  "race": "Governor",
+  "party": "D"
  },
  {
   "url": "https://www.wgbh.org/news/politics/2026-11-03/healey-wins-second-term-as-mass-governor",
@@ -105,7 +116,8 @@
   "states": [
    "Massachusetts"
   ],
-  "race": "Governor"
+  "race": "Governor",
+  "party": "D"
  },
  {
   "url": "https://ctmirror.org/2026/11/03/gov-ned-lamont-defeats-ryan-fazio-winning-3rd-term/",
@@ -114,7 +126,8 @@
   "states": [
    "Connecticut"
   ],
-  "race": "Governor"
+  "race": "Governor",
+  "party": "D"
  },
  {
   "url": "https://www.wcax.com/2026/11/04/new-york-gov-hochul-wins-reelection/",
@@ -123,7 +136,8 @@
   "states": [
    "New York"
   ],
-  "race": "Governor"
+  "race": "Governor",
+  "party": "D"
  },
  {
   "url": "https://wyofile.com/republican-eric-barlow-wins-wyoming-governors-race/",
@@ -132,6 +146,7 @@
   "states": [
    "Wyoming"
   ],
-  "race": "Governor"
+  "race": "Governor",
+  "party": "R"
  }
 ]

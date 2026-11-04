@@ -765,6 +765,7 @@
     "Georgia"
    ],
    "race": "U.S. Senate",
+   "party": "D",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -777,6 +778,7 @@
     "North Carolina"
    ],
    "race": "U.S. Senate",
+   "party": "D",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -789,6 +791,7 @@
     "Virginia"
    ],
    "race": "U.S. Senate",
+   "party": "D",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -801,6 +804,7 @@
     "Delaware"
    ],
    "race": "U.S. Senate",
+   "party": "D",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -813,6 +817,7 @@
     "New Hampshire"
    ],
    "race": "U.S. Senate",
+   "party": "D",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -825,6 +830,7 @@
     "Maryland"
    ],
    "race": "Governor",
+   "party": "D",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -837,6 +843,7 @@
     "Pennsylvania"
    ],
    "race": "Governor",
+   "party": "D",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -849,6 +856,7 @@
     "Florida"
    ],
    "race": "U.S. Senate",
+   "party": "R",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -861,6 +869,7 @@
     "Massachusetts"
    ],
    "race": "U.S. Senate",
+   "party": "D",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -873,6 +882,7 @@
     "New Jersey"
    ],
    "race": "U.S. Senate",
+   "party": "D",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -885,6 +895,7 @@
     "Illinois"
    ],
    "race": "Governor",
+   "party": "D",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -897,6 +908,7 @@
     "Massachusetts"
    ],
    "race": "Governor",
+   "party": "D",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -909,6 +921,7 @@
     "Connecticut"
    ],
    "race": "Governor",
+   "party": "D",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -921,6 +934,7 @@
     "New York"
    ],
    "race": "Governor",
+   "party": "D",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -933,6 +947,7 @@
     "Wyoming"
    ],
    "race": "Governor",
+   "party": "R",
    "kind": "Race calls",
    "lane": "count",
    "places": []
