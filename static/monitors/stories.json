@@ -1398,6 +1398,20 @@
    "kind": "Race calls",
    "lane": "count",
    "places": []
+  },
+  {
+   "url": "https://wisconsinexaminer.com/2026/11/03/crowley-wins-election-becoming-wisconsins-first-black-governor/",
+   "title": "Crowley wins election, becoming Wisconsin\u2019s first Black governor \u2022 Wisconsin Examiner",
+   "source": "Wisconsin Examiner",
+   "states": [
+    "Wisconsin"
+   ],
+   "race": "Governor",
+   "party": "D",
+   "recorded": "2026-11-03T23:52",
+   "kind": "Race calls",
+   "lane": "count",
+   "places": []
   }
  ]
 }
