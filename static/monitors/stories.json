@@ -552,22 +552,6 @@
    ]
   },
   {
-   "url": "https://capturecascade.org/event/2026-11-03--fulton-county-asks-to-rescan-1069-early-voting-ballots-after-two-scanner-problems/",
-   "title": "Fulton County asks Georgia to let it rescan just over 1,000 early voting ballots after two scanner problems",
-   "source": "Capture Cascade timeline",
-   "kind": "Voting equipment",
-   "places": [
-    {
-     "st": "Georgia",
-     "j": "Fulton"
-    }
-   ],
-   "lane": "count",
-   "states": [
-    "Georgia"
-   ]
-  },
-  {
    "url": "https://www.newsfromthestates.com/node/435528",
    "title": "Arkansas' most populous county votes to bar DOJ monitors from entering polling sites",
    "source": "Arkansas Advocate",
@@ -634,6 +618,47 @@
    "states": [
     "Indiana"
    ]
+  },
+  {
+   "url": "https://capturecascade.org/event/2026-08-26--wyoming-gov-gordon-and-laramie-county-clerk-say-doj-primary-monitors-were-aggressive/",
+   "title": "At Wyoming's August primary, DOJ monitors asked for training guides and to examine tabulators; the governor said they exceeded their authority",
+   "source": "Capture Cascade timeline (NBC News)",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "Wyoming",
+     "j": "Laramie County"
+    }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Wyoming"
+   ]
+  },
+  {
+   "url": "https://capturecascade.org/event/2026-10-27--wyoming-ag-kautz-opinion-says-state-law-bars-doj-election-monitors-from-polling-places/",
+   "title": "Wyoming's attorney general: state law bars DOJ election monitors from polling places",
+   "source": "Capture Cascade timeline (Cowboy State Daily)",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "Wyoming",
+     "j": "Laramie County"
+    }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Wyoming"
+   ]
+  },
+  {
+   "url": "https://capturecascade.org/event/2026-11-03--ice-posts-election-day-warning-if-you-vote-illegally-we-will-find-you/",
+   "title": "ICE on Election Day: \u201cIf you vote illegally, we will find you\u201d",
+   "source": "Capture Cascade timeline (AP)",
+   "kind": "Voter intimidation",
+   "places": [],
+   "lane": "watchers",
+   "states": []
   },
   {
    "url": "https://www.cpr.org/2026/11/03/colorado-midterm-election-2026-live-blog-results/",
@@ -712,7 +737,7 @@
   },
   {
    "url": "https://capturecascade.org/event/2026-10-22--doj-sues-alaska-to-bar-senate-certification-if-sullivan-loses-nvra/",
-   "title": "DOJ's suit to bar certifying Alaska's Senate result is dismissed; DOJ appeals",
+   "title": "DOJ's suit to bar certifying Alaska's Senate result is dismissed; DOJ appeals, and on Election Day sends target letters in its Alaska Senate probe",
    "source": "Capture Cascade timeline",
    "kind": "Certification",
    "states": [

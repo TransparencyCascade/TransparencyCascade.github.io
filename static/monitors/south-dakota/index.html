@@ -157,7 +157,7 @@
 <body>
 <div class="wrap">
 <header>
-  <p class="stamp">The RAMM, Election Day, Nov. 3, 2026</p>
+  <p class="stamp">The RAMM, election night, Nov. 3, 2026</p>
   <nav class="lanes" aria-label="Sections"><a href="#top-watchers">Watching the watchers</a><a href="#count">Watching the count</a></nav>
   <div id="back"></div>
   <h1 id="top-watchers">Is DOJ monitoring your county?</h1>
@@ -187,14 +187,14 @@
 </section>
 
 <section class="reports" id="reports" hidden></section>
-
-<div id="list"></div>
-
 <section id="count" aria-labelledby="count-h">
   <h2 class="lane" id="count-h">Watching the count</h2>
   <p class="dek" style="font-size:17px">After the polls close, the fight moves to the count: canvasses, rescans, certification deadlines and lawsuits. We follow it here through certification.</p>
   <div id="countbody"></div>
 </section>
+
+<div id="list"></div>
+
 
 <nav id="states" aria-label="State pages"></nav>
 
@@ -250,7 +250,9 @@
   let showAllReports = false;
   function renderReports(){
     const box = document.getElementById('reports');
-    const mine = (ST ? STORIES.filter(s => (s.states||[]).includes(ST)) : STORIES).filter(s => s.lane !== 'count');
+    const ORD = {'DOJ monitors':0, 'Voter intimidation':1, 'Courts':2};
+    const mine = (ST ? STORIES.filter(s => (s.states||[]).includes(ST)) : STORIES).filter(s => s.lane !== 'count')
+      .map((s,i) => [s,i]).sort((a,b) => ((ORD[a[0].kind] ?? 9) - (ORD[b[0].kind] ?? 9)) || (b[1] - a[1])).map(x => x[0]);
     const tipLine = `<p class="tip">Know of a report we missed? ${reportLink(ST || '', 'Send us the link')}. It opens a public GitHub form; we read every link before listing it.</p>`;
     if (!mine.length) { box.hidden = false; box.innerHTML = `<h2>Watching the watchers: Election Day reports${ST ? ' from ' + esc(ST) : ''}</h2><p class="why">No verified reports yet.</p>` + tipLine; return; }
     const cap = ST ? 99 : 8, shown = showAllReports ? mine : mine.slice(0, cap);
