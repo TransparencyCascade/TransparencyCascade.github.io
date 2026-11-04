@@ -1514,6 +1514,20 @@
    "kind": "Race calls",
    "lane": "count",
    "places": []
+  },
+  {
+   "url": "https://ohiocapitaljournal.com/2026/11/03/democrat-amy-acton-wins-race-for-ohio-governor-the-associated-press-projects/",
+   "title": "Democrat Amy Acton wins race for Ohio governor, the Associated Press projects \u2022 Ohio Capital Journal",
+   "source": "Ohio Capital Journal (call: AP)",
+   "states": [
+    "Ohio"
+   ],
+   "race": "Governor",
+   "party": "D",
+   "recorded": "2026-11-04T00:33",
+   "kind": "Race calls",
+   "lane": "count",
+   "places": []
   }
  ]
 }
