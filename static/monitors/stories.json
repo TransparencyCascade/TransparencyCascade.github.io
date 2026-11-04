@@ -620,6 +620,86 @@
    ]
   },
   {
+   "url": "https://www.wishtv.com/news/marion-county-calls-for-more-poll-workers-to-count-votes/",
+   "title": "Marion County calls for more poll workers to count votes",
+   "source": "WISH-TV",
+   "kind": "Count and certification",
+   "places": [
+    {
+     "st": "Indiana",
+     "j": "Marion"
+    }
+   ],
+   "lane": "count",
+   "states": [
+    "Indiana"
+   ]
+  },
+  {
+   "url": "https://www.cpr.org/2026/11/03/colorado-midterm-election-2026-live-blog-results/",
+   "title": "Colorado midterm election 2026 live blog",
+   "source": "Colorado Public Radio",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "Colorado",
+     "j": "Adams"
+    }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Colorado"
+   ]
+  },
+  {
+   "url": "https://www.wptv.com/news/palm-beach-county/flooding-closes-mangonia-park-polling-location-impacts-nearby-goodwill",
+   "title": "Flooding closes Mangonia Park polling location, impacts nearby Goodwill",
+   "source": "WPTV",
+   "kind": "Flooding and weather",
+   "places": [
+    {
+     "st": "Florida",
+     "j": "Palm Beach"
+    }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Florida"
+   ]
+  },
+  {
+   "url": "https://www.wctv.tv/2026/11/03/some-local-polling-places-lose-power-during-heavy-rain-according-leon-county-supervisor-elections/",
+   "title": "Some local polling places lose power during heavy rain, according to Leon County Supervisor of Elections",
+   "source": "WCTV",
+   "kind": "Flooding and weather",
+   "places": [
+    {
+     "st": "Florida",
+     "j": "Leon"
+    }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Florida"
+   ]
+  },
+  {
+   "url": "https://www.azfamily.com/2026/11/04/long-lines-reported-some-maricopa-county-vote-centers-heres-what-know/",
+   "title": "Long lines reported at some Maricopa County vote centers: Here\u2019s what to know",
+   "source": "AZFamily",
+   "kind": "Lines and delays",
+   "places": [
+    {
+     "st": "Arizona",
+     "j": "Maricopa"
+    }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Arizona"
+   ]
+  },
+  {
    "url": "https://capturecascade.org/event/2026-11-02--doj-asks-supreme-court-make-california-set-aside-20000-flagged-mail-ballots-sauer-application/",
    "title": "Supreme Court rejects DOJ's request to make California set aside 20,000 flagged mail ballots",
    "source": "Capture Cascade timeline",

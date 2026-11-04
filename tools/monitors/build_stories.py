@@ -67,7 +67,16 @@ EXTRA = [  # read by hand this session
      "source": "Times Leader", "kind": "legal", "places": [("Pennsylvania", "Luzerne")]},
     {"url": "https://blockclubchicago.org/2026/11/03/illinois-midterm-election-2026-pritzker-seeks-3rd-term-voters-to-choose-fully-elected-school-board/",
      "title": "Illinois Midterm Election 2026: Far North Side Precinct Runs Out Of Ballots, Leading To Long Waits",
-     "source": "Block Club Chicago", "kind": "lines", "places": [("Illinois", "Chicago")]},
+     "source": "Block Club Chicago", "kind": "lines", "places": [("Illinois", "Chicago")]},    {"url": "https://www.wishtv.com/news/marion-county-calls-for-more-poll-workers-to-count-votes/",
+     "title": "Marion County calls for more poll workers to count votes", "source": "WISH-TV", "kind": "count", "places": [("Indiana", "Marion")]},
+    {"url": "https://www.cpr.org/2026/11/03/colorado-midterm-election-2026-live-blog-results/",
+     "title": "Colorado midterm election 2026 live blog", "source": "Colorado Public Radio", "kind": "monitors", "places": [("Colorado", "Adams")]},
+    {"url": "https://www.wptv.com/news/palm-beach-county/flooding-closes-mangonia-park-polling-location-impacts-nearby-goodwill",
+     "title": "Flooding closes Mangonia Park polling location, impacts nearby Goodwill", "source": "WPTV", "kind": "weather", "places": [("Florida", "Palm Beach")]},
+    {"url": "https://www.wctv.tv/2026/11/03/some-local-polling-places-lose-power-during-heavy-rain-according-leon-county-supervisor-elections/",
+     "title": "Some local polling places lose power during heavy rain, according to Leon County Supervisor of Elections", "source": "WCTV", "kind": "weather", "places": [("Florida", "Leon")]},
+    {"url": "https://www.azfamily.com/2026/11/04/long-lines-reported-some-maricopa-county-vote-centers-heres-what-know/",
+     "title": "Long lines reported at some Maricopa County vote centers: Here’s what to know", "source": "AZFamily", "kind": "lines", "places": [("Arizona", "Maricopa")]},
 ]
 
 
