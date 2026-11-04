@@ -118,7 +118,7 @@ EXTRA = [  # read by hand this session
 
 
 def split_headline(h, publisher):
-    h = (h or "").strip()
+    h = re.sub(r"\s*-\s*\[local-[^\]]*\]?.*$", "", (h or "").strip())
     if publisher and h.endswith(" - " + publisher):
         return h[: -len(" - " + publisher)].strip(), publisher
     m = re.match(r"^(.*)\s+-\s+([^-]{2,60})$", h)
