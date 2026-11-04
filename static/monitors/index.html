@@ -139,9 +139,9 @@
   .mk:focus{outline:none;}
   .mapwrap path.c.sel{stroke:#000; stroke-width:3;}
   .legend .dot{display:inline-block; width:14px; height:14px; border-radius:50%; background:#000; vertical-align:-2px; margin-right:6px;}
-  /* laptop and wider: the map is the navigation, pinned on the left; the answer and the reporting scroll on the right */
-  @media (min-width:1100px){
-    .wrap{max-width:1500px; display:grid; grid-template-columns:minmax(0,1.25fr) minmax(400px,0.75fr); column-gap:48px; padding:0 32px 100px;}
+  /* laptop and wider: the map is the navigation, pinned on the left; the reading column on the right gets a full line length (up to 720px), the map takes what is left */
+  @media (min-width:1240px){
+    .wrap{max-width:1560px; display:grid; grid-template-columns:minmax(480px,1fr) minmax(520px,720px); column-gap:56px; padding:0 40px 100px;}
     .wrap > *{grid-column:2; min-width:0;}
     .wrap > .maparea{grid-column:1; grid-row:1 / span 40; position:sticky; top:0; align-self:start; height:100vh;
       display:flex; flex-direction:column; justify-content:center; padding:24px 0;}
