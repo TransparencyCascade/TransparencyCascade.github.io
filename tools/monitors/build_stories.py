@@ -46,7 +46,7 @@ COUNT_EXTRA = [  # count-lane items about a whole state (no single listed place)
      "title": "DOJ's suit to bar certifying Alaska's Senate result is dismissed; DOJ appeals",
      "source": "Capture Cascade timeline", "kind": "Certification", "states": ["Alaska"]},
     {"url": "https://capturecascade.org/event/2026-10-30--thompson-tro-bars-doj-dhs-demands-and-prosecution-threats-election-officials-seiu-v-doj-3-26-cv-12800/",
-     "title": "Judge bars DOJ and DHS demands and prosecution threats against election officials; order runs to Nov. 13",
+     "title": "Judge barred DOJ and DHS demands and prosecution threats against election officials; on Election Day the Ninth Circuit put the order on hold",
      "source": "Capture Cascade timeline", "kind": "Courts", "states": ["California"]},
 ]
 EXTRA = [  # read by hand this session
