@@ -163,6 +163,22 @@
    ]
   },
   {
+   "url": "https://www.hawaiinewsnow.com/2026/11/04/man-ice-vest-escorted-off-honolulu-hale-voting-grounds/",
+   "title": "Man in ICE vest escorted off Honolulu Hale voting grounds - [local-hi-hawaii-news-now]",
+   "source": "Hawaii News Now",
+   "kind": "Voter intimidation",
+   "places": [
+    {
+     "st": "Hawaii",
+     "j": "Honolulu"
+    }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Hawaii"
+   ]
+  },
+  {
    "url": "https://www.lohud.com/story/news/2026/11/03/westchester-voting-problems-ballot-scanners-election-day/92582847007/",
    "title": "Westchester voting problems: Ballot scanners not accepting ballots",
    "source": "Lohud",
@@ -1437,6 +1453,20 @@
    "race": "Governor",
    "party": "D",
    "recorded": "2026-11-03T23:58",
+   "kind": "Race calls",
+   "lane": "count",
+   "places": []
+  },
+  {
+   "url": "https://rhodeislandcurrent.com/2026/11/03/prewrite-jack-reed-wins-sixth-term-in-us-senate/",
+   "title": "Jack Reed wins sixth term in US Senate \u2022 Rhode Island Current",
+   "source": "Rhode Island Current (call: AP)",
+   "states": [
+    "Rhode Island"
+   ],
+   "race": "U.S. Senate",
+   "party": "D",
+   "recorded": "2026-11-04T00:31",
    "kind": "Race calls",
    "lane": "count",
    "places": []
