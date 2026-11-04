@@ -54,6 +54,7 @@ def main():
     env = dict(os.environ)
     env.setdefault("POLLWATCH_DIR", os.environ.get("POLLWATCH_DIR") or "/private/tmp/claude-501/-Users-markr-kb/04fcc5df-f22b-438e-8a98-a2870b7e70fd/scratchpad/pollwatch")
     if not os.path.isdir(env["POLLWATCH_DIR"]): sys.exit("POLLWATCH_DIR not found: " + env["POLLWATCH_DIR"] + " (set it to the poll-watch findings folder)")
+    import datetime as _dt; entry["recorded"] = _dt.datetime.now().strftime("%Y-%m-%dT%H:%M")
     calls.append(entry); json.dump(calls, open(CALLS, "w"), indent=1)
     subprocess.run([sys.executable, os.path.join(HERE, "build_stories.py")], check=True, stdout=subprocess.DEVNULL, env=env)
     after = json.load(open(site))["stories"]
