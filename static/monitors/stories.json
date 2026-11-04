@@ -709,6 +709,175 @@
    ]
   },
   {
+   "url": "https://www.kcrg.com/2026/11/03/10-federal-election-monitors-come-linn-county-election-day/",
+   "title": "10 federal election monitors come to Linn County on Election Day",
+   "source": "KCRG",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "Iowa",
+     "j": "Linn"
+    }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Iowa"
+   ]
+  },
+  {
+   "url": "https://www.newhavenindependent.org/2026/11/03/doj-monitor-hits-westville-annex/",
+   "title": "DOJ monitors crisscross New Haven, reported at polling places in at least seven wards",
+   "source": "New Haven Independent",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "Connecticut",
+     "j": "New Haven"
+    }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Connecticut"
+   ]
+  },
+  {
+   "url": "https://www.cpr.org/2026/11/03/federal-election-monitors-adams-county/",
+   "title": "Federal election monitors arrive in Colorado amid election scrutiny",
+   "source": "Colorado Public Radio",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "Colorado",
+     "j": "Adams"
+    }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Colorado"
+   ]
+  },
+  {
+   "url": "https://utahnewsdispatch.com/2026/11/03/federal-election-monitors-are-in-salt-lake-county-utah/",
+   "title": "It's Election Day: Here's why 12 election monitors are in Utah",
+   "source": "Utah News Dispatch",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "Utah",
+     "j": "Salt Lake"
+    }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Utah"
+   ]
+  },
+  {
+   "url": "https://www.stlpr.org/government-politics-issues/2026-11-03/no-problems-reported-as-doj-observes-missouri-and-illinois-voters",
+   "title": "No problems reported as DOJ observes Missouri and Illinois voters",
+   "source": "St. Louis Public Radio",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "Missouri",
+     "j": "St. Louis"
+    },
+    {
+     "st": "Illinois",
+     "j": "St. Clair"
+    },
+    {
+     "st": "Illinois",
+     "j": "Madison"
+    }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Illinois",
+    "Missouri"
+   ]
+  },
+  {
+   "url": "https://westvirginiawatch.com/2026/11/03/u-s-department-of-justice-monitors-election-in-kanawha-county/",
+   "title": "U.S. Department of Justice monitors election in Kanawha County",
+   "source": "West Virginia Watch",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "West Virginia",
+     "j": "Kanawha"
+    }
+   ],
+   "lane": "watchers",
+   "states": [
+    "West Virginia"
+   ]
+  },
+  {
+   "url": "https://www.wsfa.com/2026/11/04/doj-sends-federal-election-monitors-mobile-2-other-alabama-counties/",
+   "title": "DOJ sends federal election monitors to Mobile, 2 other Alabama counties",
+   "source": "WALA, via WSFA",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "Alabama",
+     "j": "Mobile"
+    },
+    {
+     "st": "Alabama",
+     "j": "Jefferson"
+    },
+    {
+     "st": "Alabama",
+     "j": "Montgomery"
+    }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Alabama"
+   ]
+  },
+  {
+   "url": "https://alaskabeacon.com/2026/11/03/us-department-of-justice-sends-election-monitors-to-urban-and-rural-alaska/",
+   "title": "US Department of Justice sends election monitors to urban and rural Alaska",
+   "source": "Alaska Beacon",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "Alaska",
+     "j": "Anchorage"
+    },
+    {
+     "st": "Alaska",
+     "j": "Dillingham"
+    },
+    {
+     "st": "Alaska",
+     "j": "Kusilvak"
+    }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Alaska"
+   ]
+  },
+  {
+   "url": "https://www.live5news.com/2026/11/03/doj-deploys-election-monitors-charleston-county-voters-express-mixed-reactions/",
+   "title": "DOJ deploys election monitors to Charleston County as voters express mixed reactions",
+   "source": "Live 5 News",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "South Carolina",
+     "j": "Charleston"
+    }
+   ],
+   "lane": "watchers",
+   "states": [
+    "South Carolina"
+   ]
+  },
+  {
    "url": "https://www.azfamily.com/2026/11/04/long-lines-reported-some-maricopa-county-vote-centers-heres-what-know/",
    "title": "Long lines reported at some Maricopa County vote centers: Here\u2019s what to know",
    "source": "AZFamily",
@@ -753,6 +922,28 @@
    "kind": "Courts",
    "states": [
     "California"
+   ],
+   "lane": "count",
+   "places": []
+  },
+  {
+   "url": "https://www.wbtv.com/2026/11/03/north-carolina-election-officials-extend-voting-4-counties-what-we-know/",
+   "title": "North Carolina extends voting at five precincts in four counties after stoppages; results delayed",
+   "source": "WBTV",
+   "kind": "Count and certification",
+   "states": [
+    "North Carolina"
+   ],
+   "lane": "count",
+   "places": []
+  },
+  {
+   "url": "https://www.wpxi.com/news/local/court-orders-precinct-remain-open-until-10-pm-voters-who-used-emergency-ballots-urged-return/DIWLVOBPFVE4NPYBY5Q5JSRXJA/",
+   "title": "Court orders a Washington County, Pa., precinct open until 10 p.m.; 23 emergency-ballot voters urged to return and vote provisionally",
+   "source": "WPXI",
+   "kind": "Count and certification",
+   "states": [
+    "Pennsylvania"
    ],
    "lane": "count",
    "places": []

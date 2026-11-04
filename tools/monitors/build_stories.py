@@ -49,6 +49,12 @@ COUNT_EXTRA = [  # count-lane items about a whole state (no single listed place)
      "title": "Judge barred DOJ and DHS demands and prosecution threats against election officials; on Election Day the Ninth Circuit put the order on hold",
      "source": "Capture Cascade timeline", "kind": "Courts", "states": ["California"]},
 ]
+COUNT_EXTRA += [
+    {"url": "https://www.wbtv.com/2026/11/03/north-carolina-election-officials-extend-voting-4-counties-what-we-know/",
+     "title": "North Carolina extends voting at five precincts in four counties after stoppages; results delayed", "source": "WBTV", "kind": "Count and certification", "states": ["North Carolina"]},
+    {"url": "https://www.wpxi.com/news/local/court-orders-precinct-remain-open-until-10-pm-voters-who-used-emergency-ballots-urged-return/DIWLVOBPFVE4NPYBY5Q5JSRXJA/",
+     "title": "Court orders a Washington County, Pa., precinct open until 10 p.m.; 23 emergency-ballot voters urged to return and vote provisionally", "source": "WPXI", "kind": "Count and certification", "states": ["Pennsylvania"]},
+]
 EXTRA = [  # read by hand this session
     {"url": "https://www.news9.com/oklahoma-elections/oklahoma-county-election-board-polling-machine-issues",
      "title": "Oklahoma County Election Board addresses voting machine issues on Election Day", "source": "News 9",
@@ -81,6 +87,24 @@ EXTRA = [  # read by hand this session
      "title": "Flooding closes Mangonia Park polling location, impacts nearby Goodwill", "source": "WPTV", "kind": "weather", "places": [("Florida", "Palm Beach")]},
     {"url": "https://www.wctv.tv/2026/11/03/some-local-polling-places-lose-power-during-heavy-rain-according-leon-county-supervisor-elections/",
      "title": "Some local polling places lose power during heavy rain, according to Leon County Supervisor of Elections", "source": "WCTV", "kind": "weather", "places": [("Florida", "Leon")]},
+    {"url": "https://www.kcrg.com/2026/11/03/10-federal-election-monitors-come-linn-county-election-day/",
+     "title": "10 federal election monitors come to Linn County on Election Day", "source": "KCRG", "kind": "monitors", "places": [("Iowa", "Linn")]},
+    {"url": "https://www.newhavenindependent.org/2026/11/03/doj-monitor-hits-westville-annex/",
+     "title": "DOJ monitors crisscross New Haven, reported at polling places in at least seven wards", "source": "New Haven Independent", "kind": "monitors", "places": [("Connecticut", "New Haven")]},
+    {"url": "https://www.cpr.org/2026/11/03/federal-election-monitors-adams-county/",
+     "title": "Federal election monitors arrive in Colorado amid election scrutiny", "source": "Colorado Public Radio", "kind": "monitors", "places": [("Colorado", "Adams")]},
+    {"url": "https://utahnewsdispatch.com/2026/11/03/federal-election-monitors-are-in-salt-lake-county-utah/",
+     "title": "It's Election Day: Here's why 12 election monitors are in Utah", "source": "Utah News Dispatch", "kind": "monitors", "places": [("Utah", "Salt Lake")]},
+    {"url": "https://www.stlpr.org/government-politics-issues/2026-11-03/no-problems-reported-as-doj-observes-missouri-and-illinois-voters",
+     "title": "No problems reported as DOJ observes Missouri and Illinois voters", "source": "St. Louis Public Radio", "kind": "monitors", "places": [("Missouri", "St. Louis"), ("Illinois", "St. Clair"), ("Illinois", "Madison")]},
+    {"url": "https://westvirginiawatch.com/2026/11/03/u-s-department-of-justice-monitors-election-in-kanawha-county/",
+     "title": "U.S. Department of Justice monitors election in Kanawha County", "source": "West Virginia Watch", "kind": "monitors", "places": [("West Virginia", "Kanawha")]},
+    {"url": "https://www.wsfa.com/2026/11/04/doj-sends-federal-election-monitors-mobile-2-other-alabama-counties/",
+     "title": "DOJ sends federal election monitors to Mobile, 2 other Alabama counties", "source": "WALA, via WSFA", "kind": "monitors", "places": [("Alabama", "Mobile"), ("Alabama", "Jefferson"), ("Alabama", "Montgomery")]},
+    {"url": "https://alaskabeacon.com/2026/11/03/us-department-of-justice-sends-election-monitors-to-urban-and-rural-alaska/",
+     "title": "US Department of Justice sends election monitors to urban and rural Alaska", "source": "Alaska Beacon", "kind": "monitors", "places": [("Alaska", "Anchorage"), ("Alaska", "Dillingham"), ("Alaska", "Kusilvak")]},
+    {"url": "https://www.live5news.com/2026/11/03/doj-deploys-election-monitors-charleston-county-voters-express-mixed-reactions/",
+     "title": "DOJ deploys election monitors to Charleston County as voters express mixed reactions", "source": "Live 5 News", "kind": "monitors", "places": [("South Carolina", "Charleston")]},
     {"url": "https://www.azfamily.com/2026/11/04/long-lines-reported-some-maricopa-county-vote-centers-heres-what-know/",
      "title": "Long lines reported at some Maricopa County vote centers: Here’s what to know", "source": "AZFamily", "kind": "lines", "places": [("Arizona", "Maricopa")]},
 ]
