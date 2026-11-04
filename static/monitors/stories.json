@@ -1300,6 +1300,20 @@
    "kind": "Race calls",
    "lane": "count",
    "places": []
+  },
+  {
+   "url": "https://www.wbtv.com/2026/11/04/democrat-annie-andrews-wins-us-senate-seat-south-carolina-ap-projects/",
+   "title": "Democrat Annie Andrews wins US Senate seat in South Carolina, AP projects",
+   "source": "https://www.wbtv.com (call: AP)",
+   "states": [
+    "South Carolina"
+   ],
+   "race": "U.S. Senate",
+   "party": "D",
+   "recorded": "2026-11-03T23:20",
+   "kind": "Race calls",
+   "lane": "count",
+   "places": []
   }
  ]
 }
