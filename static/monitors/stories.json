@@ -924,6 +924,18 @@
    "kind": "Race calls",
    "lane": "count",
    "places": []
+  },
+  {
+   "url": "https://wyofile.com/republican-eric-barlow-wins-wyoming-governors-race/",
+   "title": "Republican Eric Barlow wins Wyoming governor\u2019s race - WyoFile",
+   "source": "WyoFile (call: AP)",
+   "states": [
+    "Wyoming"
+   ],
+   "race": "Governor",
+   "kind": "Race calls",
+   "lane": "count",
+   "places": []
   }
  ]
 }
