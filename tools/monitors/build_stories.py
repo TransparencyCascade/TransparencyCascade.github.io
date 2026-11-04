@@ -23,12 +23,17 @@ PLACES = {
     "Westchester (New York), New York": [("New York", "Westchester")],
     "Navajo Nation, Arizona": [("Arizona", "Navajo"), ("Arizona", "Apache")],
     "Oklahoma County, Oklahoma": [("Oklahoma", "Oklahoma")],
+    "Chicago, Illinois (Holstein Park, 1st Ward)": [("Illinois", "Chicago")],
 }
 KC = [("Kansas", "Johnson"), ("Kansas", "Wyandotte"), ("Kansas", "Sedgwick"), ("Missouri", "Jackson"), ("Missouri", "Clay"), ("Missouri", "St. Louis")]
 DROP = {  # verified but not an Election Day item for that place
     "https://www.kwch.com/2026/11/02/hundreds-stand-line-sedgwick-county-election-office-final-day-early-voting-midterm/",
     "https://newjerseyglobe.com/campaigns/bergen-county-election-error-wiped-mercer-voters-registration-and-voting-history/",
     "https://www.votebeat.org/national/2026/11/03/election-day-2026-live-blog-midterms-trump/",  # one line on Milwaukee, no detail
+    "https://northdakotamonitor.com/2026/11/03/election-error-caused-some-bismarck-voters-to-receive-wrong-ballot/",  # Bismarck (Burleigh) is not on DOJ's list
+    "https://oklahomavoice.com/2026/11/03/byrd-defeats-libertarian-to-win-oklahoma-state-treasurer/",  # down-ballot call; calls go through count_call.py
+    "https://www.kristv.com/politics/america-votes/chris-pappas-wins-new-hampshire-senate-race-becoming-first-openly-gay-male-senator",  # NH call already recorded
+    "https://blockclubchicago.org/2026/11/03/patty-garcia-wins-4th-congressional-district-race-succeeding-chuy-garcia/",  # House call; not on the map yet
 }
 FIX_KIND = {"https://www.ktvq.com/news/longer-lines-possible-at-montana-polls-due-to-statewide-ballot-printing-issue": "machines",
             "https://dailyprogress.com/news/local/government-politics/elections/article_0d02273f-0742-4942-b094-4fd7be717f14.html": "monitors"}

@@ -115,6 +115,54 @@
    ]
   },
   {
+   "url": "https://chicago.suntimes.com/news/2026/11/03/election-day-glitch-leads-to-long-lines-ballot-issues-at-chicago-voting-sites",
+   "title": "Election Day 'glitch' leads to long lines, ballot issues at Chicago voting sites",
+   "source": "Chicago Sun-Times",
+   "kind": "Lines and delays",
+   "places": [
+    {
+     "st": "Illinois",
+     "j": "Chicago"
+    }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Illinois"
+   ]
+  },
+  {
+   "url": "https://www.cbsnews.com/sanfrancisco/news/federal-election-monitors-deploy-to-alameda-county/",
+   "title": "Federal election monitors deploy to Alameda County",
+   "source": "CBS News San Francisco",
+   "kind": "DOJ monitors",
+   "places": [
+    {
+     "st": "California",
+     "j": "Alameda"
+    }
+   ],
+   "lane": "watchers",
+   "states": [
+    "California"
+   ]
+  },
+  {
+   "url": "https://www.fox13now.com/news/local-news/long-lines-may-keep-utah-polling-locations-open-later-than-usual",
+   "title": "Long lines keep Utah polling locations open late",
+   "source": "FOX 13 News Utah",
+   "kind": "Lines and delays",
+   "places": [
+    {
+     "st": "Utah",
+     "j": "Salt Lake"
+    }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Utah"
+   ]
+  },
+  {
    "url": "https://www.lohud.com/story/news/2026/11/03/westchester-voting-problems-ballot-scanners-election-day/92582847007/",
    "title": "Westchester voting problems: Ballot scanners not accepting ballots",
    "source": "Lohud",
@@ -968,6 +1016,7 @@
    ],
    "race": "U.S. Senate",
    "party": "D",
+   "recorded": "2026-11-03T20:30",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -981,6 +1030,7 @@
    ],
    "race": "U.S. Senate",
    "party": "D",
+   "recorded": "2026-11-03T21:20",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -994,6 +1044,7 @@
    ],
    "race": "U.S. Senate",
    "party": "D",
+   "recorded": "2026-11-03T21:20",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -1007,6 +1058,7 @@
    ],
    "race": "U.S. Senate",
    "party": "D",
+   "recorded": "2026-11-03T21:20",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -1020,6 +1072,7 @@
    ],
    "race": "U.S. Senate",
    "party": "D",
+   "recorded": "2026-11-03T21:20",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -1033,6 +1086,7 @@
    ],
    "race": "Governor",
    "party": "D",
+   "recorded": "2026-11-03T21:20",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -1046,6 +1100,7 @@
    ],
    "race": "Governor",
    "party": "D",
+   "recorded": "2026-11-03T21:20",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -1059,6 +1114,7 @@
    ],
    "race": "U.S. Senate",
    "party": "R",
+   "recorded": "2026-11-03T21:26",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -1072,6 +1128,7 @@
    ],
    "race": "U.S. Senate",
    "party": "D",
+   "recorded": "2026-11-03T21:26",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -1085,6 +1142,7 @@
    ],
    "race": "U.S. Senate",
    "party": "D",
+   "recorded": "2026-11-03T21:26",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -1098,6 +1156,7 @@
    ],
    "race": "Governor",
    "party": "D",
+   "recorded": "2026-11-03T21:26",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -1111,6 +1170,7 @@
    ],
    "race": "Governor",
    "party": "D",
+   "recorded": "2026-11-03T21:26",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -1124,6 +1184,7 @@
    ],
    "race": "Governor",
    "party": "D",
+   "recorded": "2026-11-03T21:26",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -1137,6 +1198,7 @@
    ],
    "race": "Governor",
    "party": "D",
+   "recorded": "2026-11-03T21:26",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -1150,6 +1212,7 @@
    ],
    "race": "Governor",
    "party": "R",
+   "recorded": "2026-11-03T21:26",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -1163,6 +1226,7 @@
    ],
    "race": "U.S. Senate",
    "party": "R",
+   "recorded": "2026-11-03T21:42",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -1176,6 +1240,7 @@
    ],
    "race": "U.S. Senate",
    "party": "D",
+   "recorded": "2026-11-03T21:42",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -1189,6 +1254,7 @@
    ],
    "race": "Governor",
    "party": "D",
+   "recorded": "2026-11-03T21:42",
    "kind": "Race calls",
    "lane": "count",
    "places": []
@@ -1202,6 +1268,7 @@
    ],
    "race": "Governor",
    "party": "D",
+   "recorded": "2026-11-03T21:42",
    "kind": "Race calls",
    "lane": "count",
    "places": []
