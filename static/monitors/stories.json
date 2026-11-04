@@ -1426,6 +1426,20 @@
    "kind": "Race calls",
    "lane": "count",
    "places": []
+  },
+  {
+   "url": "https://www.kristv.com/politics/america-votes/democrat-deb-haaland-wins-election-for-governor-in-new-mexico",
+   "title": "Democrat Deb Haaland wins election for governor in New Mexico",
+   "source": "KRIS 6 News Corpus Christi",
+   "states": [
+    "New Mexico"
+   ],
+   "race": "Governor",
+   "party": "D",
+   "recorded": "2026-11-03T23:58",
+   "kind": "Race calls",
+   "lane": "count",
+   "places": []
   }
  ]
 }
