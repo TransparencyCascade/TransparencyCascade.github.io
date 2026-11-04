@@ -1412,6 +1412,20 @@
    "kind": "Race calls",
    "lane": "count",
    "places": []
+  },
+  {
+   "url": "https://wyofile.com/hageman-wins-wyomings-senate-race/",
+   "title": "Hageman wins Wyoming\u2019s Senate race - WyoFile",
+   "source": "WyoFile",
+   "states": [
+    "Wyoming"
+   ],
+   "race": "U.S. Senate",
+   "party": "R",
+   "recorded": "2026-11-03T23:58",
+   "kind": "Race calls",
+   "lane": "count",
+   "places": []
   }
  ]
 }
