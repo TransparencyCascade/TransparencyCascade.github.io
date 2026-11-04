@@ -852,6 +852,18 @@
    "kind": "Race calls",
    "lane": "count",
    "places": []
+  },
+  {
+   "url": "https://www.wgbh.org/news/politics/2026-11-03/markey-wins-3rd-senate-term-as-deaton-struggles-to-break-through-in-deep-blue-mass",
+   "title": "Markey wins 3rd Senate term as Deaton struggles to break through in deep blue Mass.",
+   "source": "GBH",
+   "states": [
+    "Massachusetts"
+   ],
+   "race": "U.S. Senate",
+   "kind": "Race calls",
+   "lane": "count",
+   "places": []
   }
  ]
 }
