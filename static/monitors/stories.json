@@ -951,6 +951,19 @@
    "kind": "Race calls",
    "lane": "count",
    "places": []
+  },
+  {
+   "url": "https://www.lex18.com/news/covering-kentucky/longtime-rep-andy-barr-wins-race-for-us-senate-seat",
+   "title": "Longtime Rep. Andy Barr wins race for US Senate seat",
+   "source": "LEX 18 News - Lexington, KY (WLEX)",
+   "states": [
+    "Kentucky"
+   ],
+   "race": "U.S. Senate",
+   "party": "R",
+   "kind": "Race calls",
+   "lane": "count",
+   "places": []
   }
  ]
 }
