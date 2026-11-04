@@ -1370,6 +1370,20 @@
    "kind": "Race calls",
    "lane": "count",
    "places": []
+  },
+  {
+   "url": "https://www.kristv.com/news/political/elections/rep-hinojosa-projected-to-beat-incumbent-abbott-in-texas-governor-race-per-ap",
+   "title": "Rep. Hinojosa projected to beat incumbent Abbott in Texas governor race, per AP",
+   "source": "KRIS 6 News Corpus Christi (call: AP)",
+   "states": [
+    "Texas"
+   ],
+   "race": "Governor",
+   "party": "D",
+   "recorded": "2026-11-03T23:52",
+   "kind": "Race calls",
+   "lane": "count",
+   "places": []
   }
  ]
 }
