@@ -876,6 +876,18 @@
    "kind": "Race calls",
    "lane": "count",
    "places": []
+  },
+  {
+   "url": "https://blockclubchicago.org/2026/11/03/jb-pritzker-wins-3rd-term-as-illinois-governor/",
+   "title": "JB Pritzker Wins 3rd Term As Illinois Governor",
+   "source": "Block Club Chicago",
+   "states": [
+    "Illinois"
+   ],
+   "race": "Governor",
+   "kind": "Race calls",
+   "lane": "count",
+   "places": []
   }
  ]
 }
