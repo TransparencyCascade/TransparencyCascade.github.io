@@ -179,6 +179,22 @@
    ]
   },
   {
+   "url": "https://www.ktnv.com/news/voters-turning-out-in-clark-county-may-face-longer-wait-times-officials-warn",
+   "title": "Voters turning out in Clark County may face longer wait times, officials warn",
+   "source": "KTNV",
+   "kind": "Lines and delays",
+   "places": [
+    {
+     "st": "Nevada",
+     "j": "Clark"
+    }
+   ],
+   "lane": "watchers",
+   "states": [
+    "Nevada"
+   ]
+  },
+  {
    "url": "https://www.lohud.com/story/news/2026/11/03/westchester-voting-problems-ballot-scanners-election-day/92582847007/",
    "title": "Westchester voting problems: Ballot scanners not accepting ballots",
    "source": "Lohud",
@@ -1481,6 +1497,20 @@
    "race": "Governor",
    "party": "D",
    "recorded": "2026-11-04T00:31",
+   "kind": "Race calls",
+   "lane": "count",
+   "places": []
+  },
+  {
+   "url": "https://vtdigger.org/2026/11/03/republican-phil-scott-wins-record-6th-term-as-vermonts-governor/",
+   "title": "Republican Phil Scott wins record 6th term as Vermont\u2019s governor - VTDigger",
+   "source": "VTDigger",
+   "states": [
+    "Vermont"
+   ],
+   "race": "Governor",
+   "party": "R",
+   "recorded": "2026-11-04T00:33",
    "kind": "Race calls",
    "lane": "count",
    "places": []
