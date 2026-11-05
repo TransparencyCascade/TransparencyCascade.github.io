@@ -3,7 +3,7 @@
    d 3d | 2d, u which party is up (net margin), n height scale (area | county), l lens, g ghost of the
    previous race, w view tab, sel the selection: states (s:CA,NV), a rule from a drag (r:, q:, b:) or a
    list of counties (c:). ps: the plausible swing behind the House bands (points, 'state', or empty for the
-   default). hc: which History chart (seats: residents per House seat; small: the smallest change; weight: weight
+   default). hc: which History chart (seats: residents per House seat; small: the smallest change; bias: tipping state against the nation; weight: weight
    per vote over time). Simulator: sw the swing (points of margin, positive toward Democrats;
    empty for none; ps or -ps: the plausible swing in force, toward Democrats or Republicans), swr the rule
    (u uniform, p proportional), lock the states held at their actual result (CA,PA), sm which body its map shows.
@@ -45,7 +45,7 @@ export const fromHash = (order) => {
   if (!['margin', 'swing', 'weight', 'drop'].includes(state.c)) state.c = 'margin';
   state.sel = q.get('sel') || '';
   state.ps = parsePs(q.get('ps') || '');
-  if (!['seats', 'small', 'weight'].includes(state.hc)) state.hc = 'seats';
+  if (!['seats', 'small', 'weight', 'bias'].includes(state.hc)) state.hc = 'seats';
   state.sw = q.get('sw') || ''; state.sm = q.get('sm') || '';
   if (!['ps', '-ps'].includes(state.sw)) state.sw = state.sw !== '' && isFinite(+state.sw) && Math.abs(+state.sw) <= 10 && +state.sw !== 0 ? String(+(+state.sw).toFixed(1)) : '';
   if (!['u', 'p'].includes(state.swr)) state.swr = 'u';

@@ -44,7 +44,7 @@ export function createTable({ geo, el, state, model, house, history, selection, 
   // History: the three series, each with its own heading row.
   const renderHistory = () => {
     const H = history, sec = (t, n) => `<tr><th colspan="${n}">${esc(t)}</th></tr>`;
-    $('tableTitle').textContent = 'History: residents per House seat, the smallest change, and the weight of a vote';
+    $('tableTitle').textContent = 'History: residents per House seat, the smallest change, the tipping state against the nation, and the weight of a vote';
     $('tableNote').textContent = H.sources.starts;
     table.innerHTML = '<tbody>' + sec('Residents per House seat (apportionment population), at each census', 5) +
       '<tr><th>Census</th><th>Seats</th><th>Per seat, national</th><th>Fewest per seat</th><th>Most per seat</th></tr>' +
@@ -52,6 +52,9 @@ export function createTable({ geo, el, state, model, house, history, selection, 
       sec('The smallest change: fewest votes that would have changed each presidential election', 5) +
       '<tr><th>Election</th><th>Winner</th><th>Votes</th><th>States</th><th>By state</th></tr>' +
       H.smallest.map((s) => `<tr><td>${s.year}</td><td>${esc(s.winner)}</td><td>${fmt(s.votes)}</td><td>${s.states.length}</td><td>${esc(Object.entries(s.perState).sort((a, b) => b[1] - a[1]).map(([st, n]) => `${st} ${fmt(n)}`).join(', '))}</td></tr>`).join('') +
+      sec('The tipping state against the nation: its two-party margin minus the national two-party margin (Democratic positive)', 6) +
+      '<tr><th>Election</th><th>National margin</th><th>Tipping state</th><th>Tipping state margin</th><th>Gap (points)</th><th>National margin over the state\'s</th></tr>' +
+      H.bias.map((b) => `<tr><td>${b.year}</td><td>${b.nat.votes > 0 ? 'D' : 'R'}+${fmt(Math.abs(b.nat.votes))} (${Math.abs(b.nat.points).toFixed(1)} points)</td><td>${esc(b.tip.name)}, ${b.tip.ev}</td><td>${b.tip.votes > 0 ? 'D' : 'R'}+${fmt(Math.abs(b.tip.votes))} (${Math.abs(b.tip.points).toFixed(1)} points)</td><td>${b.gap > 0 ? 'D' : 'R'}+${Math.abs(b.gap).toFixed(1)}</td><td>${b.ratio >= 100 ? fmt(b.ratio) : b.ratio.toFixed(1)}×</td></tr>`).join('') +
       sec('The weight of a vote: residents per senator, and electoral votes per vote cast (census in force)', 4) +
       '<tr><th>Election</th><th>Census</th><th>Residents per senator</th><th>Electoral votes per vote cast</th></tr>' +
       H.weight.map((w) => `<tr><td>${w.year}</td><td>${w.census}</td><td>${w.senate.ratio.toFixed(1)}×: ${esc(stName(w.senate.big))} ${fmt(w.senate.bigPop)} against ${esc(stName(w.senate.small))} ${fmt(w.senate.smallPop)}</td><td>${w.ev.ratio.toFixed(2)}×: ${esc(stName(w.ev.hi))} (${w.ev.hiEv} for ${fmt(w.ev.hiVotes)}) against ${esc(stName(w.ev.lo))} (${w.ev.loEv} for ${fmt(w.ev.loVotes)})</td></tr>`).join('') + '</tbody>';

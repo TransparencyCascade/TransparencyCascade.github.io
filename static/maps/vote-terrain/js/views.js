@@ -11,6 +11,9 @@
    calc.eff.<election>: hi, lo (state codes), hiName, loName, ratio (weight per vote, highest over lowest state)
    calc.hist: first, last (census rows), capYear, lastHiName/lastHiV, lastLoName/lastLoV (most and fewest residents per seat,
      latest census), smallFirst, smallLast, smallMin, smallMax (elections with the fewest and most votes in their smallest change)
+   calc.bias.y<year> (1976-2024): the tipping state against the nation (bias.js, history.json): { year, winName, evW, evL, natName (popular-vote leader), natVotes, natPts,
+     tipSt, tipName, tipEv, tipParty, tipVotes, tipPts, gap (signed), gapPts, gapToward (the party the tipping state voted more for than the nation), ratio, sentence };
+     calc.bias.first, last, big, small (the elections with the largest and smallest gap), n; filter ratio: 126.1 or 341 (a ratio of margins).
    calc.sim.y<year>.<pres|sen|house>.<toD|toR>.<first|other>: { at, control, states } (uniform swing; see below);
      calc.sim.y<year>.swing: { ps, toR, toD, edgeR, edgeD } (House: seats that change hands at the plausible swing and at
      the slider's limit, each { n, captured, atRisk, contestable }); calc.sim.range: the slider's limit in points.
@@ -37,6 +40,7 @@ import { fmt, esc, list, countyLabelOf, $ } from './util.js';
 import { createHouse } from './house.js';
 import { createSim, RANGE } from './sim.js';
 import { createRaces, OFFICES } from './races.js';
+import { tokens as biasTokens, ratioText } from './bias.js';
 
 export function createSavedViews({ registry, bal, eff, houseData, histData, simData, elections, stName, power, overlays, flips, meta, ms, sameOffice, turnout, places, regionData, apply }) {
   const etTime = (iso) => new Date(iso).toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', month: 'short', day: 'numeric', year: 'numeric' }) + ' ET';
@@ -65,6 +69,11 @@ export function createSavedViews({ registry, bal, eff, houseData, histData, simD
     const Wt = histData.weight, wF = Wt[0], wL = Wt[Wt.length - 1];
     Object.assign(calc.hist, { wFirst: wF, wLast: wL, wLastBigName: stName(wL.senate.big), wLastSmallName: stName(wL.senate.small),
       wLastHiName: stName(wL.ev.hi), wLastLoName: stName(wL.ev.lo), wFirstHiName: stName(wF.ev.hi), wFirstLoName: stName(wF.ev.lo) });
+  }
+  // The tipping state against the nation, each presidential election (history.json bias).
+  if (histData.bias) {
+    const rows = histData.bias.map(biasTokens), byGap = rows.slice().sort((a, b) => b.gapPts - a.gapPts);
+    calc.bias = { ...Object.fromEntries(rows.map((r) => ['y' + r.year, r])), first: rows[0], last: rows[rows.length - 1], big: byGap[0], small: byGap[byGap.length - 1], n: rows.length };
   }
   // The simulator (simulator.json): per election day, where control of each body changes on a uniform swing, toward
   // Democrats (toD) and toward Republicans (toR): first, the first change; other, the first that hands it to the other
@@ -178,7 +187,7 @@ export function createSavedViews({ registry, bal, eff, houseData, histData, simD
   } });
   const roots = { bal, eff, house: houseData, hist: histData, elections, calc, sim: simData, ov: overlays && { layers: Object.fromEntries(Object.keys(overlays.sets).map((k) => [k, overlays.layer(k)])) } };
   const FILTERS = {
-    n: (v) => fmt(v), raw: (v) => String(v), pt: (v) => Math.abs(v).toFixed(1), lead: (v) => (v >= 0 ? 'D+' : 'R+') + Math.abs(v).toFixed(1), toward: (v) => `${Math.abs(v).toFixed(1)} points toward ${v >= 0 ? 'Democrats' : 'Republicans'}`, swing: (v) => `${Math.abs(v).toFixed(1)} points toward the ${v >= 0 ? 'Democrat' : 'Republican'}`, x: (v) => v.toFixed(1) + '×', x2: (v) => v.toFixed(2) + '×', pct: (v) => v.toFixed(1) + '%', pct2: (v) => v.toFixed(2) + '%', et: (v) => etTime(v),
+    ratio: (v) => ratioText(v), n: (v) => fmt(v), raw: (v) => String(v), pt: (v) => Math.abs(v).toFixed(1), lead: (v) => (v >= 0 ? 'D+' : 'R+') + Math.abs(v).toFixed(1), toward: (v) => `${Math.abs(v).toFixed(1)} points toward ${v >= 0 ? 'Democrats' : 'Republicans'}`, swing: (v) => `${Math.abs(v).toFixed(1)} points toward the ${v >= 0 ? 'Democrat' : 'Republican'}`, x: (v) => v.toFixed(1) + '×', x2: (v) => v.toFixed(2) + '×', pct: (v) => v.toFixed(1) + '%', pct2: (v) => v.toFixed(2) + '%', et: (v) => etTime(v),
     last: (v) => String(v).split(' ').pop(), states: (v) => list(v.map(stName)),
     perstate: (v) => list(Object.entries(v).sort((a, b) => b[1] - a[1]).map(([st, n]) => `${fmt(n)} in ${stName(st)}`)),
   };

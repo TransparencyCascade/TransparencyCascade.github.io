@@ -382,6 +382,7 @@ views = createViews2d({
   historyChart: () => state.hc,
   setHistoryChart: (k) => { state.hc = k; render({ animate: false }); },
   // A History bar: open that election on the map with its smallest-change states selected, as the balance box's line does.
+  openRoad: (e) => { state.e = e; state.w = 'road'; state.rb = 'pres'; render({ animate: false }); },
   openElection: (e, states) => { state.e = e; state.w = hasGL ? 'terrain' : 'circles'; render({ animate: false }); setSelection({ states }, { frame: true }); },
   // The states the selection touches: chosen whole, or holding a selected county.
   selectedStates: () => (!sel ? null : new Set(sel.states || [...sel.counties].map((f) => meta[f].st))),
@@ -514,7 +515,7 @@ function render(opts = {}) {
   document.querySelectorAll('[data-wh]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.wh === state.h));
   const per = state.n === 'county' ? 'per county' : 'per sq mi', vw = effW();
   if (vw === 'sim' || vw === 'road' || vw === 'closest') ensureSim();
-  $('keyHeight').textContent = vw === 'power' ? { rank: 'Bars: three parts on a doubling scale; black tick: their product', tiles: 'Square area: share of ' + { votes: 'votes cast', ev: 'electoral votes', sen: 'Senate seats' }[state.pm], conc: 'Lines: each party\'s votes, biggest counties first' }[state.pc] : vw === 'sim' ? 'Tiles: margin after the swing; outlined: flipped; dashed: locked' : vw === 'road' ? ((r0) => (r0 && r0.body === 'sen' ? 'Segment width: one seat per race; the wide blocks are seats not on the ballot' : 'Segment width: electoral votes'))(roadCtx()) : vw === 'closest' ? 'Rows: races; click a heading to sort' : vw === 'dropoff' ? 'Circle area: votes in the midterm race; band: the 2022 pattern' : vw === 'split' ? 'Tick: one county; dark bar: the state\'s median' : vw === 'history' ? { seats: 'Dots: each state; line: the national average', small: 'Dots: each election, on a log scale', weight: 'Lines: largest against smallest, as a ratio' }[state.hc] : vw === 'strips' ? 'Tick: one district; shading: at risk and contestable' : vw === 'seats' ? 'Point area: districts in the state' : vw === 'dots' ? 'Dot area: votes' : vw === 'scatter' ? 'Circle area: votes' : vw === 'arrows' ? 'Arrow length: swing'
+  $('keyHeight').textContent = vw === 'power' ? { rank: 'Bars: three parts on a doubling scale; black tick: their product', tiles: 'Square area: share of ' + { votes: 'votes cast', ev: 'electoral votes', sen: 'Senate seats' }[state.pm], conc: 'Lines: each party\'s votes, biggest counties first' }[state.pc] : vw === 'sim' ? 'Tiles: margin after the swing; outlined: flipped; dashed: locked' : vw === 'road' ? ((r0) => (r0 && r0.body === 'sen' ? 'Segment width: one seat per race; the wide blocks are seats not on the ballot' : 'Segment width: electoral votes'))(roadCtx()) : vw === 'closest' ? 'Rows: races; click a heading to sort' : vw === 'dropoff' ? 'Circle area: votes in the midterm race; band: the 2022 pattern' : vw === 'split' ? 'Tick: one county; dark bar: the state\'s median' : vw === 'history' ? { seats: 'Dots: each state; line: the national average', small: 'Dots: each election, on a log scale', weight: 'Lines: largest against smallest, as a ratio', bias: 'Bars: the tipping state\'s margin minus the nation\'s, in points' }[state.hc] : vw === 'strips' ? 'Tick: one district; shading: at risk and contestable' : vw === 'seats' ? 'Point area: districts in the state' : vw === 'dots' ? 'Dot area: votes' : vw === 'scatter' ? 'Circle area: votes' : vw === 'arrows' ? 'Arrow length: swing'
     : vw === 'circles' ? (state.h === 'pop' ? 'Area: represented people' : 'Circle area: votes')
     : state.d === '2d' ? 'Flat map: colour only' : state.h === 'pop' ? 'Height: represented people'
     : state.h === 'net' ? `Height: net margin ${per}` : state.h === 'ev' || state.h === 'sen' ? `Height: votes × ${state.h === 'ev' ? 'electoral' : 'Senate'} weight`
@@ -562,8 +563,8 @@ function render(opts = {}) {
     : `<span>${max} R</span><span>no change</span><span>${max} D</span>`;
   if (vw === 'sim') $('keyTitle').textContent = 'Margin after the swing';
   if (vw === 'road' || vw === 'closest') $('keyTitle').textContent = 'Two-party margin';
-  if (vw === 'history' && state.hc === 'small') {   // the dots' colour is the winning party, not a margin
-    $('keyTitle').textContent = 'Dots: the winner\'s party';
+  if (vw === 'history' && (state.hc === 'small' || state.hc === 'bias')) {   // the dots' colour is a party, not a margin
+    $('keyTitle').textContent = state.hc === 'bias' ? 'Marks: the party the tipping state leaned toward more than the nation' : 'Dots: the winner\'s party';
     $('ramp').innerHTML = `<i style="background:${toward(-40, MARGIN_MAX)}"></i><i style="background:${toward(40, MARGIN_MAX)}"></i>`;
     $('rampLabels').innerHTML = '<span>Republican</span><span>Democratic</span>';
   } else if (vw === 'history') {   // no colour scale: one ink for the national line or the two ratios
@@ -585,7 +586,7 @@ function render(opts = {}) {
     $('ramp').innerHTML = d3.range(-SPLIT_MAX, SPLIT_MAX + 0.001, SPLIT_MAX / 6).map((x) => `<i style="background:${toward(x, SPLIT_MAX)}"></i>`).join('');
     $('rampLabels').innerHTML = `<span>${SPLIT_MAX} R</span><span>agree</span><span>${SPLIT_MAX} D</span>`;
   }
-  $('ramp').hidden = $('rampLabels').hidden = (vw === 'history' && state.hc !== 'small') || (vw === 'power' && state.pc === 'rank');
+  $('ramp').hidden = $('rampLabels').hidden = (vw === 'history' && state.hc !== 'small' && state.hc !== 'bias') || (vw === 'power' && state.pc === 'rank');
   $('rankBtn').hidden = !effShown() || !eff.elections[state.e];
   if (about.isRankOpen()) about.renderRank();
 

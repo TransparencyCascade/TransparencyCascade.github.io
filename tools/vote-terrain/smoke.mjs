@@ -56,6 +56,31 @@ const hoverAt = (selector, f) => async (page) => {
   const b = await page.evaluate(([q, f]) => { const c = [...document.querySelectorAll(q)].find((n) => { const d = n.__data__; return d === f || (d && d.f === f); }).getBoundingClientRect(); return { x: c.x + c.width / 2, y: c.y + c.height / 2 }; }, [selector, f]);
   await page.mouse.move(b.x - 30, b.y - 30); await page.mouse.move(b.x, b.y); await page.waitForTimeout(250);
 };
+// The tipping state against the nation from the raw MIT CSV, for the smoke scenarios above: independent of build_history.py.
+function rawBias() {
+  const file = path.join(process.env.HOME, 'tcp-kb-internal/cascade-research/notes/data/vt-history/president-by-state-1976-2024-mit.csv');
+  const lines = fs.readFileSync(file, 'utf8').trim().split('\n'), head = lines.shift().split(',');
+  const parse = (l) => { const out = []; let cur = '', q = false; for (const ch of l) { if (ch === '"') q = !q; else if (ch === ',' && !q) { out.push(cur); cur = ''; } else cur += ch; } out.push(cur); return Object.fromEntries(head.map((h, i) => [h, out[i]])); };
+  const SPLIT = { 2008: { NE: 'D' }, 2016: { ME: 'R' }, 2020: { ME: 'R', NE: 'D' }, 2024: { ME: 'R', NE: 'D' } };
+  const years = {};
+  for (const l of lines) { const r = parse(l); (years[r.year] ||= []).push(r); }
+  const out = {};
+  for (const [y, rs] of Object.entries(years)) {
+    const blocks = []; let D = 0, R = 0;
+    for (const r of rs) {
+      const d = +r.democratic_votes, rr = +r.republican_votes, ev = +r.electoral_votes_allocated, atLarge = +r.ev_winner_take_all_portion; D += d; R += rr;
+      const win = d > rr ? 'D' : 'R';
+      blocks.push({ st: r.state_po, name: r.state, ev: atLarge, d, r: rr, pts: (d - rr) / (d + rr) * 100, win, kind: 'state' });
+      for (let i = 0; i < ev - atLarge; i++) { const odd = i === 0 && SPLIT[y] && SPLIT[y][r.state_po]; blocks.push({ ev: 1, win: odd || win, kind: 'held' }); }
+    }
+    const side = (p) => blocks.filter((b) => b.win === p).reduce((a, b) => a + b.ev, 0), win = side('D') >= 270 ? 'D' : 'R';
+    const mine = blocks.filter((b) => b.win === win).sort((a, b) => (a.kind === 'held' ? -1 : 0) - (b.kind === 'held' ? -1 : 0) || (win === 'D' ? b.pts - a.pts : a.pts - b.pts));
+    let c = 0, tip; for (const b of mine) { c += b.ev; if (c >= 270 && b.kind === 'state') { tip = b; break; } }
+    const nat = (D - R) / (D + R) * 100;
+    out[y] = { tip: tip.st, tipName: tip.name, gap: tip.pts - nat, natVotes: D - R, tipVotes: tip.d - tip.r };
+  }
+  return out;
+}
 const SCENARIOS = [
   { name: 't-default', hash: 'w=terrain' },
   { name: 't-overhead', hash: 'v=national' },
@@ -235,6 +260,28 @@ const SCENARIOS = [
   ...['residents-per-seat', 'smallest-change-history', 'weight-over-time'].map((v) => ({ name: `v-view-${v}`, query: `view=${v}`,
     probe: (page) => page.evaluate(() => ({ card: document.getElementById('viewCard').innerText.replace(/\s+/g, ' '), w: window.__vt.effW(), hc: window.__vt.state.hc,
       charts: document.querySelectorAll('#v2d svg.hist-chart').length })) })),
+  // The tipping state against the nation, recomputed here from the raw MIT CSV (not from history.json's builder): states and
+  // their electors in one list, Maine's and Nebraska's district electors as blocks at their party's end, the order run from the
+  // winner's end to 270. 2016 and 2020 differ from the page by the MIT/FEC totals (the page uses the FEC's): same tipping state,
+  // gap within 0.01 points, national margin within 7,000 votes; every other year agrees exactly.
+  { name: 'y-history-bias', hash: 'w=history&hc=bias', probe: async (page) => {
+    const raw = rawBias(), H = await page.evaluate(async () => (await (await fetch('history.json')).json()).bias);
+    const dom = await page.evaluate(() => ({ bars: document.querySelectorAll('#v2d svg.hist-chart g g rect').length, dots: document.querySelectorAll('#v2d svg.hist-chart g g circle').length,
+      zero: document.querySelectorAll('#v2d svg.hist-chart > line').length, labels: [...document.querySelectorAll('#v2d svg.hist-chart g g text')].map((t) => t.textContent).slice(0, 26).join('|') }));
+    const rows = H.map((b) => { const r = raw[b.year], same = r.tip === b.tip.st, dg = Math.abs(r.gap - b.gap), dv = Math.abs(r.natVotes - b.nat.votes);
+      return { year: b.year, tip: b.tip.st, gap: Math.round(b.gap * 100) / 100, same, dg: +dg.toFixed(4), dv, ok: same && (b.source === 'MIT' ? dg < 1e-3 && dv === 0 : dg < 0.01 && dv < 7000) }; });
+    return { n: H.length, ...dom, rows, ok: H.length === 13 && dom.bars === 13 && dom.dots === 13 && rows.every((r) => r.ok) }; } },
+  { name: 'y-history-bias-hover', hash: 'w=history&hc=bias', act: async (page) => { const b = await page.locator('#v2d svg.hist-chart g g circle').nth(11).boundingBox(); await page.mouse.move(b.x + b.width / 2 - 20, b.y - 20); await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.waitForTimeout(250); }, tip: true },
+  { name: 'y-history-bias-open', hash: 'w=history&hc=bias', act: async (page) => { await page.locator('#v2d svg.hist-chart g g circle').nth(11).click(); },
+    probe: (page) => page.evaluate(() => ({ e: window.__vt.state.e, w: window.__vt.effW(), rb: window.__vt.state.rb })) },
+  { name: 'y-history-bias-table', hash: 'w=history&hc=bias', act: key('t') },
+  ...[2016, 2020, 2024].map((y) => ({ name: `y-road-bias-${y}`, hash: `e=pres${y}&w=road&rb=pres`, probe: async (page) => {
+    const raw = rawBias()[y], lines = await page.evaluate(() => [...document.querySelectorAll('#v2d .rd-bias')].map((t) => t.textContent).join(' '));
+    const g = lines.match(/voted ([\d.]+) points more (Democratic|Republican) than the nation/), nv = lines.match(/ahead by ([\d,]+) votes/);
+    const gapOk = !!g && Math.abs((g[2] === 'Democratic' ? 1 : -1) * +g[1] - raw.gap) < 0.06, natOk = !!nv && Math.abs(+nv[1].replace(/,/g, '') - Math.abs(raw.natVotes)) < 7000, tipOk = lines.includes('Tipping state: ' + raw.tipName);
+    return { lines, gapOk, natOk, tipOk, ok: gapOk && natOk && tipOk }; } })),
+  ...['road-to-270-2016', 'tipping-vs-nation-1976-2024'].map((v) => ({ name: `v-view-${v}`, query: `view=${v}`,
+    probe: (page) => page.evaluate(() => ({ card: document.getElementById('viewCard').innerText.replace(/\s+/g, ' '), w: window.__vt.effW(), hc: window.__vt.state.hc, unresolved: document.getElementById('viewCard').innerText.includes('[?]') })) })),
   // The swing simulator: one swing for every race on the election day; the slider, locks and rule in the link; the
   // thresholds against a direct count; the 2024 Electoral College against the smallest change.
   { name: 'm-sim-2024', hash: 'e=pres2024&w=sim' },

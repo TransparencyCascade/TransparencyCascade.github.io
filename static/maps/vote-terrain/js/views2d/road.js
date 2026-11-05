@@ -3,8 +3,10 @@
    Democratic result to the safest Republican one by two-party margin. The winning side's line (270, or 51) is
    marked, the segment that holds its last needed vote is outlined (the tipping point) with its margin in votes,
    and the closest results by votes to flip are listed under the bar. Hover a segment for its margin and the votes
-   that would flip it; click selects the state. state.rb picks President or Senate. Arithmetic in ../races.js. */
+   that would flip it; click selects the state. Under the President bar: the tipping state against the nation (bias.js,
+   from history.json): the national popular-vote margin, the tipping state and its margin, and the gap in a sentence. state.rb picks President or Senate. Arithmetic in ../races.js. */
 import { INK, GRAPHITE, RULE, DIM } from './style.js';
+import { rowFor, natLine, tipLine, gapSentence, ratioLine } from '../bias.js';
 
 const BARS = [['pres', 'President'], ['sen', 'Senate']];
 const GROUND = '#E8ECEC';
@@ -51,12 +53,16 @@ export function roadView({ ctx, head, body, foot, place, shiftOf, DUR }) {
     lines.push(t ? `Tipping point: ${t.name}${evw ? ` (${t.size} electoral votes)` : ''}, ${t.win === 'D' ? 'Democratic' : 'Republican'} by ${fmt(t.votes)} votes, ${pts(t.points)} points; ${fmt(t.flip)} votes switching would have changed its result.`
       : 'No tipping point: control does not rest on one race in this data.');
     // Sentences wrap to the width; the bar sits below them.
-    let ly = 16;
-    for (const l of lines) {
-      const words = l.split(' '); let cur = '', t = svg.append('text').attr('class', 'rd-line').attr('x', pad.l).attr('y', ly);
-      for (const wd of words) { const tr = cur ? cur + ' ' + wd : wd; t.text(tr); if (t.node().getComputedTextLength() > w - pad.l - pad.r && cur) { t.text(cur); ly += 18; t = svg.append('text').attr('class', 'rd-line').attr('x', pad.l).attr('y', ly).text(wd); cur = wd; } else cur = tr; }
-      ly += 22;
-    }
+    const wrap = (ls, y0, cls, lh, gap) => {
+      let y = y0;
+      for (const l of ls) {
+        const words = l.split(' '); let cur = '', t = svg.append('text').attr('class', cls).attr('x', pad.l).attr('y', y);
+        for (const wd of words) { const tr = cur ? cur + ' ' + wd : wd; t.text(tr); if (t.node().getComputedTextLength() > w - pad.l - pad.r && cur) { t.text(cur); y += lh; t = svg.append('text').attr('class', cls).attr('x', pad.l).attr('y', y).text(wd); cur = wd; } else cur = tr; }
+        y += gap;
+      }
+      return y;
+    };
+    let ly = wrap(lines, 16, 'rd-line', 18, 22);
     // The bar, the winning side's line.
     const bt = ly + 40, bh = narrow ? 46 : 62, bb = bt + bh;
     if (r.lineAt != null) {
@@ -89,7 +95,15 @@ export function roadView({ ctx, head, body, foot, place, shiftOf, DUR }) {
       svg.append('line').attr('x1', cx).attr('x2', cx).attr('y1', bb).attr('y2', ty).attr('stroke', RULE).attr('stroke-width', 0.6);
       svg.append('text').attr('class', 'rd-out').attr('transform', `translate(${cx + 4},${ty + 1}) rotate(90)`).text(s.label);
     }
-    const rowsUsed = Math.max(1, edge.length), top = bb + 8 + rowsUsed * rowH + 8;
+    const rowsUsed = Math.max(1, edge.length);
+    let top = bb + 8 + rowsUsed * rowH + 8;
+    // The tipping state against the nation (President only): two figures and the gap, in plain words.
+    const B = evw ? rowFor(ctx.history(), r.year) : null;
+    if (B) {
+      const ey = wrap([natLine(B), tipLine(B), `${gapSentence(B)} ${ratioLine(B)}`], top + 4, 'rd-row rd-bias', 15, 18);
+      svg.selectAll('.rd-bias').attr('data-bias', B.year);
+      top = ey + 2;
+    }
     // Under the bar: the closest results by votes to flip, each a row that selects its state.
     const near = r.byFlip.slice(0, Math.max(0, Math.min(narrow ? 5 : 8, Math.floor((Math.max(h0, 330) - top - 28) / 20))));
     if (near.length) {

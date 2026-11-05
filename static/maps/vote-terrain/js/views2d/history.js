@@ -7,10 +7,14 @@
    labelled; a dot for an election the page has (2016, 2020, 2024) opens it with those states selected.
    weight: the weight of a vote in each presidential year since 1976, as two ratios in two panels: residents per
    senator (most populous state against least) and electoral votes per vote cast (highest state against lowest).
+   bias: the tipping state's two-party margin minus the national two-party margin in each presidential election,
+   a bar and a dot from a zero line, coloured by the party the tipping state leaned toward more than the nation, with
+   the tipping state labelled (bias.js; arithmetic in build_history.py).
    The series start where the gathered data starts, and the head says so. */
 import { INK, GRAPHITE, RULE } from './style.js';
+import { PARTY, SIDE, pts, gapSentence, ratioText, sameAsNation } from '../bias.js';
 
-const CHARTS = [['seats', 'Residents per seat'], ['small', 'Smallest change'], ['weight', 'Weight per vote']];
+const CHARTS = [['seats', 'Residents per seat'], ['small', 'Smallest change'], ['weight', 'Weight per vote'], ['bias', 'Tipping state vs nation']];
 
 export function historyView({ ctx, head, body, foot, place, shiftOf }) {
   const { fmt } = ctx;
@@ -24,7 +28,7 @@ export function historyView({ ctx, head, body, foot, place, shiftOf }) {
     const i = head.querySelector('.lens-i');
     if (i) ctx.infoButton(i, () => {
       const H = ctx.history();
-      return `Residents per seat: ${H.sources.perSeat}. ${H.cap.text} (${H.cap.source}). Smallest change: ${H.sources.smallest} Weight per vote: ${H.sources.weight} ${H.sources.starts} Click a state's dot to select it; click 2016, 2020 or 2024 to open that election with its states selected.`;
+      return `Residents per seat: ${H.sources.perSeat}. ${H.cap.text} (${H.cap.source}). Smallest change: ${H.sources.smallest} Weight per vote: ${H.sources.weight} ${H.sources.starts} Tipping state against the nation: ${H.sources.bias} Click a state's dot to select it; click 2016, 2020 or 2024 to open that election with its states selected.`;
     });
     body.innerHTML = '';
     svg = d3.select(body).append('svg').attr('class', 'v2d-band hist-chart');
@@ -34,18 +38,20 @@ export function historyView({ ctx, head, body, foot, place, shiftOf }) {
     if (!H) { head.querySelector('.hist-note').textContent = 'Loading the history…'; return; }
     const k = ctx.historyChart();
     head.querySelectorAll('[data-hc]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.hc === k));
-    const P = H.perSeat, L = H.smallest, W = H.weight;
+    const P = H.perSeat, L = H.smallest, W = H.weight, B = H.bias;
     head.querySelector('.hist-note').textContent = {
       seats: `Residents per House seat at each census, ${P[0].year} to ${P[P.length - 1].year}. The series starts at ${P[0].year}, where the gathered data starts.`,
       small: `The fewest votes that would have changed each presidential election, ${L[0].year} to ${L[L.length - 1].year}. The series starts at ${L[0].year}, where the gathered data starts.`,
       weight: `The weight of a vote in each presidential year, ${W[0].year} to ${W[W.length - 1].year}, using the census in force. The series starts at ${W[0].year}, where the gathered data starts.`,
+      bias: `The tipping state's two-party margin against the nation's, ${B[0].year} to ${B[B.length - 1].year}. The series starts at ${B[0].year}, where the gathered data starts.`,
     }[k];
     foot.textContent = { seats: `Census Bureau apportionment data; ${H.cap.source.split(', http')[0]}.`,
       small: 'MIT Election Data and Science Lab, U.S. President 1976-2024; FEC certified totals for 2016-2024.',
-      weight: 'Census Bureau apportionment data; MIT Election Data and Science Lab, U.S. President 1976-2024.' }[k];
+      weight: 'Census Bureau apportionment data; MIT Election Data and Science Lab, U.S. President 1976-2024.',
+      bias: 'MIT Election Data and Science Lab, U.S. President 1976-2024; FEC certified totals for 2016-2024; Census Bureau apportionment data.' }[k];
     const { w, h } = place();   // after the head and foot have their text, so the chart gets what is left
     svg.attr('width', w).attr('height', h).selectAll('*').remove();
-    if (k === 'small') drawSmallest(H, w, h); else if (k === 'weight') drawWeight(H, w, h); else drawSeats(H, w, h, ctx.selectedStates());
+    if (k === 'small') drawSmallest(H, w, h); else if (k === 'bias') drawBias(H, w, h); else if (k === 'weight') drawWeight(H, w, h); else drawSeats(H, w, h, ctx.selectedStates());
   }
 
   function drawSeats(H, w, hh, S) {
@@ -120,6 +126,42 @@ export function historyView({ ctx, head, body, foot, place, shiftOf }) {
       });
     svg.append('text').attr('x', pad.l - 6).attr('y', hh - pad.b + 32).attr('text-anchor', 'end').text('states');
     if (!exporting) svg.append('text').attr('x', w - pad.r).attr('y', pad.t + 6).attr('text-anchor', 'end').text('Dot colour: the winner\'s party. Click 2016, 2020 or 2024 to open it.');
+  }
+
+  // The tipping state against the nation: one bar and dot per election from the zero line (a linear scale, so a bar's
+  // length is its value). Above zero the tipping state voted more Democratic than the nation, below more Republican.
+  function drawBias(H, w, hh) {
+    const B = H.bias, pad = { l: 72, r: 24, t: exporting ? 52 : 66, b: 46 };
+    const x = d3.scalePoint().domain(B.map((b) => b.year)).range([pad.l, w - pad.r]).padding(0.5), step = x.step();
+    const m = d3.max(B, (b) => Math.abs(b.gap)), lim = Math.max(1, Math.ceil(m * 1.45));
+    const y = d3.scaleLinear().domain([-lim, lim]).range([hh - pad.b, pad.t]);
+    const tickText = (t) => (t === 0 ? '0' : (t > 0 ? 'D+' : 'R+') + Math.abs(t));
+    for (const t of y.ticks(Math.min(2 * lim, 8)).filter(Number.isInteger)) {
+      svg.append('line').attr('x1', pad.l).attr('x2', w - pad.r).attr('y1', y(t)).attr('y2', y(t)).attr('stroke', RULE).attr('stroke-width', 0.5);
+      svg.append('text').attr('x', pad.l - 6).attr('y', y(t) + 4).attr('text-anchor', 'end').text(tickText(t));
+    }
+    svg.append('text').attr('class', 'axis-title').attr('x', pad.l).attr('y', 13).text('The tipping state\'s two-party margin minus the national two-party margin, in points');
+    svg.append('text').attr('x', pad.l).attr('y', 30).attr('fill', INK).text('The standard "Electoral College bias". Above zero: more Democratic than the nation; below: more Republican.');
+    if (!exporting) svg.append('text').attr('x', pad.l).attr('y', 46).attr('fill', GRAPHITE).text('Colour: that party. Click 2016, 2020 or 2024 to open it in Road to 270.');
+    const g = svg.append('g').selectAll('g').data(B).join('g').style('cursor', 'pointer')
+      .on('click', (ev, b) => (b.election ? ctx.openRoad(b.election) : ctx.select({ kind: 'states', states: [b.tip.st] }, { add: shiftOf(ev) })))
+      .on('mousemove', (ev, b) => ctx.hoverHtml(`<b>${b.year}</b>: ${SIDE[b.winner]} won the Electoral College ${b.winner === 'D' ? b.evD : b.evR} to ${b.winner === 'D' ? b.evR : b.evD}<br>` +
+        `National popular vote: ${SIDE[b.nat.votes > 0 ? 'D' : 'R']} by ${fmt(Math.abs(b.nat.votes))} votes, ${pts(b.nat.points)} points of the two-party vote<br>` +
+        `Tipping state: ${ctx.stateName(b.tip.st)} (${b.tip.ev} electoral votes), ${PARTY[b.tip.votes > 0 ? 'D' : 'R']} by ${fmt(Math.abs(b.tip.votes))} votes, ${pts(b.tip.points)} points<br>` +
+        `${gapSentence(b)}<br>The national vote margin was ${ratioText(b.ratio)} times the tipping state's vote margin<br>` +
+        `<span style="color:${GRAPHITE}">${b.source === 'FEC' ? 'FEC certified totals' : 'MIT state totals'}. Click to ${b.election ? `open ${b.year} in Road to 270` : 'select the state'}</span>`, ev.clientX, ev.clientY))
+      .on('mouseleave', () => ctx.hover(null));
+    const col = (b) => ctx.colour(b.gap > 0 ? 40 : -40, true);
+    g.append('rect').attr('x', (b) => x(b.year) - Math.min(18, step * 0.28)).attr('width', Math.min(36, step * 0.56)).attr('y', (b) => Math.min(y(0), y(b.gap))).attr('height', (b) => Math.max(1, Math.abs(y(b.gap) - y(0))))
+      .attr('fill', col).attr('fill-opacity', 0.55);
+    g.append('circle').attr('cx', (b) => x(b.year)).attr('cy', (b) => y(b.gap)).attr('r', 6).attr('fill', col).attr('stroke', '#fff').attr('stroke-width', 1);
+    svg.append('line').attr('x1', pad.l).attr('x2', w - pad.r).attr('y1', y(0)).attr('y2', y(0)).attr('stroke', INK).attr('stroke-width', 1.6).style('pointer-events', 'none');
+    // Beyond each mark: the tipping state and the gap in points (state alone where the column is narrow).
+    const fits = (t) => t.getComputedTextLength() <= step - 4;
+    g.append('text').attr('x', (b) => x(b.year)).attr('y', (b) => (b.gap > 0 ? y(b.gap) - 12 : y(b.gap) + 20)).attr('text-anchor', 'middle').attr('fill', INK).attr('font-weight', 700)
+      .text((b) => `${b.tip.st} ${pts(b.gap)}`).each(function (b) { if (!fits(this)) this.textContent = b.tip.st; });
+    g.append('text').attr('x', (b) => x(b.year)).attr('y', hh - pad.b + 16).attr('text-anchor', 'middle').text((b) => b.year);
+    g.append('text').attr('x', (b) => x(b.year)).attr('y', hh - pad.b + 32).attr('text-anchor', 'middle').attr('fill', GRAPHITE).text((b) => (b.election ? 'open' : ''));
   }
 
   function drawWeight(H, w, hh) {
