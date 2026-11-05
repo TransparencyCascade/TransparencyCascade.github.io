@@ -9,7 +9,7 @@
    nothing on the page reads it. */
 import { state, TABS, TAB_NAME, LENSES, fromHash, toHash } from './state.js';
 import { toward, towardW, buildRamp, GARNET, SAPPHIRE, NEUTRAL, NODATA, SWING_MAX, MARGIN_MAX, WEIGHT_MAX } from './colour.js';
-import { reduced, fmt, clamp, $ } from './util.js';
+import { reduced, fmt, clamp, countyLabelOf, $ } from './util.js';
 import { getJSON, getBin, SNAPSHOT } from './data.js';
 import { decodeGeometry } from './geometry.js';
 import { createModel } from './model.js';
@@ -47,7 +47,7 @@ const sideSpace = () => {
   return { left: pr.right + 16, right: window.innerWidth - kr.left + 16 };
 };
 let glFailed = !hasGL, blocks = null, terrain = null, views = null;
-const blocksScene = () => ({ heightOf: model.heightOf, colourOf: model.colourOf, flat: state.d === '2d', key: [state.e, state.h, state.c, state.d, selVersion].join('|') });
+const blocksScene = () => ({ heightOf: model.heightOf, colourOf: model.colourOf, flat: state.d === '2d', key: [state.e, state.h, state.c, state.d, state.n, state.u, selVersion].join('|') });
 // Exact counties loads the first time it is shown.
 let blocksLoading = null;
 const ensureBlocks = () => {
@@ -116,7 +116,7 @@ const startTour = () => {
       if (!m) return;
       terrain.pin(f);
       const lead = v ? (() => { const x = model.margin(v); return (x >= 0 ? 'D+' : 'R+') + Math.abs(x).toFixed(1); })() : '';
-      caption.textContent = `${m.n}${/^(AK|LA|DC)$/.test(m.st) ? '' : ' County'}, ${m.st}` + (v ? `: ${fmt(v[0])} votes, ${lead} (${elections[state.e].label})` : ': no race in this election');
+      caption.textContent = countyLabelOf(meta, f) + (v ? `: ${fmt(v[0])} votes, ${lead} (${elections[state.e].label})` : ': no race in this election');
       caption.hidden = false;
     },
     onEnd: endTour,
@@ -442,7 +442,7 @@ window.addEventListener('hashchange', () => {
   render();
   if (state.v + state.d !== prev) setCamera(state.v);
 });
-window.__vt = { state, elections, meta, terrain: () => terrain, blocks: () => blocks, views: () => views, sel: () => sel, setSelection, effW,
+window.__vt = { state, elections, meta, terrain: () => terrain, blocks: () => blocks, views: () => views, sel: () => sel, setSelection, effW, tipHtml: tip.countyHtml,
   colours: { GARNET: GARNET + '', SAPPHIRE: SAPPHIRE + '', NEUTRAL: NEUTRAL + '' } };
 sel = codec.decode(state.sel); state.sel = codec.encode(sel);
 ready = true;

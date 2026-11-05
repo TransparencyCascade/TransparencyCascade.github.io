@@ -111,6 +111,29 @@ const SCENARIOS = [
   { name: 'x-reset', hash: 'v=texas&l=won', act: click('#reset') },
   { name: 'p-phone', hash: '', viewport: { width: 390, height: 844 } },
   { name: 'p-phone-terrain', hash: 'w=terrain', viewport: { width: 390, height: 844 } },
+  // Exact counties: Per county and Republicans up change the block heights (Los Angeles, Cook, Loving TX).
+  { name: 'b-blocks-scale-party', hash: 's=blocks&v=national&l=custom', probe: async (page) => {
+    const hs = () => page.evaluate(() => ['06037', '17031', '48301'].map((f) => +window.__vt.blocks().heightOf(f).toFixed(4)));
+    const out = { area: await hs() };
+    await page.click('summary'); await page.click('[data-n=county]'); await settle(page); out.county = await hs();
+    await page.click('[data-h=net]'); await settle(page); out.netD = await hs();
+    await page.click('[data-u=r]'); await settle(page); out.netR = await hs();
+    out.allChange = out.area.join() !== out.county.join() && out.county.join() !== out.netD.join() && out.netD.every((h, i) => h === -out.netR[i]);
+    return out; } },
+  // County-equivalent names in the tip: DC, a parish, independent cities and the counties that share their names.
+  { name: 'x-county-names', hash: 'v=national', probe: (page) => page.evaluate(() =>
+    ['11001', '22001', '51760', '51159', '24510', '24005', '29510', '32510', '51036'].map((f) => window.__vt.tipHtml(f).split('<br>')[0].replace(/<[^>]+>/g, ''))) },
+  // Arrows and Circles fit their map after leaving the tab, a resize while away, and coming back.
+  ...['arrows', 'circles'].map((w) => ({ name: `a-${w}-refit`, hash: `w=${w}`, probe: async (page) => {
+    await page.click('[data-w=dots]'); await settle(page);
+    await page.setViewportSize({ width: 1280, height: 820 }); await settle(page);
+    await page.click(`[data-w=${w}]`); await settle(page);
+    const back = await page.evaluate(() => document.querySelector('#v2d svg.v2d-map > g').getAttribute('transform'));
+    await page.reload(); await page.waitForFunction(() => window.__vt); await settle(page); await page.waitForTimeout(500);
+    const fresh = await page.evaluate(() => document.querySelector('#v2d svg.v2d-map > g').getAttribute('transform'));
+    // Fitted means the fresh load's scale; the offset can differ by a few pixels (the head's reference glyph).
+    const scale = (t) => +t.match(/scale\(([^)]+)\)/)[1];
+    return { back, fresh, fitted: Math.abs(scale(back) - scale(fresh)) < 1e-9 }; } })),
   { name: 'n-nogl', hash: 'w=terrain', gl: false },
   { name: 'n-nogl-blocks', hash: 's=blocks', gl: false },
   { name: 'n-nogl-dots', hash: 'w=dots', gl: false },
@@ -188,7 +211,8 @@ for (const gl of [true, false]) {
     await settle(page);
     if (sc.name === 't-default') loadBytes.firstLoad = { ...bytes, files: bytes.files.slice() };
     if (sc.act) { await sc.act(page); await settle(page); }
-    results[sc.name] = await fingerprint(page, !!sc.tip);
+    const probe = sc.probe ? await sc.probe(page) : undefined;
+    results[sc.name] = { ...(await fingerprint(page, !!sc.tip)), probe };
     await page.screenshot({ path: path.join(RUN, sc.name + '.png') });
     errors[sc.name] = errs;
     await ctx.close();

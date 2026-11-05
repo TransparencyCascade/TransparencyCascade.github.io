@@ -1,5 +1,5 @@
 /* The hover tip shared by every view, and the county numbers it shows. */
-import { fmt, clamp, lead, $ } from './util.js';
+import { fmt, clamp, lead, countyLabelOf, $ } from './util.js';
 
 export function createTooltip({ geo, el, bal, state, model }) {
   const { meta } = geo, { elections, notes } = el;
@@ -43,7 +43,7 @@ export function createTooltip({ geo, el, bal, state, model }) {
   // A county's numbers in the election in view.
   const countyHtml = (f) => {
     const m = meta[f], e = elections[state.e], v = e.data[f], office = model.officeOf(state.e);
-    const head = `<b>${m.n}${/^(AK|LA)$/.test(m.st) ? '' : ' County'}, ${m.st}</b><br>`;
+    const head = `<b>${countyLabelOf(meta, f)}</b><br>`;
     if (!v) {
       const why = m.st === 'AK' ? notes.AK : office === 'president' ? 'No result in the source for this county.'
         : `No Democrat-vs-Republican ${OFFICE_NAME[office].toLowerCase()} race with county results here in ${e.year} (see the notes in the panel).`;

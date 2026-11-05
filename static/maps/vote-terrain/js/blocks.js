@@ -294,6 +294,7 @@ export function createBlocks({ container, pieces, presets, k, onHover, initial }
       look({ rotationX: toFlat ? 90 : 42, rotationOrbit: toFlat ? 0 : current().rotationOrbit }, 600, ['rotationX', 'rotationOrbit']);
     },
     pick,
+    heightOf: (f) => to[idxOf.get(f) * 4 + 3],      // for the smoke test: the height the blocks are moving to
     destroy() { renderer.dispose(); renderer.domElement.remove(); label.remove(); },
   };
 }
