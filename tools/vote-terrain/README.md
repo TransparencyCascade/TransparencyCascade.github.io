@@ -90,8 +90,11 @@ in headless Chromium and write to `tools/vote-terrain/.export/` (not committed; 
 
 Cards follow the RAMM design system (article-images skill): onionskin ground, carbon-blue ink, a typed file
 line, the view, the caption, a foot with the sources and the tag. The link and square shapes are padded by
-that skill's `export_sizes.py`, never cropped. `--hold` sets seconds per step, `--scale` the map's pixel
-density. Needs python3 with Pillow, and ffmpeg for animations (without it, the frames and a note are written).
+that skill's `export_sizes.py`, never cropped. `--hold` sets seconds per step; `--scale` (default 2) sets how
+large the map's own labels and axes come out on the card, since the page lays out in box / scale CSS pixels.
+A view with a selection is framed on it. Flat views drop their controls and foot in export and show whole rows
+only; when not every state fits, the head says which are shown ("the 12 states with the most seats ...").
+Needs python3 with Pillow, and ffmpeg for animations (without it, the frames and a note are written).
 
 ## Snapshots
 

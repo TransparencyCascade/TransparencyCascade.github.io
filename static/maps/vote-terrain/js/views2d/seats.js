@@ -53,26 +53,41 @@ export function seatsView({ ctx, DUR, head, body, foot, place, shiftOf, nearest,
       .attr('cx', (p) => x(p.x)).attr('cy', (p) => y(p.y)).attr('r', rad)
       .attr('fill', (p) => (p.s.apart ? 'none' : ctx.colour(2 * p.x - 100, true))).attr('stroke', (p) => (p.s.apart ? ctx.colour(2 * p.x - 100, true) : 'rgba(35,48,107,.5)'))
       .attr('stroke-width', (p) => (p.s.apart ? 2 : 0.6)).attr('opacity', (p) => (S && !S.has(p.st) ? DIM : 0.92)).style('pointer-events', 'none');
-    gPlot.selectAll('text.lab').data(sorted.filter((p) => p.s.districts >= 8), (p) => p.st).join('text').attr('class', 'lab')
+    // State labels for the larger states, biggest first; a label that would overlap one already placed is left off.
+    const placed = [], cw = 7;
+    const labs = sorted.filter((p) => p.s.districts >= 8).filter((p) => {
+      const lx = x(p.x) + rad(p) + 2, ly = y(p.y) + 4, box = [lx, ly - 10, lx + cw * p.st.length, ly + 2];
+      if (placed.some((b) => box[0] < b[2] && box[2] > b[0] && box[1] < b[3] && box[3] > b[1])) return false;
+      placed.push(box); return true;
+    });
+    gPlot.selectAll('text.lab').data(labs, (p) => p.st).join('text').attr('class', 'lab')
       .attr('x', (p) => x(p.x) + rad(p) + 2).attr('y', (p) => y(p.y) + 4).text((p) => p.st).style('pointer-events', 'none');
     nearFn = nearest(svg.node(), sorted, (p) => [x(p.x), y(p.y)], rad);
-    drawBars(h, narrow ? w : w - side - 14, narrow ? hh - side - 14 : hh, S);
+    const shownNote = drawBars(h, narrow ? w : w - side - 14, narrow ? hh - side - 14 : hh, S);
     const nEg = Object.values(h.states).filter((s) => s.eg != null).length;
-    head.querySelector('.seats-note').textContent = `${h.label}: point area is the number of districts; efficiency gap computed for ${nEg} states.`;
+    head.querySelector('.seats-note').textContent = `${h.label}: point area is the number of districts; hollow: a state with seats lacking a Democrat and a Republican; efficiency gap computed for ${nEg} states.${shownNote}`;
   }
   function drawBars(h, w, hAvail, S) {
     barsBox.style('height', Math.max(120, hAvail) + 'px').style('flex', '1');
-    const rows = Object.entries(h.states).map(([st, s]) => ({ st, s, cp: s.T ? s.capv / s.T * 100 : 0 })).sort((a, b) => b.cp - a.cp || a.st.localeCompare(b.st));
+    let rows = Object.entries(h.states).map(([st, s]) => ({ st, s, cp: s.T ? s.capv / s.T * 100 : 0 })).sort((a, b) => b.cp - a.cp || a.st.localeCompare(b.st));
     // Two columns with room between for the value labels: captured votes left, the efficiency gap right.
     const RH = 18, top = 34, labW = 34, mid = labW + (w - labW) * 0.5;
+    // An export shows whole rows only, as many as fit, and says so.
+    let note = '';
+    const fit = Math.floor((Math.max(120, hAvail) - top - 6) / RH);
+    if (document.body.classList.contains('export') && rows.length > fit) {
+      note = ` Bars: the ${fit} states with the largest share of captured votes; every state is on the page.`;
+      rows = rows.slice(0, fit);
+    }
     const xc = d3.scaleLinear().domain([0, Math.max(10, d3.max(rows, (r) => r.cp))]).range([labW + 4, mid - 52]);
     const egMax = Math.max(10, d3.max(rows, (r) => Math.abs(r.s.eg || 0)));
     const xe = d3.scaleLinear().domain([-egMax, egMax]).range([mid + 40, w - 36]);
     gBars.attr('width', w).attr('height', top + rows.length * RH + 6).selectAll('*').remove();
     gBars.append('text').attr('class', 'axis-title').attr('x', labW + 4).attr('y', 13).text('Captured votes, % of votes cast');
     gBars.append('text').attr('class', 'axis-title').attr('x', xe(-egMax)).attr('y', 13).text('Efficiency gap, points');
-    gBars.append('text').attr('x', xe(0) - 4).attr('y', 27).attr('text-anchor', 'end').attr('font-size', 10).text('more Rep. wasted');
-    gBars.append('text').attr('x', xe(0) + 4).attr('y', 27).attr('font-size', 10).text('more Dem. wasted');
+    // The measure's sign, in outcome terms: a positive gap means more Democratic votes counted as "wasted", a map tilted to Republicans.
+    gBars.append('text').attr('x', xe(0) - 4).attr('y', 27).attr('text-anchor', 'end').text('tilts to Dem.');
+    gBars.append('text').attr('x', xe(0) + 4).attr('y', 27).text('tilts to Rep.');
     gBars.append('line').attr('x1', xe(0)).attr('x2', xe(0)).attr('y1', top - 4).attr('y2', top + rows.length * RH).attr('stroke', RULE);
     const g = gBars.selectAll('g.r').data(rows, (r) => r.st).join('g').attr('class', 'r').attr('transform', (r, i) => `translate(0,${top + i * RH})`)
       .attr('opacity', (r) => (S && !S.has(r.st) ? DIM : 1)).style('cursor', 'pointer')
@@ -84,12 +99,14 @@ export function seatsView({ ctx, DUR, head, body, foot, place, shiftOf, nearest,
     g.append('text').attr('x', (r) => xc(r.cp) + 3).attr('y', RH / 2 + 4).text((r) => (r.s.capv ? r.cp.toFixed(1) + '%' : '0'));
     g.filter((r) => r.s.eg != null).append('rect').attr('y', 4).attr('height', RH - 8)
       .attr('x', (r) => Math.min(xe(0), xe(r.s.eg))).attr('width', (r) => Math.abs(xe(r.s.eg) - xe(0))).attr('fill', GRAPHITE).attr('opacity', 0.7);
-    g.append('text').attr('y', RH / 2 + 4).attr('font-size', 10)
+    g.append('text').attr('y', RH / 2 + 4)
       .attr('x', (r) => (r.s.eg == null ? xe(0) + 4 : r.s.eg >= 0 ? xe(r.s.eg) + 3 : xe(r.s.eg) - 3)).attr('text-anchor', (r) => (r.s.eg != null && r.s.eg < 0 ? 'end' : 'start'))
       .text((r) => (r.s.eg == null ? 'not computed' : `${Math.abs(r.s.eg).toFixed(1)}`));
+    barsBox.style('overflow-y', note ? 'hidden' : null);
+    return note;
   }
   const pointHtml = (p) => {
-    const s = p.s, h = hNow, egT = s.eg == null ? `not computed (${s.egWhy})` : `${Math.abs(s.eg).toFixed(1)} points, more ${s.eg >= 0 ? 'Democratic' : 'Republican'} votes wasted`;
+    const s = p.s, h = hNow, egT = s.eg == null ? `not computed (${s.egWhy})` : `${Math.abs(s.eg).toFixed(1)} points, tilted to ${s.eg >= 0 ? 'Republicans' : 'Democrats'} (more ${s.eg >= 0 ? 'Democratic' : 'Republican'} votes counted as "wasted" by the measure)`;
     return `<b>${ctx.stateName(p.st)}</b>, ${h.label}${h.unofficial ? ' (unofficial)' : ''}<br>${s.districts} district${s.districts > 1 ? 's' : ''}: Democrats ${s.seatsD}, Republicans ${s.seatsR}` +
       `${s.districts - s.seatsD - s.seatsR ? `, ${s.districts - s.seatsD - s.seatsR} undecided` : ''}<br>Democratic share of the two-party vote: ${s.dshare == null ? 'none' : s.dshare.toFixed(1) + '%'}` +
       `<br>Captured seats ${s.captured}; captured votes ${fmt(s.capv)} (${s.T ? (s.capv / s.T * 100).toFixed(1) : 0}% of votes cast)${s.apart ? `<br>${s.apart} seat${s.apart > 1 ? 's' : ''} without a Democrat and a Republican` : ''}` +

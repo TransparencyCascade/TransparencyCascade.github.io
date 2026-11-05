@@ -543,7 +543,7 @@ export async function initTerrain({ container, geo, ramp, ramp2, onHover, labels
     },
     // Highlight the reader's selection: whole states are outlined; selected counties keep full colour and the
     // rest fade toward the ground; with fly, the camera frames them from a low angle.
-    highlight(states, { fly = true, counties = null } = {}) {
+    highlight(states, { fly = true, counties = null, animate = true, fit = 1.9 } = {}) {
       if (hiLine) { scene.remove(hiLine); hiLine.geometry.dispose(); hiLine = null; hiSegs = null; }
       if ((!states || !states.length) && (!counties || !counties.size)) { hiAttr.fill(1); material.uniforms.uHiOn.value = 0; geom.attributes.aHi.needsUpdate = true; return; }
       const set = new Set(states || []);
@@ -567,8 +567,8 @@ export async function initTerrain({ container, geo, ramp, ramp2, onHover, labels
         stopMotion();
         const fov = THREE.MathUtils.degToRad(camera.fov), span = Math.max(x1b - x0b, (y1b - y0b) * camera.aspect) * 1.35 + 40;
         const hfov = 2 * Math.atan(Math.tan(fov / 2) * camera.aspect);
-        moveCamera({ target: new THREE.Vector3((x0b + x1b) / 2, (y0b + y1b) / 2 - 0.08 * (y1b - y0b), 0), dist: span / 2 / Math.tan(hfov / 2) * 1.9,
-          polar: THREE.MathUtils.degToRad(64), az: 0 }, true);
+        moveCamera({ target: new THREE.Vector3((x0b + x1b) / 2, (y0b + y1b) / 2 - 0.08 * (y1b - y0b), 0), dist: span / 2 / Math.tan(hfov / 2) * fit,
+          polar: THREE.MathUtils.degToRad(64), az: 0 }, animate);
       }
     },
     view(name, presets, side, animate = true) {

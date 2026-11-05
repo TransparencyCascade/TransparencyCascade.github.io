@@ -84,6 +84,7 @@ const ensureBlocks = () => {
     blocks = createBlocks({ container: $('map'), pieces, presets, k: el.k, onHover: tip.hoverCounty,
       initial: { view: state.v, flat: state.d === '2d', side: sideSpace(), scene: blocksScene() } });
     render({ animate: false });
+    if (framesSel()) blocks.frame(sel.counties);
   }).catch(() => noGL());
 };
 
@@ -114,7 +115,10 @@ const showView = () => {
   if (views) views.show(is3d ? null : w);
 };
 // The terrain shows the selection: whole states outlined, selected counties in full colour.
-const terrainSel = (fly) => { if (terrain) terrain.highlight(sel && sel.states, { counties: sel && !sel.states ? sel.counties : null, fly }); };
+// A saved view frames its selection closer than the Frame button does: the view is about those places.
+const terrainSel = (fly, animate = true, fit) => { if (terrain) terrain.highlight(sel && sel.states, { counties: sel && !sel.states ? sel.counties : null, fly, animate, fit }); };
+// A saved view with a selection opens framed on it (the selected places fully in view at a low angle), not on its camera preset.
+const framesSel = () => !!(askedView && askedView.state.sel && sel);
 // Metro labels on the terrain: the county that holds each big city, in priority order for crowded views.
 const METROS = [['06037', 'Los Angeles'], ['36061', 'New York'], ['17031', 'Chicago'], ['48201', 'Houston'], ['04013', 'Phoenix'],
   ['48113', 'Dallas'], ['53033', 'Seattle'], ['12086', 'Miami'], ['13121', 'Atlanta'], ['42101', 'Philadelphia'], ['08031', 'Denver'],
@@ -123,7 +127,7 @@ if (!glFailed) terrainModule
   .then((m) => m.initTerrain({ container: $('terrain'), geo, ramp: buildRamp(toward), ramp2: buildRamp(towardW), onHover: tip.hoverCounty, labels: METROS,
     locator: $('locator') }))
   .then((t) => { terrain = t; showView(); if (!isHouse()) terrain.setState(terrainState(), { animate: false, base: baselineOf() }); terrain.view(state.v, presets, sideSpace(), false);
-    terrainSel(false);
+    terrainSel(framesSel(), false, 1.15);
     if (firstVisit && state.s === 'terrain' && effW() === 'terrain') terrain.spin(); })
   .catch(() => noGL());
 // WebGL missing or lost: switch to Circles, keep the state, say why in the panel.
@@ -201,11 +205,11 @@ const setSelection = (spec, opts = {}) => {
   applySelection(opts);
   toHash();
 };
-const applySelection = ({ frame = false } = {}) => {
+const applySelection = ({ frame = false, fit } = {}) => {
   $('selChip').hidden = !sel;
   if (sel) $('selText').textContent = codec.summary(sel);
   const w = effW();
-  terrainSel(frame && !!sel && w === 'terrain' && state.s === 'terrain');
+  terrainSel(frame && !!sel && w === 'terrain' && state.s === 'terrain', true, fit);
   if (w === 'terrain' && (state.s !== 'terrain' || !terrain) && blocks) { if (frame && sel) blocks.frame(sel.counties); blocks.draw(blocksScene()); }
   if (views) { views.redraw(false); if (frame && sel) views.frame([...sel.counties]); }
   const key = sel && sel.states ? sel.states.join(',') : null;
@@ -498,7 +502,7 @@ const followHash = (forceCamera = false) => {
 window.addEventListener('hashchange', () => followHash());
 // Saved views and tours: the card with the caption; a tour step sets the whole state, as a link would.
 const savedViews = registry ? createSavedViews({ registry, bal, eff, houseData, elections, stName,
-  apply: (st) => { if (terrain) terrain.stopMotion(); history.replaceState(null, '', location.search + '#' + hashFor(st)); followHash(true); } }) : null;
+  apply: (st) => { if (terrain) terrain.stopMotion(); history.replaceState(null, '', location.search + '#' + hashFor(st)); followHash(true); if (st.sel && sel) applySelection({ frame: true, fit: 1.15 }); } }) : null;
 if (savedViews) {
   savedViews.setOnResize(() => { if (views && effW() !== 'terrain') views.redraw(false); });
   if (!ASK.exporting) savedViews.open({ view: ASK.view, tour: ASK.tour }, { applyState: false });
@@ -508,4 +512,4 @@ window.__vt = { state, elections, saved: () => savedViews, meta, house: () => ho
 sel = codec.decode(state.sel); state.sel = codec.encode(sel);
 ready = true;
 render({ animate: false });
-applySelection();
+applySelection({ frame: framesSel() });

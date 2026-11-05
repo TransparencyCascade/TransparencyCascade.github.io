@@ -60,7 +60,7 @@
   .ramp { display:flex; height:16px; }
   .ramp i { flex:1; }
   .ramp-labels { display:flex; justify-content:space-between; color:var(--graphite); margin-top:3px; }
-  .key .vol { margin-top:5px; color:var(--graphite); line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .key .vol { margin-top:5px; color:var(--graphite); line-height:1.3; }
 
   /* Timeline: elections in order along the bottom */
   .timeline { position:fixed; left:50%; bottom:22px; transform:translateX(-50%); display:flex; align-items:stretch;
@@ -178,7 +178,8 @@
   /* Export (?export=1, tools/vote-terrain/export.mjs): the view and its key, nothing else. */
   body.export .panel, body.export .tabs, body.export .tab-why, body.export .bop, body.export .offices, body.export .timeline,
   body.export #locator, body.export .view-card, body.export .tour-caption, body.export #grain, body.export .key .lens-i, body.export #rankBtn,
-  body.export .v2d-head .v2d-seg, body.export .v2d-head .lens-i, body.export .v2d-sort { display:none !important; }
+  body.export .v2d-head .v2d-seg, body.export .v2d-head .lens-i, body.export .v2d-sort, body.export .v2d-showall, body.export .v2d-foot { display:none !important; }
+  .v2d-head .v2d-showall { font:inherit; font-size:12px; color:var(--ink); background:var(--paper); border:1px solid var(--rule); padding:4px 10px; cursor:pointer; }
   .sel-chip { display:flex; flex-wrap:wrap; gap:6px; align-items:center; border:1px solid var(--ink); background:rgba(35,48,107,.06); padding:6px 8px; margin:0 0 12px; font-size:12.5px; }
   .sel-chip span { flex:1 1 100%; }
   .sel-chip button { font:inherit; font-size:12px; color:var(--ink); background:var(--paper); border:1px solid var(--rule); padding:3px 8px; cursor:pointer; }

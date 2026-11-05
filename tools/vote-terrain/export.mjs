@@ -7,7 +7,9 @@
      node tools/vote-terrain/export.mjs --sweep <slug> [--from 2] [--to 14] [--step 1] [--gif] [--mp4]
                                                                         a House view at each plausible swing
      options: --out <dir> (default tools/vote-terrain/.export, never the published folder)  --hold <seconds per step, 3>
-              --scale <device pixels per page pixel in the map, 1.4>  --root <page folder>
+              --scale <card pixels per page pixel in the map, 2>  --root <page folder>
+   The scale sets how large the map's own text is on the card: the page lays out in (box / scale) CSS pixels, so at 2
+   its 11-12 px labels and axes come out at 22-24 card units, legible at article-column width.
 
    The card follows the RAMM design system (article-images skill, design-system/images.md): onionskin ground,
    carbon-blue ink, a typed file line in Courier Prime, the view, one caption, and a foot with the source and
@@ -29,7 +31,7 @@ const OUT = path.resolve(opt('--out', path.join(HERE, '.export')));
 if (OUT.startsWith(path.resolve(HERE, '../../static'))) { console.error('export.mjs: --out must be outside the published folder (static/).'); process.exit(2); }
 const VIEW = opt('--view'), TOUR = opt('--tour'), SWEEP = opt('--sweep');
 if (!VIEW && !TOUR && !SWEEP) { console.error('usage: export.mjs --view <slug> | --tour <slug> [--gif] [--mp4] | --sweep <slug> [--gif] [--mp4]'); process.exit(2); }
-const HOLD = +opt('--hold', 3), SCALE = +opt('--scale', 1.4);
+const HOLD = +opt('--hold', 3), SCALE = +opt('--scale', 2);
 const ART = path.join(process.env.HOME, 'tcp-skills/plugins/tcp-skills/skills/article-images/scripts');
 const PW = process.env.VT_PLAYWRIGHT || path.join(ART, 'node_modules/playwright-core');
 const { chromium } = createRequire(PW + '/')(PW);
