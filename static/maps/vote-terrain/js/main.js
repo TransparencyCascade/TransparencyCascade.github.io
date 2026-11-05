@@ -30,7 +30,7 @@ import { createSavedViews, askedFor } from './views.js';
 // Without WebGL the 3D views cannot draw: the page falls back to a flat view (see noGL) and keeps everything else.
 const hasGL = (() => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return false; } })();
 const terrainModule = hasGL ? import('./terrain.js') : null;   // three.js loads alongside the data
-const [geoHead, geoBytes, el, bal, eff, houseData] = await Promise.all([getJSON('geometry.json'), getBin('geometry.bin', Uint8Array), ...['elections.json', 'balance.json', 'effective.json', 'house.json'].map(getJSON)]);
+const [geoHead, geoBytes, el, bal, eff, houseData, histData] = await Promise.all([getJSON('geometry.json'), getBin('geometry.bin', Uint8Array), ...['elections.json', 'balance.json', 'effective.json', 'house.json', 'history.json'].map(getJSON)]);
 const geo = decodeGeometry(geoHead, geoBytes);
 // ?view= or ?tour=: the registry of saved views, loaded only when one is asked for.
 const ASK = askedFor();
@@ -99,7 +99,8 @@ const terrainState = () => {
 };
 // Why a tab cannot be used for the election in view ('' when it can).
 const HOUSE_TABS = ['strips', 'seats'];
-const tabWhy = (w) => (isHouse() && !HOUSE_TABS.includes(w) ? 'needs county results, and House results are by district'
+const tabWhy = (w) => (w === 'history' ? ''
+  : isHouse() && !HOUSE_TABS.includes(w) ? 'needs county results, and House results are by district'
   : !isHouse() && HOUSE_TABS.includes(w) ? 'draws the House by district: choose House above the timeline'
   : w === 'terrain' && glFailed ? 'needs WebGL, which this browser is not providing'
   : (w === 'arrows' || w === 'scatter') && !baselineOf() ? 'needs an earlier race for the same seat, and this election has none in the data' : '');
@@ -289,6 +290,9 @@ views = createViews2d({
       : { ref: 1, label: (n) => `${fmt(n)} votes` }; },
   fill: (f) => `rgb(${model.colourRaw(f).join(',')})`,
   house: () => house.now(),
+  history: () => histData,
+  // A History bar: open that election on the map with its smallest-change states selected, as the balance box's line does.
+  openElection: (e, states) => { state.e = e; state.w = hasGL ? 'terrain' : 'circles'; render({ animate: false }); setSelection({ states }, { frame: true }); },
   // The states the selection touches: chosen whole, or holding a selected county.
   selectedStates: () => (!sel ? null : new Set(sel.states || [...sel.counties].map((f) => meta[f].st))),
   infoButton: (b, text) => about.infoButton(b, text),
@@ -307,7 +311,7 @@ const switchTab = (w) => {
 
 // ---------- find, table, read-once text ----------
 const find = createFind({ geo, el, ALL_ST: codec.ALL_ST, stName, choose: (spec) => setSelection(spec, { frame: true }) });
-const table = createTable({ geo, el, state, model, house, selection: () => sel, effW, pctCh: codec.pctCh, OFFICE_NAME, stName });
+const table = createTable({ geo, el, state, model, house, history: histData, selection: () => sel, effW, pctCh: codec.pctCh, OFFICE_NAME, stName });
 const about = createAbout({ el, eff, state, tip, selection: () => sel, select: setSelection, stName, house });
 
 function render(opts = {}) {
@@ -355,7 +359,7 @@ function render(opts = {}) {
   $('worthRow').hidden = state.l !== 'worth';
   document.querySelectorAll('[data-wh]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.wh === state.h));
   const per = state.n === 'county' ? 'per county' : 'per sq mi', vw = effW();
-  $('keyHeight').textContent = vw === 'strips' ? 'Tick: one district; shading: at risk and contestable' : vw === 'seats' ? 'Point area: districts in the state' : vw === 'dots' ? 'Dot area: votes' : vw === 'scatter' ? 'Circle area: votes' : vw === 'arrows' ? 'Arrow length: swing'
+  $('keyHeight').textContent = vw === 'history' ? 'Dots: each state; line: the national average' : vw === 'strips' ? 'Tick: one district; shading: at risk and contestable' : vw === 'seats' ? 'Point area: districts in the state' : vw === 'dots' ? 'Dot area: votes' : vw === 'scatter' ? 'Circle area: votes' : vw === 'arrows' ? 'Arrow length: swing'
     : vw === 'circles' ? (state.h === 'pop' ? 'Area: represented people' : 'Circle area: votes')
     : state.d === '2d' ? 'Flat map: colour only' : state.h === 'pop' ? 'Height: represented people'
     : state.h === 'net' ? `Height: net margin ${per}` : state.h === 'ev' || state.h === 'sen' ? `Height: votes × ${state.h === 'ev' ? 'electoral' : 'Senate'} weight`
@@ -400,6 +404,11 @@ function render(opts = {}) {
   $('rampLabels').innerHTML = wt ? '<span>¼×</span><span>average</span><span>4×</span>' : m
     ? `<span>R+${max}</span><span>even</span><span>D+${max}</span>`
     : `<span>${max} R</span><span>no change</span><span>${max} D</span>`;
+  if (vw === 'history') {   // the bars' colour is the winning party, not a margin
+    $('keyTitle').textContent = 'Bars: the winner\'s party';
+    $('ramp').innerHTML = `<i style="background:${toward(-40, MARGIN_MAX)}"></i><i style="background:${toward(40, MARGIN_MAX)}"></i>`;
+    $('rampLabels').innerHTML = '<span>Republican</span><span>Democratic</span>';
+  }
   $('rankBtn').hidden = !effShown() || !eff.elections[state.e];
   if (about.isRankOpen()) about.renderRank();
 
@@ -419,7 +428,7 @@ function render(opts = {}) {
   nt.textContent = 'This browser is not drawing 3D (WebGL is off or unavailable), so the map is shown as Circles. Everything else works.';
   tourBtn.disabled = vw !== 'terrain';
   $('flat').disabled = vw !== 'terrain';
-  $('reset').disabled = vw === 'dots' || vw === 'scatter' || HOUSE_TABS.includes(vw);
+  $('reset').disabled = vw === 'dots' || vw === 'scatter' || vw === 'history' || HOUSE_TABS.includes(vw);
   if (sel) $('selText').textContent = codec.summary(sel);
   showView();
   if (vw === 'terrain') {
@@ -510,7 +519,7 @@ const followHash = (forceCamera = false) => {
 };
 window.addEventListener('hashchange', () => followHash());
 // Saved views and tours: the card with the caption; a tour step sets the whole state, as a link would.
-const savedViews = registry ? createSavedViews({ registry, bal, eff, houseData, elections, stName,
+const savedViews = registry ? createSavedViews({ registry, bal, eff, houseData, histData, elections, stName,
   apply: (st) => { if (terrain) terrain.stopMotion(); history.replaceState(null, '', location.search + '#' + hashFor(st)); followHash(true); if (st.sel && sel) applySelection({ frame: true, fit: 1.15 }); } }) : null;
 if (savedViews) {
   savedViews.setOnResize(() => { if (views && effW() !== 'terrain') views.redraw(false); });

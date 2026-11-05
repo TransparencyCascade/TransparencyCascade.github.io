@@ -6,9 +6,10 @@
    default). */
 import { parsePs } from './house.js';
 export const state = { e: 'pres2024', h: 'total', c: 'margin', s: 'terrain', m: '1', v: 'west', d: '3d', u: 'd', n: 'area', l: 'votes', g: '0', w: 'terrain', sel: '', ps: '' };
-// Districts and Seats and votes draw the House track (results by district); the others need county results.
-export const TABS = ['terrain', 'circles', 'arrows', 'dots', 'scatter', 'strips', 'seats'];
-export const TAB_NAME = { terrain: 'Terrain', circles: 'Circles', arrows: 'Arrows', dots: 'Dots', scatter: 'Scatter', strips: 'Districts', seats: 'Seats and votes' };
+// Districts and Seats and votes draw the House track (results by district); History draws the long view on any track;
+// the others need county results.
+export const TABS = ['terrain', 'circles', 'arrows', 'dots', 'scatter', 'strips', 'seats', 'history'];
+export const TAB_NAME = { terrain: 'Terrain', circles: 'Circles', arrows: 'Arrows', dots: 'Dots', scatter: 'Scatter', strips: 'Districts', seats: 'Seats and votes', history: 'History' };
 // Lenses: one question each, setting several controls at once. Changing any control in Adjust makes the view "custom".
 export const LENSES = {
   votes: { set: { n: 'area', h: 'total', c: 'margin', g: '0', d: '3d' }, v: 'national',

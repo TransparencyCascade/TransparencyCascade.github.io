@@ -198,6 +198,23 @@ const SCENARIOS = [
     const dims = (f) => { const b = fs.readFileSync(path.join(dir, f)); return [b.readUInt32BE(16), b.readUInt32BE(20)]; };
     const sizes = { master: dims('districts-2026.png'), link: dims('districts-2026.link.png'), square: dims('districts-2026.square.png') };
     return { sizes, ok: sizes.master.join() === '2400,1500' && sizes.link.join() === '2400,1260' && sizes.square.join() === '2400,2400' }; } },
+  // History (the long view): on any track; its numbers against history.json and the balance box; a bar opens its
+  // election with the smallest-change states selected; the table; the two saved views.
+  { name: 'y-history', hash: 'w=history' },
+  { name: 'y-history-house', hash: 'e=house2026&w=history' },
+  { name: 'y-history-sel', hash: 'w=history&sel=s:WY,CA' },
+  { name: 'y-history-hover', hash: 'w=history', act: async (page) => { const b = await page.locator('#v2d svg.hist-seats > g:last-of-type circle').last().boundingBox(); await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.waitForTimeout(250); }, tip: true },
+  { name: 'y-history-table', hash: 'w=history', act: key('t') },
+  { name: 'y-history-data', hash: 'w=history', probe: (page) => page.evaluate(async () => {
+    const H = await (await fetch('history.json')).json(), bal = await (await fetch('balance.json')).json();
+    const seatsOk = H.perSeat.every((e) => Object.values(e.states).reduce((a, s) => a + s.seats, 0) === e.seats);
+    const balOk = H.smallest.filter((s) => s.election).every((s) => bal.elections[s.election].smallest.president.votes === s.votes);
+    const bars = document.querySelectorAll('#v2d svg.hist-small rect').length, dots = document.querySelectorAll('#v2d svg.hist-seats circle').length;
+    return { censuses: H.perSeat.length, elections: H.smallest.length, bars, dots, seatsOk, balOk, ok: seatsOk && balOk && bars === H.smallest.length && H.perSeat[H.perSeat.length - 1].perSeat === 761169 }; }) },
+  { name: 'y-history-open', hash: 'w=history', act: async (page) => { await page.locator('#v2d svg.hist-small g g').nth(10).click(); },
+    probe: (page) => page.evaluate(() => ({ e: window.__vt.state.e, w: window.__vt.effW(), sel: window.__vt.state.sel })) },
+  ...['residents-per-seat', 'smallest-change-history'].map((v) => ({ name: `v-view-${v}`, query: `view=${v}`,
+    probe: (page) => page.evaluate(() => ({ card: document.getElementById('viewCard').innerText.replace(/\s+/g, ' '), w: window.__vt.effW() })) })),
   { name: 'n-nogl-house', hash: 'e=house2026&w=seats', gl: false },
   { name: 'n-nogl', hash: 'w=terrain', gl: false },
   { name: 'n-nogl-blocks', hash: 's=blocks', gl: false },

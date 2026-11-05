@@ -105,6 +105,28 @@
         "e": "house2024",
         "w": "seats"
       }
+    },
+    {
+      "slug": "residents-per-seat",
+      "title": "Residents per House seat, since 1910",
+      "file": "Residents per House seat at each census, {calc.hist.first.year|raw} to {calc.hist.last.year|raw}",
+      "caption": "After the {calc.hist.first.year|raw} census one member of the House represented {calc.hist.first.perSeat|n} people on average; after the {calc.hist.last.year|raw} census, {calc.hist.last.perSeat|n}. The House was fixed at {hist.cap.seats|raw} seats in {calc.hist.capYear|raw}. In {calc.hist.last.year|raw} a member from {calc.hist.lastHiName} represented {calc.hist.lastHiV|n} people and one from {calc.hist.lastLoName} {calc.hist.lastLoV|n}.",
+      "sources": "{hist.sources.perSeat}. {hist.cap.source}.",
+      "state": {
+        "e": "pres2024",
+        "w": "history"
+      }
+    },
+    {
+      "slug": "smallest-change-history",
+      "title": "The smallest change, 1976 to 2024",
+      "file": "The fewest votes that would have changed each presidential election, {calc.hist.smallFirst|raw} to {calc.hist.smallLast|raw}",
+      "caption": "From {calc.hist.smallFirst|raw} to {calc.hist.smallLast|raw}, the fewest votes that would have changed a presidential election ranged from {calc.hist.smallMin.votes|n}, in {calc.hist.smallMin.states|states} in {calc.hist.smallMin.year|raw}, to {calc.hist.smallMax.votes|n} in {calc.hist.smallMax.year|raw}.",
+      "sources": "{hist.sources.smallest}",
+      "state": {
+        "e": "pres2024",
+        "w": "history"
+      }
     }
   ],
   "tours": [

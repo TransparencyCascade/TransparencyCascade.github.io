@@ -20,7 +20,7 @@ checks it; Hugo does not publish `tools/`.
 | `tooltip.js`, `balance.js`, `selection.js`, `find.js`, `table.js`, `about.js` | The tip, balance of power, selection codec, find box, table, read-once drawers |
 | `terrain.js` | Smooth terrain (three.js), loaded only with WebGL |
 | `blocks.js` | Exact counties (three.js), loaded the first time it is shown |
-| `views2d/` | Circles, Arrows, Dots, Scatter, and for the House track Districts (`strips.js`) and Seats and votes (`seats.js`) (d3 + SVG), and what they share |
+| `views2d/` | Circles, Arrows, Dots, Scatter, for the House track Districts (`strips.js`) and Seats and votes (`seats.js`), and History (`history.js`, any track) (d3 + SVG), and what they share |
 | `views.js` | Saved views and tours (`views.json`): `?view=`, `?tour=`, the card with the caption, caption tokens resolved from the data |
 
 `window.__vt` exists only for the smoke test, `export.mjs` and console checks. When you change a module, bump the
@@ -48,6 +48,12 @@ Run from the repository root, in this order (each step reads what the one before
    largest and median observed swing, the plausible-swing default, seats and the efficiency gap. Checks: 2022
    and 2024 seats equal the House history office's divisions in `balance.json`; district votes sum to the
    state file in every state and year; margins agree with the CSV. Rules in its docstring.
+
+8. `python3 -I tools/vote-terrain/build_history.py ~/tcp-kb-internal/cascade-research/notes/data/vt-history static/maps/vote-terrain/balance.json static/maps/vote-terrain/history.json`
+   The History tab: residents per House seat at each census since 1910 (Census Bureau apportionment file) and the
+   smallest change in each presidential election since 1976 (MIT state totals), from the files gathered for
+   `vt-historical-depth-house-and-presidential` (method note `vt-historical-depth-method-note.md`). Checks: state seats
+   add to the national row at every census; 2016, 2020 and 2024 equal `balance.json`'s smallest change.
 
 `geometry_codec.mjs` packs the geometry (lossless; it checks the round trip). To convert a geometry.json in
 the old shape: `node tools/vote-terrain/geometry_codec.mjs <old geometry.json> static/maps/vote-terrain`.

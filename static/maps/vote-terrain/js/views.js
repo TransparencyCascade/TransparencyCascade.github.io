@@ -5,17 +5,19 @@
    views by slug, and tools/vote-terrain/export.mjs renders the same record as a card, a GIF or a video.
 
    Captions hold no typed numbers. Every figure is a token resolved from the page's data:
-     {path.into.data|filter}   roots: bal (balance.json), eff (effective.json), house (house.json), elections (the page's elections), calc (below)
-     filters: n (1,234), x (4.2×), pct (12.3%), et (time, Eastern), last (last word), states (names joined),
+     {path.into.data|filter}   roots: bal (balance.json), eff (effective.json), house (house.json), hist (history.json), elections (the page's elections), calc (below)
+     filters: n (1,234), raw (as written: years), x (4.2×), pct (12.3%), et (time, Eastern), last (last word), states (names joined),
               perstate ({ST: votes} as "60,134 in Pennsylvania, ...")
    calc.eff.<election>: hi, lo (state codes), hiName, loName, ratio (weight per vote, highest over lowest state)
+   calc.hist: first, last (census rows), capYear, lastHiName/lastHiV, lastLoName/lastLoV (most and fewest residents per seat,
+     latest census), smallFirst, smallLast, smallMin, smallMax (elections with the fewest and most votes in their smallest change)
    calc.house.<year>: ps, captured, contestable, atRisk, apart, capv, capvShare, st.<ST>.{captured, contestable, atRisk}
      (bands at the default plausible swing). An unknown token stops the caption and logs an error, so a broken
      caption cannot reach a card unnoticed. */
 import { fmt, esc, list, $ } from './util.js';
 import { createHouse } from './house.js';
 
-export function createSavedViews({ registry, bal, eff, houseData, elections, stName, apply }) {
+export function createSavedViews({ registry, bal, eff, houseData, histData, elections, stName, apply }) {
   const etTime = (iso) => new Date(iso).toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', month: 'short', day: 'numeric', year: 'numeric' }) + ' ET';
   // Derived figures, computed once from the data files (the House bands with their own state, at the default plausible swing).
   const calc = { eff: {}, house: {} };
@@ -31,9 +33,17 @@ export function createSavedViews({ registry, bal, eff, houseData, elections, stN
     calc.house[y] = { ps: h.plausible.value, captured: c.captured, contestable: c.contestable, atRisk: c['at risk'], apart: c.apart, capv, capvShare: capv / T * 100,
       st: Object.fromEntries(Object.entries(h.states).map(([st, s]) => [st, { captured: s.captured, contestable: s.contestable, atRisk: s.atRisk }])) };
   }
-  const roots = { bal, eff, house: houseData, elections, calc };
+  // The long view (history.json): first and last census, the 1929 act's year, the widest and narrowest smallest change.
+  {
+    const P = histData.perSeat, last = P[P.length - 1], L = histData.smallest;
+    const byVotes = L.slice().sort((a, b) => a.votes - b.votes);
+    calc.hist = { first: P[0], last, capYear: histData.cap.signed.slice(0, 4), lastHiName: stName(last.hi), lastHiV: last.states[last.hi].perSeat,
+      lastLoName: stName(last.lo), lastLoV: last.states[last.lo].perSeat, smallFirst: L[0].year, smallLast: L[L.length - 1].year,
+      smallMin: byVotes[0], smallMax: byVotes[byVotes.length - 1] };
+  }
+  const roots = { bal, eff, house: houseData, hist: histData, elections, calc };
   const FILTERS = {
-    n: (v) => fmt(v), x: (v) => v.toFixed(1) + '×', pct: (v) => v.toFixed(1) + '%', et: (v) => etTime(v),
+    n: (v) => fmt(v), raw: (v) => String(v), x: (v) => v.toFixed(1) + '×', pct: (v) => v.toFixed(1) + '%', et: (v) => etTime(v),
     last: (v) => String(v).split(' ').pop(), states: (v) => list(v.map(stName)),
     perstate: (v) => list(Object.entries(v).sort((a, b) => b[1] - a[1]).map(([st, n]) => `${fmt(n)} in ${stName(st)}`)),
   };

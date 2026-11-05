@@ -1,8 +1,8 @@
 /* Table: the numbers behind the view in use, as in the tooltip. On the House track: one row per district
-   (Districts) or per state (Seats and votes). */
+   (Districts) or per state (Seats and votes). History: one row per census, then one per presidential election. */
 import { fmt, esc, countyLabelOf, $ } from './util.js';
 
-export function createTable({ geo, el, state, model, house, selection, effW, pctCh, OFFICE_NAME, stName }) {
+export function createTable({ geo, el, state, model, house, history, selection, effW, pctCh, OFFICE_NAME, stName }) {
   const { meta } = geo, { elections } = el;
   const wrap = $('tableWrap'), table = $('table');
   let sort = { k: 2, dir: -1 };
@@ -38,7 +38,20 @@ export function createTable({ geo, el, state, model, house, selection, effW, pct
     table.innerHTML = '<thead><tr>' + cols.map((c, i) => `<th data-k="${i}"${i === sort.k ? ` aria-sort="${sort.dir > 0 ? 'ascending' : 'descending'}"` : ''}>${c[0]}</th>`).join('') + '</tr></thead><tbody>' +
       rs.map((r) => '<tr>' + cols.map((c) => `<td>${esc(c[2](c[1](r)))}</td>`).join('') + '</tr>').join('') + '</tbody>';
   };
+  // History: the two series, each with its own heading row.
+  const renderHistory = () => {
+    const H = history, sec = (t, n) => `<tr><th colspan="${n}">${esc(t)}</th></tr>`;
+    $('tableTitle').textContent = 'History: residents per House seat, and the smallest change';
+    $('tableNote').textContent = H.sources.starts;
+    table.innerHTML = '<tbody>' + sec('Residents per House seat (apportionment population), at each census', 5) +
+      '<tr><th>Census</th><th>Seats</th><th>Per seat, national</th><th>Fewest per seat</th><th>Most per seat</th></tr>' +
+      H.perSeat.map((e) => `<tr><td>${e.year}</td><td>${e.seats}</td><td>${fmt(e.perSeat)}</td><td>${esc(stName(e.lo))} ${fmt(e.states[e.lo].perSeat)}</td><td>${esc(stName(e.hi))} ${fmt(e.states[e.hi].perSeat)}</td></tr>`).join('') +
+      sec('The smallest change: fewest votes that would have changed each presidential election', 5) +
+      '<tr><th>Election</th><th>Winner</th><th>Votes</th><th>States</th><th>By state</th></tr>' +
+      H.smallest.map((s) => `<tr><td>${s.year}</td><td>${esc(s.winner)}</td><td>${fmt(s.votes)}</td><td>${s.states.length}</td><td>${esc(Object.entries(s.perState).sort((a, b) => b[1] - a[1]).map(([st, n]) => `${st} ${fmt(n)}`).join(', '))}</td></tr>`).join('') + '</tbody>';
+  };
   const render = () => {
+    if (effW() === 'history') return renderHistory();
     if (house.isHouse()) return renderHouse();
     const b = model.baselineOf(), w = effW(), sel = selection();
     let rs = model.rowsNow().filter((r) => r.v);

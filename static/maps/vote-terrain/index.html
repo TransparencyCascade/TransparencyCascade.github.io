@@ -230,8 +230,8 @@
     .find { top:52px; }
     .table-wrap { inset:52px 10px 90px; }
     .panel { left:10px; right:10px; width:auto; top:auto; bottom:110px; max-height:34%; padding:10px 12px; }
-    body[data-w=dots] .panel, body[data-w=arrows] .panel, body[data-w=scatter] .panel, body[data-w=strips] .panel, body[data-w=seats] .panel { max-height:24%; }
-    body[data-w=dots] .key, body[data-w=arrows] .key, body[data-w=scatter] .key, body[data-w=strips] .key, body[data-w=seats] .key { width:150px; padding:8px 10px; }
+    body[data-w=dots] .panel, body[data-w=arrows] .panel, body[data-w=scatter] .panel, body[data-w=strips] .panel, body[data-w=seats] .panel, body[data-w=history] .panel { max-height:24%; }
+    body[data-w=dots] .key, body[data-w=arrows] .key, body[data-w=scatter] .key, body[data-w=strips] .key, body[data-w=seats] .key, body[data-w=history] .key { width:150px; padding:8px 10px; }
     #locator { display:none !important; }
     h1 { font-size:24px; }
     .about, .rank { left:10px; right:10px; top:10px; width:auto; max-height:calc(100% - 20px); }
@@ -251,7 +251,7 @@
 <div id="v2d"></div>
 <div id="grain" aria-hidden="true"></div>
 <nav class="tabs" id="tabs" aria-label="View">
-  <button data-w="terrain">Terrain</button><button data-w="circles">Circles</button><button data-w="arrows">Arrows</button><button data-w="dots">Dots</button><button data-w="scatter">Scatter</button><button data-w="strips">Districts</button><button data-w="seats">Seats and votes</button>
+  <button data-w="terrain">Terrain</button><button data-w="circles">Circles</button><button data-w="arrows">Arrows</button><button data-w="dots">Dots</button><button data-w="scatter">Scatter</button><button data-w="strips">Districts</button><button data-w="seats">Seats and votes</button><button data-w="history">History</button>
 </nav>
 <p class="tab-why" id="tabWhy" hidden></p>
 <aside class="view-card" id="viewCard" hidden aria-live="polite" aria-label="Saved view"></aside>
@@ -389,6 +389,6 @@
 <div class="offices" id="offices" role="group" aria-label="Office"></div>
 <nav class="timeline" id="timeline" aria-label="Election"></nav>
 <canvas id="locator" aria-label="Locator: the whole country from above, with the part in view marked. Click to move the view there." role="button" tabindex="0"></canvas>
-<script type="module" src="js/main.js?v=82"></script>
+<script type="module" src="js/main.js?v=84"></script>
 </body>
 </html>
