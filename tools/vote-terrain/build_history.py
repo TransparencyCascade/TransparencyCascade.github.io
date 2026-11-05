@@ -23,6 +23,18 @@ uses 2020. Residents per senator compares the most and least populous states (tw
 is their populations' ratio). Electoral votes per vote cast compares the states (and DC) where one vote cast
 carried the most and the least of an electoral vote: electoral votes divided by total presidential votes.
 
+Tipping state against the nation (the "bias" chart and the Road to 270 readout), each presidential year: states are ordered
+by two-party margin (Democratic minus Republican votes over their sum) from the winner's strongest state, the winner's
+held district electors counted first, and the state whose electoral votes first bring the winner to 270 is the tipping
+state. Maine and Nebraska: the statewide vote carries the state's two at-large electors (the CSV's
+ev_winner_take_all_portion); the district electors (electoral_votes_allocated minus that) are held as cast, outside the
+ordering, each going to the statewide winner except the districts that split, ME-2 (Republican 2016, 2020, 2024) and
+NE-2 (Democratic 2008, 2020, 2024), named in the method note and checked here against the pledged electoral votes of
+president-smallest-change-1976-2024.csv in all 13 years and against simulator.json's held districts for 2016-2024.
+The gap is the tipping state's two-party margin in points minus the national two-party margin (both Democratic minus
+Republican, so a negative gap is a tipping state more Republican than the nation); the ratio is the national vote margin
+over the tipping state's vote margin. National figures are the sum of the states' MIT totals (DC included).
+
 Checks: the states' seats add to the national row in every census; the smallest change for 2016, 2020 and 2024
 equals balance.json's (both from certified state totals), so the History tab and the balance box agree.
 """
@@ -50,6 +62,82 @@ CAP = {
     "text": "The Permanent Apportionment Act of 1929 fixed the House at 435 seats, the size set after the 1910 Census; no reapportionment followed the 1920 Census.",
     "source": "History, Art & Archives, U.S. House of Representatives, \"The Permanent Apportionment Act of 1929\", https://history.house.gov/Historical-Highlights/1901-1950/The-Permanent-Apportionment-Act-of-1929/",
 }
+
+
+SPLIT = {2008: {"NE": "D"}, 2016: {"ME": "R"}, 2020: {"ME": "R", "NE": "D"}, 2024: {"ME": "R", "NE": "D"}}   # district electors that went against the statewide winner
+
+
+def tipping_vs_nation(pres_csv, pledged_csv, elections_path, sim_path):
+    rows = defaultdict(list)
+    for r in csv.DictReader(open(pres_csv)):
+        rows[int(r["year"])].append(r)
+    pledged = {int(r["year"]): (r["winner_party"], int(r["winner_ev_pledged"]), int(r["runner_up_ev_pledged"])) for r in csv.DictReader(open(pledged_csv))}
+    try:
+        sim = json.load(open(sim_path))
+        have = set(json.load(open(elections_path))["elections"])
+    except FileNotFoundError:
+        sim, have = None, set()
+    out = []
+    for y in sorted(rows):
+        held = {"D": 0, "R": 0}
+        segs = []
+        for r in rows[y]:
+            d, rr, ev, wta = int(r["democratic_votes"]), int(r["republican_votes"]), int(r["electoral_votes_allocated"]), int(r["ev_winner_take_all_portion"])
+            if wta < ev:
+                win = "D" if d > rr else "R"
+                dist = ev - wta
+                other = SPLIT.get(y, {}).get(r["state_po"])
+                held[win] += dist - (1 if other else 0)
+                if other:
+                    held[other] += 1
+                ev = wta
+            segs.append({"st": r["state_po"], "name": r["state"], "ev": ev, "D": d, "R": rr})
+        mit = {s["st"]: (s["D"], s["R"]) for s in segs}
+        src = "MIT"
+        if sim and str(y) in sim["days"] and sim["days"][str(y)].get("pres"):
+            # Where the page holds certified FEC totals (simulator.json, 2016-2024) they replace MIT's, so this chart,
+            # the Road to 270 bar and the balance box agree; the MIT figures stay in the row.
+            ss = sim["days"][str(y)]["pres"]["states"]
+            for s in segs:
+                assert s["ev"] == ss[s["st"]][2] and abs(s["D"] - ss[s["st"]][0]) < 0.01 * s["D"], (y, s["st"])
+                s["D"], s["R"] = ss[s["st"]][0], ss[s["st"]][1]
+            src = "FEC"
+        evD = held["D"] + sum(s["ev"] for s in segs if s["D"] > s["R"])
+        evR = held["R"] + sum(s["ev"] for s in segs if s["R"] > s["D"])
+        assert (evD + evR) == 538 and pledged[y][0] == ("D" if evD > evR else "R") and sorted((evD, evR)) == sorted(pledged[y][1:]), (y, evD, evR, pledged[y])
+        win = "D" if evD >= 270 else "R"
+        pts = lambda s: (s["D"] - s["R"]) / (s["D"] + s["R"]) * 100
+        order = sorted((s for s in segs if (s["D"] > s["R"]) == (win == "D")), key=pts, reverse=(win == "D"))
+        c, tip = held[win], None
+        for s in order:
+            c += s["ev"]
+            if c >= 270:
+                tip = s
+                break
+        ND, NR = sum(s["D"] for s in segs), sum(s["R"] for s in segs)
+        nat_pts, tip_pts = (ND - NR) / (ND + NR) * 100, pts(tip)
+        gap = tip_pts - nat_pts
+        row = {"year": y, "source": src, "mitNationalVotes": sum(a - b for a, b in mit.values()), "winner": win, "evD": evD, "evR": evR, "heldD": held["D"], "heldR": held["R"],
+               "nat": {"D": ND, "R": NR, "votes": ND - NR, "points": round(nat_pts, 4)},
+               "tip": {"st": tip["st"], "name": tip["name"], "ev": tip["ev"], "D": tip["D"], "R": tip["R"], "votes": tip["D"] - tip["R"], "points": round(tip_pts, 4), "reached": c},
+               "gap": round(gap, 4), "favours": "D" if gap > 0 else "R", "ratio": round(abs(ND - NR) / abs(tip["D"] - tip["R"]), 1)}
+        if f"pres{y}" in have:
+            row["election"] = f"pres{y}"
+        if sim and str(y) in sim["days"] and sim["days"][str(y)].get("pres"):
+            p = sim["days"][str(y)]["pres"]
+            fx = p["fixedDistricts"]
+            assert (fx["D"], fx["R"]) == (held["D"], held["R"]), (y, "held districts differ from simulator.json", fx, held)
+            assert (p["actual"]["D"], p["actual"]["R"]) == (evD, evR), (y, "electoral votes differ from simulator.json")
+            ss = p["states"]
+            sim_tip = sorted(((st, D, R, e) for st, (D, R, e) in ss.items() if (D > R) == (win == "D")), key=lambda t: (t[1] - t[2]) / (t[1] + t[2]), reverse=(win == "D"))
+            cc = fx[win]
+            for st, D, R, e in sim_tip:
+                cc += e
+                if cc >= 270:
+                    assert st == tip["st"], (y, "tipping state differs from simulator.json", st, tip["st"])
+                    break
+        out.append(row)
+    return out
 
 
 def main():
@@ -93,6 +181,7 @@ def main():
         if f"pres{y}" in json.load(open(ELECTIONS))["elections"]:
             weight[-1]["election"] = f"pres{y}"
 
+    bias = tipping_vs_nation(f"{HIST}/president-by-state-1976-2024-mit.csv", f"{HIST}/president-smallest-change-1976-2024.csv", ELECTIONS, f"{OUT.rsplit('/', 1)[0]}/simulator.json")
     bal = json.load(open(BALANCE))
     for s in small:
         b = bal["elections"].get(f"pres{s['year']}")
@@ -106,10 +195,12 @@ def main():
         "cap": CAP,
         "smallest": small,
         "weight": weight,
+        "bias": bias,
         "sources": {
             "perSeat": "Census Bureau, 2020 Census apportionment data file (apportionment population per representative, every census 1910-2020), https://www2.census.gov/programs-surveys/decennial/2020/data/apportionment/apportionment.csv",
             "smallest": "MIT Election Data and Science Lab, U.S. President 1976-2024 (doi:10.7910/DVN/42MVDX, CC0), state totals; half each state's margin plus one, the fewest votes that give the runner-up 270 electoral votes (Maine's and Nebraska's district electors held as cast; pledged electors). 2016-2024 agree with the FEC's certified totals.",
             "weight": "Census Bureau, 2020 Census apportionment data file (resident population of the census in force: the last one taken at least two years before the election); MIT Election Data and Science Lab, U.S. President 1976-2024 (doi:10.7910/DVN/42MVDX, CC0), total votes and electoral votes by state. Residents per senator: most populous state against least. Electoral votes per vote cast: electoral votes divided by total presidential votes, the highest state (or DC) against the lowest.",
+            "bias": "MIT Election Data and Science Lab, U.S. President 1976-2024 (doi:10.7910/DVN/42MVDX, CC0), state totals, with the FEC's certified totals for 2016-2024 (the ones the balance box and Road to 270 use); electoral votes from the Census Bureau apportionment file for the census in force. States ordered by two-party margin, the winner's strongest first, until 270 electoral votes: the state that reaches 270 is the tipping state. Maine's and Nebraska's district electors are held as cast, outside the ordering. National margin: the states' totals summed, two nominees only.",
             "starts": "The series start where the gathered data starts: apportionment in 1910, presidential results in 1976.",
         },
     }
@@ -118,6 +209,8 @@ def main():
         print(e["year"], e["seats"], e["perSeat"], "lowest", e["lo"], e["states"][e["lo"]]["perSeat"], "highest", e["hi"], e["states"][e["hi"]]["perSeat"])
     for s in small:
         print(s["year"], s["votes"], ",".join(s["states"]), s.get("election", ""))
+    for b in bias:
+        print(b["year"], b["tip"]["st"], b["tip"]["points"], b["nat"]["points"], b["gap"], b["nat"]["votes"], b["ratio"], b["source"], b["mitNationalVotes"])
     for w in weight:
         print(w["year"], "census", w["census"], "senate", w["senate"]["big"], w["senate"]["small"], w["senate"]["ratio"],
               "ev/vote", w["ev"]["hi"], w["ev"]["lo"], w["ev"]["ratio"], w.get("election", ""))
