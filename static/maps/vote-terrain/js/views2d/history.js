@@ -1,100 +1,161 @@
-/* History (any office): the long view, from history.json (build_history.py). Two charts, one above the other.
-   Residents per House seat at each census since 1910: the national average as a line, every state's figure as a
-   faint dot, the House's size beneath, and the 1929 act that fixed it at 435 marked. The smallest change that
-   would have flipped each presidential election since 1976: one bar per election on a log scale, its votes and
-   states labelled; a bar for an election the page has (2016, 2020, 2024) opens it with those states selected,
-   as the balance box's line does. The series start where the gathered data starts, and the head says so. */
+/* History (any office): the long view, from history.json (build_history.py). One chart at a time, chosen by the
+   switch in the head (state.hc), so a saved view or card shows only its own chart.
+   seats: residents per House seat at each census since 1910: the national average as a line, every state's
+   figure as a faint dot, the House's size beneath, and the 1929 act that fixed it at 435 marked.
+   small: the smallest change that would have flipped each presidential election since 1976: one dot per
+   election on a log scale (a bar's length would not be proportional to its value there), its votes and states
+   labelled; a dot for an election the page has (2016, 2020, 2024) opens it with those states selected.
+   weight: the weight of a vote in each presidential year since 1976, as two ratios in two panels: residents per
+   senator (most populous state against least) and electoral votes per vote cast (highest state against lowest).
+   The series start where the gathered data starts, and the head says so. */
 import { INK, GRAPHITE, RULE } from './style.js';
+
+const CHARTS = [['seats', 'Residents per seat'], ['small', 'Smallest change'], ['weight', 'Weight per vote']];
 
 export function historyView({ ctx, head, body, foot, place, shiftOf }) {
   const { fmt } = ctx;
-  let svgA, svgB;
+  let svg;
   const exporting = document.body.classList.contains('export');
   function build() {
-    head.innerHTML = '<span class="v2d-ref hist-note"></span><button class="lens-i" aria-label="About these series">i</button>';
-    ctx.infoButton(head.querySelector('.lens-i'), () => {
+    head.innerHTML = (exporting ? '' : '<div class="seg v2d-seg hist-switch" role="group" aria-label="Chart">' +
+      CHARTS.map(([k, t]) => `<button data-hc="${k}">${t}</button>`).join('') + '</div>') +
+      '<span class="v2d-ref hist-note"></span>' + (exporting ? '' : '<button class="lens-i" aria-label="About these series">i</button>');
+    head.querySelectorAll('[data-hc]').forEach((b) => b.addEventListener('click', () => ctx.setHistoryChart(b.dataset.hc)));
+    const i = head.querySelector('.lens-i');
+    if (i) ctx.infoButton(i, () => {
       const H = ctx.history();
-      return `Residents per seat: ${H.sources.perSeat}. ${H.cap.text} (${H.cap.source}). Smallest change: ${H.sources.smallest} ${H.sources.starts} Click a state's dot to select it; click a bar for 2016, 2020 or 2024 to open that election with those states selected.`;
+      return `Residents per seat: ${H.sources.perSeat}. ${H.cap.text} (${H.cap.source}). Smallest change: ${H.sources.smallest} Weight per vote: ${H.sources.weight} ${H.sources.starts} Click a state's dot to select it; click 2016, 2020 or 2024 to open that election with its states selected.`;
     });
     body.innerHTML = '';
-    svgA = d3.select(body).append('svg').attr('class', 'v2d-band hist-seats');
-    svgB = d3.select(body).append('svg').attr('class', 'v2d-band hist-small');
+    svg = d3.select(body).append('svg').attr('class', 'v2d-band hist-chart');
   }
   function draw() {
     const H = ctx.history();
     if (!H) { head.querySelector('.hist-note').textContent = 'Loading the history…'; return; }
-    head.querySelector('.hist-note').textContent = `Residents per House seat at each census, ${H.perSeat[0].year} to ${H.perSeat[H.perSeat.length - 1].year}; the smallest change in each presidential election, ${H.smallest[0].year} to ${H.smallest[H.smallest.length - 1].year}. ${H.sources.starts}`;
-    foot.textContent = `Census Bureau apportionment data; ${H.cap.source.split(', http')[0]}; MIT Election Data and Science Lab, U.S. President 1976-2024.`;
-    const { w, h } = place();   // after the head and foot have their text, so the charts get what is left
-    const S = ctx.selectedStates();
-    const hA = Math.max(180, Math.floor(h * 0.56) - 6), hB = Math.max(150, h - hA - 14);
-    drawSeats(H, w, hA, S);
-    drawSmallest(H, w, hB);
+    const k = ctx.historyChart();
+    head.querySelectorAll('[data-hc]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.hc === k));
+    const P = H.perSeat, L = H.smallest, W = H.weight;
+    head.querySelector('.hist-note').textContent = {
+      seats: `Residents per House seat at each census, ${P[0].year} to ${P[P.length - 1].year}. The series starts at ${P[0].year}, where the gathered data starts.`,
+      small: `The fewest votes that would have changed each presidential election, ${L[0].year} to ${L[L.length - 1].year}. The series starts at ${L[0].year}, where the gathered data starts.`,
+      weight: `The weight of a vote in each presidential year, ${W[0].year} to ${W[W.length - 1].year}, using the census in force. The series starts at ${W[0].year}, where the gathered data starts.`,
+    }[k];
+    foot.textContent = { seats: `Census Bureau apportionment data; ${H.cap.source.split(', http')[0]}.`,
+      small: 'MIT Election Data and Science Lab, U.S. President 1976-2024; FEC certified totals for 2016-2024.',
+      weight: 'Census Bureau apportionment data; MIT Election Data and Science Lab, U.S. President 1976-2024.' }[k];
+    const { w, h } = place();   // after the head and foot have their text, so the chart gets what is left
+    svg.attr('width', w).attr('height', h).selectAll('*').remove();
+    if (k === 'small') drawSmallest(H, w, h); else if (k === 'weight') drawWeight(H, w, h); else drawSeats(H, w, h, ctx.selectedStates());
   }
 
   function drawSeats(H, w, hh, S) {
     const P = H.perSeat, pad = { l: 72, r: 24, t: 24, b: 44 };
-    svgA.attr('width', w).attr('height', hh).selectAll('*').remove();
     const x = d3.scaleLinear().domain([P[0].year - 4, P[P.length - 1].year + 4]).range([pad.l, w - pad.r]);
     const maxV = d3.max(P, (e) => e.states[e.hi].perSeat);
     const y = d3.scaleLinear().domain([0, maxV * 1.05]).range([hh - pad.b, pad.t]).nice();
     for (const t of y.ticks(5)) {
-      svgA.append('line').attr('x1', pad.l).attr('x2', w - pad.r).attr('y1', y(t)).attr('y2', y(t)).attr('stroke', RULE).attr('stroke-width', 0.5);
-      svgA.append('text').attr('x', pad.l - 6).attr('y', y(t) + 4).attr('text-anchor', 'end').text(t >= 1e6 ? (t / 1e6) + 'M' : t ? (t / 1000) + 'k' : '0');
+      svg.append('line').attr('x1', pad.l).attr('x2', w - pad.r).attr('y1', y(t)).attr('y2', y(t)).attr('stroke', RULE).attr('stroke-width', 0.5);
+      svg.append('text').attr('x', pad.l - 6).attr('y', y(t) + 4).attr('text-anchor', 'end').text(t >= 1e6 ? (t / 1e6) + 'M' : t ? (t / 1000) + 'k' : '0');
     }
-    svgA.append('text').attr('class', 'axis-title').attr('x', pad.l).attr('y', 13).text('Residents per House seat (apportionment population), at each census');
+    svg.append('text').attr('class', 'axis-title').attr('x', pad.l).attr('y', 13).text('Residents per House seat (apportionment population), at each census');
     // The 1929 act: between the 1920 and 1930 censuses.
     const capYear = +H.cap.signed.slice(0, 4);
-    svgA.append('line').attr('x1', x(capYear)).attr('x2', x(capYear)).attr('y1', pad.t + 6).attr('y2', hh - pad.b).attr('stroke', INK).attr('stroke-dasharray', '3 3');
-    svgA.append('text').attr('x', x(capYear) + 5).attr('y', pad.t + 18).attr('fill', INK).text(`${capYear}: House fixed at ${H.cap.seats}`);
+    svg.append('line').attr('x1', x(capYear)).attr('x2', x(capYear)).attr('y1', pad.t + 6).attr('y2', hh - pad.b).attr('stroke', INK).attr('stroke-dasharray', '3 3');
+    svg.append('text').attr('x', x(capYear) + 5).attr('y', pad.t + 18).attr('fill', INK).text(`${capYear}: House fixed at ${H.cap.seats}`);
     // Every state's figure, faint; the national average as the line.
     const dots = P.flatMap((e) => Object.entries(e.states).map(([st, s]) => ({ year: e.year, st, v: s.perSeat, seats: s.seats })));
-    svgA.append('g').selectAll('circle').data(dots).join('circle')
+    svg.append('g').selectAll('circle').data(dots).join('circle')
       .attr('cx', (d) => x(d.year)).attr('cy', (d) => y(d.v)).attr('r', (d) => (S && S.has(d.st) ? 4 : 2.2))
       .attr('fill', (d) => (S && S.has(d.st) ? INK : GRAPHITE)).attr('opacity', (d) => (S ? (S.has(d.st) ? 0.95 : 0.18) : 0.35)).style('cursor', 'pointer')
       .on('click', (ev, d) => ctx.select({ kind: 'states', states: [d.st] }, { add: shiftOf(ev) }))
       .on('mousemove', (ev, d) => ctx.hoverHtml(`<b>${ctx.stateName(d.st)}</b>, ${d.year} census<br>${fmt(d.v)} residents per seat; ${d.seats} seat${d.seats > 1 ? 's' : ''}<br><span style="color:${GRAPHITE}">Click to select the state</span>`, ev.clientX, ev.clientY))
       .on('mouseleave', () => ctx.hover(null));
-    svgA.append('path').datum(P).attr('fill', 'none').attr('stroke', INK).attr('stroke-width', 2.5)
+    svg.append('path').datum(P).attr('fill', 'none').attr('stroke', INK).attr('stroke-width', 2.5)
       .attr('d', d3.line().x((e) => x(e.year)).y((e) => y(e.perSeat)));
-    svgA.append('g').selectAll('circle').data(P).join('circle').attr('cx', (e) => x(e.year)).attr('cy', (e) => y(e.perSeat)).attr('r', 4).attr('fill', INK)
+    svg.append('g').selectAll('circle').data(P).join('circle').attr('cx', (e) => x(e.year)).attr('cy', (e) => y(e.perSeat)).attr('r', 4).attr('fill', INK)
       .on('mousemove', (ev, e) => ctx.hoverHtml(`<b>${e.year} census</b><br>${e.seats} seats; ${fmt(e.perSeat)} residents per seat on average<br>Fewest per seat: ${ctx.stateName(e.lo)}, ${fmt(e.states[e.lo].perSeat)}<br>Most per seat: ${ctx.stateName(e.hi)}, ${fmt(e.states[e.hi].perSeat)}${e.year === 1920 ? '<br>No reapportionment followed this census; the seats are those in force.' : ''}`, ev.clientX, ev.clientY))
       .on('mouseleave', () => ctx.hover(null));
     const last = P[P.length - 1];
-    svgA.append('text').attr('x', x(last.year) - 6).attr('y', y(last.perSeat) - 10).attr('text-anchor', 'end').attr('fill', INK).attr('font-weight', 700).text(`${fmt(last.perSeat)} per seat`);
-    svgA.append('text').attr('x', x(P[0].year) + 6).attr('y', y(P[0].perSeat) - 10).attr('fill', INK).attr('font-weight', 700).text(`${fmt(P[0].perSeat)}`);
+    svg.append('text').attr('x', x(last.year) - 6).attr('y', y(last.perSeat) - 10).attr('text-anchor', 'end').attr('fill', INK).attr('font-weight', 700).text(`${fmt(last.perSeat)} per seat`);
+    svg.append('text').attr('x', x(P[0].year) + 6).attr('y', y(P[0].perSeat) - 10).attr('fill', INK).attr('font-weight', 700).text(`${fmt(P[0].perSeat)}`);
     // Census years, with the House size beneath each.
     for (const e of P) {
-      svgA.append('text').attr('x', x(e.year)).attr('y', hh - pad.b + 16).attr('text-anchor', 'middle').text(e.year);
-      svgA.append('text').attr('x', x(e.year)).attr('y', hh - pad.b + 31).attr('text-anchor', 'middle').attr('fill', INK).text(e.seats);
+      svg.append('text').attr('x', x(e.year)).attr('y', hh - pad.b + 16).attr('text-anchor', 'middle').text(e.year);
+      svg.append('text').attr('x', x(e.year)).attr('y', hh - pad.b + 31).attr('text-anchor', 'middle').attr('fill', INK).text(e.seats);
     }
-    svgA.append('text').attr('x', pad.l - 6).attr('y', hh - pad.b + 31).attr('text-anchor', 'end').text('seats');
+    svg.append('text').attr('x', pad.l - 6).attr('y', hh - pad.b + 31).attr('text-anchor', 'end').text('seats');
   }
 
   function drawSmallest(H, w, hh) {
-    const L = H.smallest, pad = { l: 72, r: 24, t: 30, b: 50 };
-    svgB.attr('width', w).attr('height', hh).selectAll('*').remove();
-    const x = d3.scaleBand().domain(L.map((s) => s.year)).range([pad.l, w - pad.r]).padding(0.28);
-    const y = d3.scaleLog().domain([100, 10 ** Math.ceil(Math.log10(d3.max(L, (s) => s.votes) * 1.5))]).range([hh - pad.b, pad.t]);
+    const L = H.smallest, pad = { l: 72, r: 24, t: 30, b: 46 };
+    const x = d3.scalePoint().domain(L.map((s) => s.year)).range([pad.l, w - pad.r]).padding(0.5);
+    const y = d3.scaleLog().domain([100, 10 ** Math.ceil(Math.log10(d3.max(L, (s) => s.votes) * 1.5))]).range([hh - pad.b, pad.t + 24]);
     for (const t of y.ticks().filter((t) => Number.isInteger(Math.log10(t)))) {
-      svgB.append('line').attr('x1', pad.l).attr('x2', w - pad.r).attr('y1', y(t)).attr('y2', y(t)).attr('stroke', RULE).attr('stroke-width', 0.5);
-      svgB.append('text').attr('x', pad.l - 6).attr('y', y(t) + 4).attr('text-anchor', 'end').text(t >= 1e6 ? (t / 1e6) + 'M' : t >= 1000 ? (t / 1000) + 'k' : t);
+      svg.append('line').attr('x1', pad.l).attr('x2', w - pad.r).attr('y1', y(t)).attr('y2', y(t)).attr('stroke', RULE).attr('stroke-width', 0.5);
+      svg.append('text').attr('x', pad.l - 6).attr('y', y(t) + 4).attr('text-anchor', 'end').text(t >= 1e6 ? (t / 1e6) + 'M' : t >= 1000 ? (t / 1000) + 'k' : t);
     }
-    svgB.append('text').attr('class', 'axis-title').attr('x', pad.l).attr('y', 13).text('The smallest change: fewest votes that would have changed each presidential election (log scale)');
-    const g = svgB.append('g').selectAll('g').data(L).join('g').style('cursor', (s) => (s.election ? 'pointer' : 'default'))
+    svg.append('text').attr('class', 'axis-title').attr('x', pad.l).attr('y', 13).text('The smallest change: fewest votes that would have changed each presidential election (log scale)');
+    const step = x.step();
+    const g = svg.append('g').selectAll('g').data(L).join('g').style('cursor', (s) => (s.election ? 'pointer' : 'default'))
       .on('click', (ev, s) => { if (s.election) ctx.openElection(s.election, s.states); })
       .on('mousemove', (ev, s) => ctx.hoverHtml(`<b>${s.year}</b>: ${s.winner} over ${s.runner}<br>Smallest change ${fmt(s.votes)} votes in ${s.states.length} state${s.states.length > 1 ? 's' : ''}:<br>` +
         Object.entries(s.perState).sort((a, b) => b[1] - a[1]).map(([st, n]) => `${ctx.stateName(st)} ${fmt(n)}`).join(', ') +
         (s.election ? `<br><span style="color:${GRAPHITE}">Click to open ${s.year} with these states selected</span>` : ''), ev.clientX, ev.clientY))
       .on('mouseleave', () => ctx.hover(null));
-    g.append('rect').attr('x', (s) => x(s.year)).attr('width', x.bandwidth()).attr('y', (s) => y(Math.max(100, s.votes))).attr('height', (s) => hh - pad.b - y(Math.max(100, s.votes)))
-      .attr('fill', (s) => ctx.colour(s.winnerParty === 'D' ? 40 : -40, true)).attr('opacity', (s) => (s.election ? 0.9 : 0.65));
-    g.append('text').attr('x', (s) => x(s.year) + x.bandwidth() / 2).attr('y', (s) => y(Math.max(100, s.votes)) - 5).attr('text-anchor', 'middle').attr('fill', INK).text((s) => fmt(s.votes));
-    g.append('text').attr('x', (s) => x(s.year) + x.bandwidth() / 2).attr('y', hh - pad.b + 16).attr('text-anchor', 'middle').text((s) => s.year);
-    g.append('text').attr('x', (s) => x(s.year) + x.bandwidth() / 2).attr('y', hh - pad.b + 31).attr('text-anchor', 'middle').attr('fill', INK)
-      .text((s) => { const names = s.states.join(' '); return names.length * 7 <= x.bandwidth() + 8 ? names : x.bandwidth() >= 64 ? `${s.states.length} states` : String(s.states.length); });
-    svgB.append('text').attr('x', pad.l - 6).attr('y', hh - pad.b + 31).attr('text-anchor', 'end').text('states');
-    if (!exporting) svgB.append('text').attr('x', w - pad.r).attr('y', hh - 4).attr('text-anchor', 'end').text('Bar colour: the winner\'s party. Click 2016, 2020 or 2024 to open it.');
+    // A faint guide per election from the dot down to its year, so each dot reads against the axis without a bar.
+    g.append('line').attr('x1', (s) => x(s.year)).attr('x2', (s) => x(s.year)).attr('y1', (s) => y(Math.max(100, s.votes)) + 8).attr('y2', hh - pad.b)
+      .attr('stroke', RULE).attr('stroke-dasharray', '2 3');
+    g.append('circle').attr('cx', (s) => x(s.year)).attr('cy', (s) => y(Math.max(100, s.votes))).attr('r', 7)
+      .attr('fill', (s) => ctx.colour(s.winnerParty === 'D' ? 40 : -40, true)).attr('stroke', '#fff').attr('stroke-width', 1);
+    // Each label must fit its column (measured, since cards draw text larger): the figure in full, else rounded
+    // ("2.69M"); the states named, else counted, else just the count.
+    const fits = (t) => t.getComputedTextLength() <= step - 6;
+    const short = (n) => (n >= 1e6 ? (n / 1e6).toFixed(2) + 'M' : n >= 1e3 ? (n / 1e3).toPrecision(3) + 'k' : String(n));
+    g.append('text').attr('x', (s) => x(s.year)).attr('y', (s) => y(Math.max(100, s.votes)) - 13).attr('text-anchor', 'middle').attr('fill', INK).attr('font-weight', 700)
+      .text((s) => fmt(s.votes)).each(function (s) { if (!fits(this)) this.textContent = short(s.votes); });
+    g.append('text').attr('x', (s) => x(s.year)).attr('y', hh - pad.b + 16).attr('text-anchor', 'middle').text((s) => s.year);
+    g.append('text').attr('x', (s) => x(s.year)).attr('y', hh - pad.b + 32).attr('text-anchor', 'middle').attr('fill', INK)
+      .text((s) => s.states.join(' ')).each(function (s) {
+        for (const t of [`${s.states.length} states`, String(s.states.length)]) { if (fits(this)) break; this.textContent = t; }
+      });
+    svg.append('text').attr('x', pad.l - 6).attr('y', hh - pad.b + 32).attr('text-anchor', 'end').text('states');
+    if (!exporting) svg.append('text').attr('x', w - pad.r).attr('y', pad.t + 6).attr('text-anchor', 'end').text('Dot colour: the winner\'s party. Click 2016, 2020 or 2024 to open it.');
+  }
+
+  function drawWeight(H, w, hh) {
+    const W = H.weight, pad = { l: 72, r: 24, t: 24, b: 30 }, gap = 34;
+    const x = d3.scalePoint().domain(W.map((d) => d.year)).range([pad.l, w - pad.r]).padding(0.5);
+    const step = x.step(), ph = (hh - pad.t - pad.b - gap) / 2;
+    const panels = [
+      { key: 'senate', top: pad.t, title: 'Residents per senator: the most populous state against the least (ratio)',
+        v: (d) => d.senate.ratio, lab: (d) => `${d.senate.big}/${d.senate.small}`,
+        tip: (d) => `<b>${d.year}</b> (census ${d.census})<br>${ctx.stateName(d.senate.big)} ${fmt(d.senate.bigPop)} residents, ${ctx.stateName(d.senate.small)} ${fmt(d.senate.smallPop)}: two senators each<br>One senator from ${ctx.stateName(d.senate.big)} represents ${d.senate.ratio.toFixed(1)}× as many people`,
+        states: (d) => [d.senate.big, d.senate.small] },
+      { key: 'ev', top: pad.t + ph + gap, title: 'Electoral votes per vote cast: the highest state against the lowest (ratio)',
+        v: (d) => d.ev.ratio, lab: (d) => `${d.ev.hi}/${d.ev.lo}`,
+        tip: (d) => `<b>${d.year}</b> (census ${d.census})<br>${ctx.stateName(d.ev.hi)}: ${d.ev.hiEv} electoral votes, ${fmt(d.ev.hiVotes)} votes cast<br>${ctx.stateName(d.ev.lo)}: ${d.ev.loEv} electoral votes, ${fmt(d.ev.loVotes)} votes cast<br>A vote in ${ctx.stateName(d.ev.hi)} carried ${d.ev.ratio.toFixed(2)}× the electoral weight of one in ${ctx.stateName(d.ev.lo)}`,
+        states: (d) => [d.ev.hi, d.ev.lo] },
+    ];
+    for (const p of panels) {
+      const bottom = p.top + ph;
+      const y = d3.scaleLinear().domain([0, d3.max(W, p.v) * 1.18]).range([bottom, p.top + 26]).nice();
+      for (const t of y.ticks(4)) {
+        svg.append('line').attr('x1', pad.l).attr('x2', w - pad.r).attr('y1', y(t)).attr('y2', y(t)).attr('stroke', RULE).attr('stroke-width', 0.5);
+        svg.append('text').attr('x', pad.l - 6).attr('y', y(t) + 4).attr('text-anchor', 'end').text(t ? t + '×' : '0');
+      }
+      svg.append('text').attr('class', 'axis-title').attr('x', pad.l).attr('y', p.top + 4).text(p.title);
+      svg.append('path').datum(W).attr('fill', 'none').attr('stroke', INK).attr('stroke-width', 2.5).attr('d', d3.line().x((d) => x(d.year)).y((d) => y(p.v(d))));
+      const g = svg.append('g').selectAll('g').data(W).join('g').style('cursor', 'pointer')
+        .on('click', (ev, d) => (d.election ? ctx.openElection(d.election, p.states(d)) : ctx.select({ kind: 'states', states: p.states(d) }, { add: shiftOf(ev) })))
+        .on('mousemove', (ev, d) => ctx.hoverHtml(p.tip(d) + `<br><span style="color:${GRAPHITE}">Click to select ${d.election ? `them in ${d.year}` : 'these states'}</span>`, ev.clientX, ev.clientY))
+        .on('mouseleave', () => ctx.hover(null));
+      g.append('circle').attr('cx', (d) => x(d.year)).attr('cy', (d) => y(p.v(d))).attr('r', 4.5).attr('fill', INK);
+      g.append('text').attr('x', (d) => x(d.year)).attr('y', (d) => y(p.v(d)) - 10).attr('text-anchor', 'middle').attr('fill', INK).attr('font-weight', 700)
+        .text((d) => p.v(d).toFixed(p.key === 'senate' ? 0 : 1) + '×');
+      // The two states, under each point, when there is room; the hover always names them.
+      if (step >= 44) g.append('text').attr('x', (d) => x(d.year)).attr('y', (d) => y(p.v(d)) + 18).attr('text-anchor', 'middle').text(p.lab);
+    }
+    for (const d of W) svg.append('text').attr('x', x(d.year)).attr('y', hh - pad.b + 16).attr('text-anchor', 'middle').text(d.year);
   }
   return { build, draw };
 }

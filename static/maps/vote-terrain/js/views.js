@@ -40,6 +40,10 @@ export function createSavedViews({ registry, bal, eff, houseData, histData, elec
     calc.hist = { first: P[0], last, capYear: histData.cap.signed.slice(0, 4), lastHiName: stName(last.hi), lastHiV: last.states[last.hi].perSeat,
       lastLoName: stName(last.lo), lastLoV: last.states[last.lo].perSeat, smallFirst: L[0].year, smallLast: L[L.length - 1].year,
       smallMin: byVotes[0], smallMax: byVotes[byVotes.length - 1] };
+    // Weight per vote over time: the first and last presidential year, with the states named.
+    const Wt = histData.weight, wF = Wt[0], wL = Wt[Wt.length - 1];
+    Object.assign(calc.hist, { wFirst: wF, wLast: wL, wLastBigName: stName(wL.senate.big), wLastSmallName: stName(wL.senate.small),
+      wLastHiName: stName(wL.ev.hi), wLastLoName: stName(wL.ev.lo), wFirstHiName: stName(wF.ev.hi), wFirstLoName: stName(wF.ev.lo) });
   }
   const roots = { bal, eff, house: houseData, hist: histData, elections, calc };
   const FILTERS = {

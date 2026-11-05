@@ -291,6 +291,9 @@ views = createViews2d({
   fill: (f) => `rgb(${model.colourRaw(f).join(',')})`,
   house: () => house.now(),
   history: () => histData,
+  // Which History chart is drawn (state.hc), and the switch that changes it.
+  historyChart: () => state.hc,
+  setHistoryChart: (k) => { state.hc = k; render({ animate: false }); },
   // A History bar: open that election on the map with its smallest-change states selected, as the balance box's line does.
   openElection: (e, states) => { state.e = e; state.w = hasGL ? 'terrain' : 'circles'; render({ animate: false }); setSelection({ states }, { frame: true }); },
   // The states the selection touches: chosen whole, or holding a selected county.
@@ -359,7 +362,7 @@ function render(opts = {}) {
   $('worthRow').hidden = state.l !== 'worth';
   document.querySelectorAll('[data-wh]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.wh === state.h));
   const per = state.n === 'county' ? 'per county' : 'per sq mi', vw = effW();
-  $('keyHeight').textContent = vw === 'history' ? 'Dots: each state; line: the national average' : vw === 'strips' ? 'Tick: one district; shading: at risk and contestable' : vw === 'seats' ? 'Point area: districts in the state' : vw === 'dots' ? 'Dot area: votes' : vw === 'scatter' ? 'Circle area: votes' : vw === 'arrows' ? 'Arrow length: swing'
+  $('keyHeight').textContent = vw === 'history' ? { seats: 'Dots: each state; line: the national average', small: 'Dots: each election, on a log scale', weight: 'Lines: largest against smallest, as a ratio' }[state.hc] : vw === 'strips' ? 'Tick: one district; shading: at risk and contestable' : vw === 'seats' ? 'Point area: districts in the state' : vw === 'dots' ? 'Dot area: votes' : vw === 'scatter' ? 'Circle area: votes' : vw === 'arrows' ? 'Arrow length: swing'
     : vw === 'circles' ? (state.h === 'pop' ? 'Area: represented people' : 'Circle area: votes')
     : state.d === '2d' ? 'Flat map: colour only' : state.h === 'pop' ? 'Height: represented people'
     : state.h === 'net' ? `Height: net margin ${per}` : state.h === 'ev' || state.h === 'sen' ? `Height: votes × ${state.h === 'ev' ? 'electoral' : 'Senate'} weight`
@@ -404,11 +407,15 @@ function render(opts = {}) {
   $('rampLabels').innerHTML = wt ? '<span>¼×</span><span>average</span><span>4×</span>' : m
     ? `<span>R+${max}</span><span>even</span><span>D+${max}</span>`
     : `<span>${max} R</span><span>no change</span><span>${max} D</span>`;
-  if (vw === 'history') {   // the bars' colour is the winning party, not a margin
-    $('keyTitle').textContent = 'Bars: the winner\'s party';
+  if (vw === 'history' && state.hc === 'small') {   // the dots' colour is the winning party, not a margin
+    $('keyTitle').textContent = 'Dots: the winner\'s party';
     $('ramp').innerHTML = `<i style="background:${toward(-40, MARGIN_MAX)}"></i><i style="background:${toward(40, MARGIN_MAX)}"></i>`;
     $('rampLabels').innerHTML = '<span>Republican</span><span>Democratic</span>';
+  } else if (vw === 'history') {   // no colour scale: one ink for the national line or the two ratios
+    $('keyTitle').textContent = state.hc === 'seats' ? 'Residents per House seat' : 'Weight per vote';
+    $('ramp').innerHTML = ''; $('rampLabels').innerHTML = '';
   }
+  $('ramp').hidden = $('rampLabels').hidden = vw === 'history' && state.hc !== 'small';
   $('rankBtn').hidden = !effShown() || !eff.elections[state.e];
   if (about.isRankOpen()) about.renderRank();
 

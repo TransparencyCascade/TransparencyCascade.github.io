@@ -114,7 +114,8 @@
       "sources": "{hist.sources.perSeat}. {hist.cap.source}.",
       "state": {
         "e": "pres2024",
-        "w": "history"
+        "w": "history",
+        "hc": "seats"
       }
     },
     {
@@ -125,7 +126,20 @@
       "sources": "{hist.sources.smallest}",
       "state": {
         "e": "pres2024",
-        "w": "history"
+        "w": "history",
+        "hc": "small"
+      }
+    },
+    {
+      "slug": "weight-over-time",
+      "title": "The weight of a vote, 1976 to 2024",
+      "file": "The weight of a vote, largest against smallest, {calc.hist.wFirst.year|raw} to {calc.hist.wLast.year|raw}",
+      "caption": "In {calc.hist.wLast.year|raw} one senator from {calc.hist.wLastBigName} represented {calc.hist.wLast.senate.ratio|x} as many residents as one from {calc.hist.wLastSmallName}; in {calc.hist.wFirst.year|raw}, {calc.hist.wFirst.senate.ratio|x}. A vote cast in {calc.hist.wLastHiName} carried {calc.hist.wLast.ev.ratio|x} the electoral weight of one cast in {calc.hist.wLastLoName} in {calc.hist.wLast.year|raw}; in {calc.hist.wFirst.year|raw} the widest gap was {calc.hist.wFirst.ev.ratio|x}, {calc.hist.wFirstHiName} against {calc.hist.wFirstLoName}.",
+      "sources": "{hist.sources.weight}",
+      "state": {
+        "e": "pres2024",
+        "w": "history",
+        "hc": "weight"
       }
     }
   ],

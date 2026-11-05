@@ -3,9 +3,10 @@
    d 3d | 2d, u which party is up (net margin), n height scale (area | county), l lens, g ghost of the
    previous race, w view tab, sel the selection: states (s:CA,NV), a rule from a drag (r:, q:, b:) or a
    list of counties (c:). ps: the plausible swing behind the House bands (points, 'state', or empty for the
-   default). */
+   default). hc: which History chart (seats: residents per House seat; small: the smallest change; weight: weight
+   per vote over time). */
 import { parsePs } from './house.js';
-export const state = { e: 'pres2024', h: 'total', c: 'margin', s: 'terrain', m: '1', v: 'west', d: '3d', u: 'd', n: 'area', l: 'votes', g: '0', w: 'terrain', sel: '', ps: '' };
+export const state = { e: 'pres2024', h: 'total', c: 'margin', s: 'terrain', m: '1', v: 'west', d: '3d', u: 'd', n: 'area', l: 'votes', g: '0', w: 'terrain', sel: '', ps: '', hc: 'seats' };
 // Districts and Seats and votes draw the House track (results by district); History draws the long view on any track;
 // the others need county results.
 export const TABS = ['terrain', 'circles', 'arrows', 'dots', 'scatter', 'strips', 'seats', 'history'];
@@ -36,5 +37,6 @@ export const fromHash = (order) => {
   if (!['margin', 'swing', 'weight'].includes(state.c)) state.c = 'margin';
   state.sel = q.get('sel') || '';
   state.ps = parsePs(q.get('ps') || '');
+  if (!['seats', 'small', 'weight'].includes(state.hc)) state.hc = 'seats';
 };
 export const toHash = () => history.replaceState(null, '', '#' + new URLSearchParams(state).toString());

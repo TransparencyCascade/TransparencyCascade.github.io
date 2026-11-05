@@ -203,18 +203,33 @@ const SCENARIOS = [
   { name: 'y-history', hash: 'w=history' },
   { name: 'y-history-house', hash: 'e=house2026&w=history' },
   { name: 'y-history-sel', hash: 'w=history&sel=s:WY,CA' },
-  { name: 'y-history-hover', hash: 'w=history', act: async (page) => { const b = await page.locator('#v2d svg.hist-seats > g:last-of-type circle').last().boundingBox(); await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.waitForTimeout(250); }, tip: true },
+  { name: 'y-history-hover', hash: 'w=history', act: async (page) => { const b = await page.locator('#v2d svg.hist-chart > g:last-of-type circle').last().boundingBox(); await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.waitForTimeout(250); }, tip: true },
   { name: 'y-history-table', hash: 'w=history', act: key('t') },
   { name: 'y-history-data', hash: 'w=history', probe: (page) => page.evaluate(async () => {
     const H = await (await fetch('history.json')).json(), bal = await (await fetch('balance.json')).json();
     const seatsOk = H.perSeat.every((e) => Object.values(e.states).reduce((a, s) => a + s.seats, 0) === e.seats);
     const balOk = H.smallest.filter((s) => s.election).every((s) => bal.elections[s.election].smallest.president.votes === s.votes);
-    const bars = document.querySelectorAll('#v2d svg.hist-small rect').length, dots = document.querySelectorAll('#v2d svg.hist-seats circle').length;
-    return { censuses: H.perSeat.length, elections: H.smallest.length, bars, dots, seatsOk, balOk, ok: seatsOk && balOk && bars === H.smallest.length && H.perSeat[H.perSeat.length - 1].perSeat === 761169 }; }) },
-  { name: 'y-history-open', hash: 'w=history', act: async (page) => { await page.locator('#v2d svg.hist-small g g').nth(10).click(); },
+    const dots = document.querySelectorAll('#v2d svg.hist-chart circle').length, rects = document.querySelectorAll('#v2d svg.hist-chart rect').length;
+    return { censuses: H.perSeat.length, elections: H.smallest.length, dots, rects, seatsOk, balOk, ok: seatsOk && balOk && rects === 0 && dots > H.perSeat.length && H.perSeat[H.perSeat.length - 1].perSeat === 761169 }; }) },
+  // The smallest change: dots on the log scale, never bars (a bar's length is not proportional to its value there).
+  { name: 'y-history-small', hash: 'w=history&hc=small', probe: (page) => page.evaluate(async () => {
+    const H = await (await fetch('history.json')).json();
+    const dots = document.querySelectorAll('#v2d svg.hist-chart g g circle').length, rects = document.querySelectorAll('#v2d svg.hist-chart rect').length;
+    return { dots, rects, ok: dots === H.smallest.length && rects === 0 }; }) },
+  { name: 'y-history-open', hash: 'w=history&hc=small', act: async (page) => { await page.locator('#v2d svg.hist-chart g g').nth(10).locator('circle').click(); },
     probe: (page) => page.evaluate(() => ({ e: window.__vt.state.e, w: window.__vt.effW(), sel: window.__vt.state.sel })) },
-  ...['residents-per-seat', 'smallest-change-history'].map((v) => ({ name: `v-view-${v}`, query: `view=${v}`,
-    probe: (page) => page.evaluate(() => ({ card: document.getElementById('viewCard').innerText.replace(/\s+/g, ' '), w: window.__vt.effW() })) })),
+  // Weight per vote over time: two ratios per presidential year, checked against history.json.
+  { name: 'y-history-weight', hash: 'w=history&hc=weight', probe: (page) => page.evaluate(async () => {
+    const H = await (await fetch('history.json')).json(), W = H.weight, first = W[0], last = W[W.length - 1];
+    const pts = document.querySelectorAll('#v2d svg.hist-chart g g circle').length;
+    return { pts, y1976: [first.senate.ratio, first.ev.ratio], y2024: [last.senate.ratio, last.ev.ratio],
+      ok: pts === 2 * W.length && W.every((w) => w.senate.ratio > 1 && w.ev.ratio > 1) && first.year === 1976 && last.year === 2024 }; }) },
+  { name: 'y-history-weight-open', hash: 'w=history&hc=weight', act: async (page) => { await page.locator('#v2d svg.hist-chart > g').last().locator('g').last().locator('circle').click(); },
+    probe: (page) => page.evaluate(() => ({ e: window.__vt.state.e, w: window.__vt.effW(), sel: window.__vt.state.sel })) },
+  { name: 'y-history-weight-table', hash: 'w=history&hc=weight', act: key('t') },
+  ...['residents-per-seat', 'smallest-change-history', 'weight-over-time'].map((v) => ({ name: `v-view-${v}`, query: `view=${v}`,
+    probe: (page) => page.evaluate(() => ({ card: document.getElementById('viewCard').innerText.replace(/\s+/g, ' '), w: window.__vt.effW(), hc: window.__vt.state.hc,
+      charts: document.querySelectorAll('#v2d svg.hist-chart').length })) })),
   { name: 'n-nogl-house', hash: 'e=house2026&w=seats', gl: false },
   { name: 'n-nogl', hash: 'w=terrain', gl: false },
   { name: 'n-nogl-blocks', hash: 's=blocks', gl: false },

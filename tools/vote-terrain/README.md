@@ -50,10 +50,14 @@ Run from the repository root, in this order (each step reads what the one before
    state file in every state and year; margins agree with the CSV. Rules in its docstring.
 
 8. `python3 -I tools/vote-terrain/build_history.py ~/tcp-kb-internal/cascade-research/notes/data/vt-history static/maps/vote-terrain/balance.json static/maps/vote-terrain/history.json`
-   The History tab: residents per House seat at each census since 1910 (Census Bureau apportionment file) and the
-   smallest change in each presidential election since 1976 (MIT state totals), from the files gathered for
-   `vt-historical-depth-house-and-presidential` (method note `vt-historical-depth-method-note.md`). Checks: state seats
-   add to the national row at every census; 2016, 2020 and 2024 equal `balance.json`'s smallest change.
+   The History tab (one chart at a time, `hc=seats|small|weight`): residents per House seat at each census since
+   1910 (Census Bureau apportionment file), the smallest change in each presidential election since 1976 (MIT state
+   totals), and the weight of a vote in each presidential year since 1976 (residents per senator and electoral votes
+   per vote cast, largest against smallest, using the census in force: the last taken at least two years before the
+   election), from the files gathered for `vt-historical-depth-house-and-presidential` (method note
+   `vt-historical-depth-method-note.md`). Reads `elections.json` beside the output to link years the page has.
+   Checks: state seats add to the national row at every census; electoral votes add to 538 every year; 2016, 2020
+   and 2024 equal `balance.json`'s smallest change.
 
 `geometry_codec.mjs` packs the geometry (lossless; it checks the round trip). To convert a geometry.json in
 the old shape: `node tools/vote-terrain/geometry_codec.mjs <old geometry.json> static/maps/vote-terrain`.
