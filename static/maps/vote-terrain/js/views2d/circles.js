@@ -7,6 +7,7 @@ import { INK, DIM } from './style.js';
 export function circlesView({ ctx, DUR, head, body, foot, place, inSel, shiftOf, longPress, statePath, W0 }) {
   let svg, g, gSt, gC, box, zoom, k0 = 1, cur = new Map(), lay = null, fitted = null;
   function build() {
+    fitted = null;                     // a new svg starts unzoomed: fit it on its first draw, whatever the size
     // How to use it sits behind an "i": read once, it should not take a line of the view.
     head.innerHTML = '<span class="v2d-ref" aria-hidden="true"></span><button class="lens-i" aria-label="How to use Circles">i</button>';
     ctx.infoButton(head.querySelector('.lens-i'), () => (window.matchMedia('(pointer: coarse)').matches
@@ -57,11 +58,13 @@ export function circlesView({ ctx, DUR, head, body, foot, place, inSel, shiftOf,
     svg.transition().duration(DUR).call(zoom.transform, d3.zoomIdentity.translate(w / 2 - k * (b[0] + b[2]) / 2, h / 2 - k * (b[1] + b[3]) / 2).scale(k));
   }
   function draw(animate = true) {
+    // The foot's text first: it takes height from the map, so the fit below must see it.
+    lay = ctx.circles();
+    foot.textContent = lay ? '' : 'Loading the circles…';
     const { w, h } = place();
     svg.attr('width', w).attr('height', h);
     if (fitted !== w + 'x' + h) { fitted = w + 'x' + h; svg.call(zoom.transform, fit()); zoom.scaleExtent([k0 * 0.8, k0 * 24]); }
-    lay = ctx.circles();
-    if (!lay) { foot.textContent = 'Loading the circles…'; return; }
+    if (!lay) return;
     const S = inSel(), list = Object.keys(lay.p).filter((f) => ctx.size(f) > 0);
     cur = new Map(list.map((f) => [f, { x: lay.p[f][0], y: lay.p[f][1], r: Math.sqrt(lay.r * ctx.size(f)) }]));
     const k = (d3.zoomTransform(svg.node()).k || k0) / k0;
@@ -77,7 +80,6 @@ export function circlesView({ ctx, DUR, head, body, foot, place, inSel, shiftOf,
     // Reference circle, at the map's current scale.
     const unit = ctx.sizeUnit(), ref = unit.ref, rr = Math.sqrt(lay.r * ref) * (d3.zoomTransform(svg.node()).k || k0);
     head.querySelector('.v2d-ref').innerHTML = `<svg width="${Math.ceil(rr * 2 + 4)}" height="${Math.ceil(rr * 2 + 4)}" style="vertical-align:middle"><circle cx="${rr + 2}" cy="${rr + 2}" r="${rr}" fill="none" stroke="${INK}" stroke-width="1.2"/></svg> ${unit.label}`;
-    foot.textContent = '';
   }
   return { build, draw, reset, zoomTo };
 }

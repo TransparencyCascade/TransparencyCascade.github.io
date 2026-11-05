@@ -6,6 +6,7 @@ export function arrowsView({ ctx, meta, DUR, head, body, foot, place, inSel, shi
   let svg, g, zoom, gMap, gArr, zoomedSt = null, byVotes = false, exceptions = false, k0 = 1, fitted = null;
   const PX_PER_POINT = 0.8;            // arrow length per point of swing, in map units at national scale
   function build() {
+    fitted = null;                     // a new svg starts unzoomed: fit it on its first draw, whatever the size
     head.innerHTML = '<div class="seg v2d-seg" role="group" aria-label="Arrow options"><button data-a="votes" aria-pressed="false">Width by votes</button><button data-a="exc" aria-pressed="false">Only the exceptions</button></div>' +
       '<span class="v2d-ref" aria-hidden="true"></span>';
     head.querySelector('[data-a="votes"]').addEventListener('click', (e) => { byVotes = !byVotes; e.currentTarget.setAttribute('aria-pressed', byVotes); draw(false); });
@@ -46,6 +47,8 @@ export function arrowsView({ ctx, meta, DUR, head, body, foot, place, inSel, shi
     return `M${c[0].toFixed(1)},${c[1].toFixed(1)}L${x1.toFixed(1)},${y1.toFixed(1)}M${h1[0].toFixed(1)},${h1[1].toFixed(1)}L${x1.toFixed(1)},${y1.toFixed(1)}L${h2[0].toFixed(1)},${h2[1].toFixed(1)}`;
   };
   function draw(animate = true) {
+    // The foot's text first: it takes height from the map, so the fit below must see it.
+    foot.textContent = `Arrows: swing since ${ctx.baselineLabel()}. Click a state to zoom in; click a county there to select it. Shift-click to add.`;
     const { w, h } = place();
     svg.attr('width', w).attr('height', h);
     if (fitted !== w + 'x' + h) { fitted = w + 'x' + h; svg.call(zoom.transform, fit()); zoom.scaleExtent([k0, k0 * 14]); }
@@ -68,7 +71,6 @@ export function arrowsView({ ctx, meta, DUR, head, body, foot, place, inSel, shi
     const L = 20 * PX_PER_POINT * (d3.zoomTransform(svg.node()).k || k0);
     head.querySelector('.v2d-ref').innerHTML = `<svg width="${Math.ceil(L * 0.75 + 16)}" height="${Math.ceil(L * 0.75 + 10)}" style="vertical-align:middle"><path d="M${L * 0.71 + 6},${L * 0.71 + 4}L6,4M6,${4 + Math.min(8, L * .3)}L6,4L${6 + Math.min(8, L * .3)},4" stroke="${INK}" stroke-width="1.5" fill="none"/></svg> 20 points toward the Democrat; ` +
       `${fmt(toD)} counties moved toward the Democrat, ${fmt(toR)} toward the Republican${exceptions ? '; only the exceptions shown' : ''}`;
-    foot.textContent = `Arrows: swing since ${ctx.baselineLabel()}. Click a state to zoom in; click a county there to select it. Shift-click to add.`;
   }
   return { build, draw, reset: () => { zoomedSt = null; reset(); }, zoomTo };
 }
