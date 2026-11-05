@@ -27,7 +27,7 @@ compared and every difference is listed in "checks".
 Unreported money is described, never estimated: see "unreported" in the output. Races where the FEC files cannot name the
 seat (two Senate seats in a state in one cycle) carry votes but no dollars.
 """
-import csv, collections, datetime, hashlib, io, json, math, os, re, sys, urllib.request, zipfile
+import csv, collections, datetime, io, json, os, re, subprocess, sys, urllib.request, zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '../..'))
@@ -37,7 +37,7 @@ CACHE = os.path.abspath(opt('--cache', os.path.join(HERE, '.fec-cache')))
 OUT = os.path.abspath(opt('--out', os.path.join(REPO, 'static/maps/vote-terrain/money.json')))
 PAGE = os.path.dirname(OUT)
 HIST = os.path.expanduser('~/tcp-kb-internal/cascade-research/notes/data/vt-history')
-CYCLES = list(range(2008, 2026, 2))
+CYCLES = list(range(2008, 2028, 2))      # 2026 is partial: filings through the files' dates (see 'coverage' in the output)
 THRESH = 5000      # a person is a federal candidate (FEC) on receiving or spending more than $5,000; IE rows naming anyone below it are excluded and listed
 UA = {'User-Agent': 'Mozilla/5.0 (vote-terrain build_money.py)'}
 os.makedirs(CACHE, exist_ok=True)
@@ -148,8 +148,6 @@ def filter_pas2(c):
     small = os.path.join(CACHE, f'pas2-{c}-24ACE.psv')
     if not os.path.exists(small):
         z, m = fetch(f'https://www.fec.gov/files/bulk-downloads/{c}/pas2{yy(c)}.zip', f'pas2{yy(c)}.zip')
-        PC = ['CMTE_ID', 'AMNDT_IND', 'RPT_TP', 'TRANSACTION_PGI', 'IMAGE_NUM', 'TRANSACTION_TP', 'ENTITY_TP', 'NAME', 'CITY', 'STATE', 'ZIP_CODE', 'EMPLOYER',
-              'OCCUPATION', 'TRANSACTION_DT', 'TRANSACTION_AMT', 'OTHER_ID', 'CAND_ID', 'TRAN_ID', 'FILE_NUM', 'MEMO_CD', 'MEMO_TEXT', 'SUB_ID']
         kept = 0
         with zipfile.ZipFile(z) as zf, zf.open([n for n in zf.namelist() if n.endswith('.txt')][0]) as src, open(small, 'w', newline='') as out:
             w = csv.writer(out, delimiter='|')
@@ -174,30 +172,33 @@ def get_ie(c):
 
 # ---------------------------------------------------------------- outside money
 def pas2_rows(c):
-    """(type, cand_id, usd) from pas2 24A/24C/24E, latest version per (committee, tran id), terminated and memo rows dropped."""
+    """(type, cand_id, usd, committee) from pas2 24A/24C/24E, latest version per (committee, tran id), terminated and memo rows dropped."""
     best = {}
     for r in csv.reader(open(filter_pas2(c), newline=''), delimiter='|'):
-        cmte, amnd, tp, dt, amt, cid, tid, fnum, memo = r
+        cmte, amnd, tp, _dt, amt, cid, tid, fnum, memo = r
         if memo == 'X':
             continue
         k = (cmte, tid)
         if k not in best or int(fnum or 0) >= best[k][0]:
-            best[k] = (int(fnum or 0), amnd, tp, cid, num(amt))
-    return [(tp, cid, amt) for (fn, amnd, tp, cid, amt) in best.values() if amnd != 'T']
+            best[k] = (int(fnum or 0), amnd, tp, cid, num(amt), cmte)
+    return [(tp, cid, amt, cmte) for (_fn, amnd, tp, cid, amt, cmte) in best.values() if amnd != 'T']
 
 
 def ie_rows(c):
     """(sup_opp, cand_id, office, state, district, ele_type, usd) from the IE file, latest version per (committee, tran id)."""
     best, raw = {}, 0.0
-    with open(get_ie(c), newline='', encoding='utf-8', errors='replace') as f:
+    path = get_ie(c)
+    assert path, 'no independent expenditure file before 2010'
+    with open(path, newline='', encoding='utf-8', errors='replace') as f:
         for r in csv.DictReader(f):
             raw += num(r['exp_amo'])
             k = (r['spe_id'], r['tran_id'])
             fn = int(r['file_num'] or 0)
             if k not in best or fn >= best[k][0]:
                 best[k] = (fn, r)
-    rows = [(r['sup_opp'], r['cand_id'], r['can_office'], r['can_office_state'], r['can_office_dis'], r['ele_type'], num(r['exp_amo']), r['cand_name'])
-            for fn, r in best.values() if r['amndt_ind'] != 'T']
+    rows = [(r['sup_opp'], r['cand_id'], r['can_office'], r['can_office_state'], r['can_office_dis'], r['ele_type'], num(r['exp_amo']), r['cand_name'], r['spe_id'],
+             r['exp_date'] or r['dissem_dt'])
+            for _fn, r in best.values() if r['amndt_ind'] != 'T']
     return rows, raw
 
 
@@ -235,19 +236,17 @@ def load_votes():
         else:
             sen[k] = None            # not a Democrat against a Republican
     sim = json.load(open(os.path.join(PAGE, 'simulator.json')))
-    SRC_SIM = {'file': 'simulator.json', 'note': 'the page\'s own file, from build_simulator.py (certified results; 2026 not used here)'}
+    SRC_SIM = {'file': 'simulator.json', 'note': 'the page\'s own file, from build_simulator.py (certified results 2016-2024; 2026 is the unofficial AP-via-CNN feed, flagged unofficial on each race)'}
     SOURCES['simulator'] = SRC_SIM
     for ds, day in sim['days'].items():
         y = int(ds)
-        if y > 2024:
-            continue
         for r in day['senate']['races']:
             st = r['st']; special = r['id'].endswith('-special')
             k = (y, st, special)
-            new = None if not r.get('rName') or not r.get('dName') or not r['R'] or not r['D'] else (int(r['D']), int(r['R']), r['dName'], r['rName'], 'simulator')
+            new = None if not r.get('rName') or not r.get('dName') or not r['R'] or not r['D'] else (int(r['D']), int(r['R']), r['dName'], r['rName'], 'simulator' if y < 2026 else 'simulator-unofficial')
             old = sen.get(k, 'absent')
             if old == 'absent':
-                if new:
+                if new and y < 2026:
                     checks.append(f'senate {k}: in simulator.json but not in the MIT file (simulator used)')
             elif new is None:
                 if old is not None:
@@ -258,7 +257,7 @@ def load_votes():
             elif (old[0], old[1]) != (new[0], new[1]):
                 checks.append(f'senate {k}: votes differ, simulator D {new[0]} R {new[1]}, MIT D {old[0]} R {old[1]} (simulator used)')
             sen[k] = new
-        for st, (d, r_, ev) in (day.get('pres') or {'states': {}})['states'].items():
+        for st, (d, r_, _ev) in (day.get('pres') or {'states': {}})['states'].items():
             pres[(y, st)] = (int(d), int(r_), 'simulator')
     mp = os.path.join(HIST, 'president-by-state-1976-2024-mit.csv')
     SOURCES['mit-president'] = {'file': 'president-by-state-1976-2024-mit.csv (cascade-research/notes/data/vt-history)', 'note': 'MIT Election Data and Science Lab, U.S. President 1976-2024, doi:10.7910/DVN/42MVDX (CC0)'}
@@ -272,6 +271,257 @@ def load_votes():
             else:
                 pres[k] = v
     return sen, pres, checks
+
+
+# ---------------------------------------------------------------- committee totals and donors
+WK_COLS = ['CMTE_ID', 'CMTE_NM', 'CMTE_TP', 'CMTE_DSGN', 'CMTE_FILING_FREQ', 'TTL_RECEIPTS', 'TRANS_FROM_AFF', 'INDV_CONTRIB', 'OTHER_POL_CMTE_CONTRIB',
+           'CAND_CONTRIB', 'CAND_LOANS', 'TTL_LOANS_RECEIVED', 'TTL_DISB', 'TRANF_TO_AFF', 'INDV_REFUNDS', 'OTHER_POL_CMTE_REFUNDS', 'CAND_LOAN_REPAY',
+           'LOAN_REPAY', 'COH_BOP', 'COH_COP', 'DEBTS_OWED_BY', 'NONFED_TRANS_RECEIVED', 'CONTRIB_TO_OTHER_CMTE', 'IND_EXP', 'PTY_COORD_EXP',
+           'NONFED_SHARE_EXP', 'CVG_END_DT']
+# ActBlue and WinRed are committee type V (hybrid) but pass earmarked gifts through to candidates and committees: their
+# billions are conduit traffic, not outside spending, so they are listed apart and left out of the hybrid totals.
+CONDUITS = {'C00401224': 'ActBlue', 'C00694323': 'WinRed'}
+GROUPS = [('superPac', 'independent-expenditure-only committees (super PACs, committee type O)'),
+          ('hybrid', 'hybrid PACs (types V and W, without the two conduits)'),
+          ('party', 'party committees (types Y and Z)'),
+          ('conduit', 'ActBlue and WinRed (type V; earmarked gifts passed through; not counted as outside money)')]
+
+
+def group_of(r):
+    if r['CMTE_ID'] in CONDUITS:
+        return 'conduit'
+    return {'O': 'superPac', 'V': 'hybrid', 'W': 'hybrid', 'Y': 'party', 'Z': 'party'}.get(r['CMTE_TP'])
+
+
+def iso_mdy(s):
+    """FEC MMDDYYYY (or M/D/YYYY) to ISO; '' when it is not a date."""
+    m = re.match(r'^(\d{1,2})/?(\d{1,2})/?(\d{4})$', s or '')
+    return f'{m.group(3)}-{int(m.group(1)):02d}-{int(m.group(2)):02d}' if m else ''
+
+
+def get_webk(c):
+    txt = os.path.join(CACHE, f'webk{yy(c)}.txt')
+    if not os.path.exists(txt) or not os.path.exists(txt + '.meta.json'):
+        z, m = fetch(f'https://www.fec.gov/files/bulk-downloads/{c}/webk{yy(c)}.zip', f'webk{yy(c)}.zip')
+        unzip_member(z, r'\.txt$', txt)
+        os.replace(z + '.meta.json', txt + '.meta.json')
+    m = json.load(open(txt + '.meta.json'))
+    register(f'webk{yy(c)}', f'webk{yy(c)}.zip', m, 'PAC and party summary file: one row per committee, totals for the two-year cycle')
+    return [r for r in read_pipe(txt, WK_COLS)]
+
+
+def stream_indiv(c, ids):
+    """Itemized individual contributions (indiv<YY>.zip, Schedule A line 11A) to the given committees. The zip is 0.1 to 5.9 GB, so it is
+    streamed (curl into bsdtar into this filter) and never written to disk; only the rows for these committees are kept, to a small file."""
+    small = os.path.join(CACHE, f'indiv-{c}-superpac.psv')
+    meta = small + '.meta.json'
+    if not os.path.exists(small) or not os.path.exists(meta):
+        url = f'https://www.fec.gov/files/bulk-downloads/{c}/indiv{yy(c)}.zip'
+        with urllib.request.urlopen(urllib.request.Request(url, headers=UA, method='HEAD'), timeout=120) as r:
+            lm = r.headers.get('Last-Modified')
+        want = {i.encode() for i in ids}
+        cu = subprocess.Popen(['curl', '-sSL', '--fail', '-A', UA['User-Agent'], url], stdout=subprocess.PIPE)
+        bt = subprocess.Popen(['bsdtar', '-xOf', '-'], stdin=cu.stdout, stdout=subprocess.PIPE)
+        assert cu.stdout and bt.stdout
+        cu.stdout.close()
+        kept = 0
+        with open(small + '.part', 'wb') as out:
+            for line in bt.stdout:
+                if line[:9] in want:
+                    out.write(line); kept += 1
+        if bt.wait() != 0 or cu.wait() != 0:
+            os.remove(small + '.part')
+            raise RuntimeError(f'streaming {url} failed')
+        os.replace(small + '.part', small)
+        json.dump({'url': url, 'retrieved': datetime.date.today().isoformat(), 'lastModified': lm, 'kept': kept}, open(meta, 'w'))
+    m = json.load(open(meta))
+    register(f'indiv{yy(c)}', f'indiv{yy(c)}.zip', m, 'itemized contributions from individuals and other non-committee persons; streamed, only rows for super PAC recipients kept')
+    return small
+
+
+INDIV_COLS = ['CMTE_ID', 'AMNDT_IND', 'RPT_TP', 'TRANSACTION_PGI', 'IMAGE_NUM', 'TRANSACTION_TP', 'ENTITY_TP', 'NAME', 'CITY', 'STATE', 'ZIP_CODE', 'EMPLOYER',
+              'OCCUPATION', 'TRANSACTION_DT', 'TRANSACTION_AMT', 'OTHER_ID', 'TRAN_ID', 'FILE_NUM', 'MEMO_CD', 'MEMO_TEXT', 'SUB_ID']
+
+
+TITLES = {'MR', 'MRS', 'MS', 'MISS', 'DR', 'HON', 'SEN', 'REP', 'PROF', 'JR', 'SR', 'II', 'III', 'IV', 'ESQ', 'MD', 'PHD'}
+ORG_WORDS = re.compile(r'\b(ASSOCIATION|ASSN|FUND|PAC|COMMITTEE|INC|LLC|LP|LLP|CORP|CORPORATION|COMPANY|PARTNERS|PARTNERSHIP|TRUST|FOUNDATION|UNION|LOCAL|COUNCIL|FEDERATION|'
+                       r'ADVOCACY|PARTY|BANK|GROUP|CLUB|SOCIETY|NETWORK|ENTERPRISES|HOLDINGS|CAPITAL|ALLIANCE|COALITION|INSTITUTE|AMERICA)\b')
+
+
+def person_key(n, st):
+    """(surname, first name, state) for an entry filed as an individual ('LAST, FIRST ...'), titles and suffixes dropped; None when the name is not a person's
+    (no comma, or a word an organisation's name carries): such entries are totalled with the organisations. The FEC has no donor id, so one surname, first name and
+    state is one donor here (a middle initial or 'MR.' does not make a second one; two different people sharing all three would be merged)."""
+    up = re.sub(r'\s+', ' ', re.sub(r'[^A-Z, ]', ' ', (n or '').upper())).strip()
+    if ',' not in up or ORG_WORDS.search(up):
+        return None
+    sur, rest = up.split(',', 1)
+    toks = [t for t in rest.split() if t not in TITLES]
+    return (sur.strip(), toks[0] if toks else '', st)
+
+
+def display_name(n):
+    return ' '.join(t for t in re.sub(r'\s+', ' ', n.strip()).split(' ') if t.strip('.').upper() not in TITLES)
+
+
+def donor_stats(c, sp):
+    """Donor concentration for super PAC receipts in cycle c. sp: webk rows of the type O committees. Lines are deduplicated to the latest version per
+    (committee, transaction), terminated rows dropped. Individuals (entity type IND) are keyed by upper-cased name and state (the FEC has no donor id, so
+    two people of one name in one state are one donor here); memo lines (MEMO_CD X) are attributions, not additive, and are totalled apart;
+    organisations (companies, LLCs, committees) are totalled apart and never ranked among individuals."""
+    ids = {r['CMTE_ID'] for r in sp}
+    path = stream_indiv(c, ids)
+    cn = {r['CMTE_ID']: r['CMTE_NM'] for r in sp}
+    best = {}
+    for row in csv.reader(open(path, newline='', encoding='latin-1'), delimiter='|'):
+        if len(row) < 20:
+            continue
+        r = dict(zip(INDIV_COLS, row))
+        k = (r['CMTE_ID'], r['TRAN_ID'] or r['SUB_ID'])
+        fn = int(r['FILE_NUM'] or 0)
+        if k not in best or fn >= best[k][0]:
+            best[k] = (fn, r)
+    types = collections.Counter()
+    don = {}
+    org_total = memo_org = 0.0     # organisations: companies, LLCs, associations and entries whose name is not a person's
+    last = ''
+    n_lines = 0
+    cap = datetime.date.today().isoformat() if c == 2026 else f'{c + 1}-03-31'
+    # America PAC: the bulk file runs behind the committee summary for 2026, so its Q3 and pre-general lines are not in it. Where the research note's receipts CSV
+    # runs later than the bulk file for this committee, the committee's bulk rows are replaced by the CSV's (the note read the July to October lines from the filings).
+    extra, swapped = america_lines() if c == 2026 else ([], None)
+    bulk_rows = [r for _fn, r in best.values()]
+    if extra:
+        bulk_last = max((iso_mdy(r['TRANSACTION_DT']) for r in bulk_rows if r['CMTE_ID'] == AMERICA_PAC), default='')
+        if bulk_last < max(e['date'] for e in extra):
+            states = {r['NAME'].strip().upper(): r['STATE'] for r in bulk_rows if r['CMTE_ID'] == AMERICA_PAC}
+            dropped = sum(num(r['TRANSACTION_AMT']) for r in bulk_rows if r['CMTE_ID'] == AMERICA_PAC and r['MEMO_CD'] != 'X' and r['ENTITY_TP'] == 'IND')
+            bulk_rows = [r for r in bulk_rows if r['CMTE_ID'] != AMERICA_PAC]
+            for e in extra:
+                bulk_rows.append({'CMTE_ID': AMERICA_PAC, 'AMNDT_IND': 'N', 'RPT_TP': '', 'TRANSACTION_TP': '15', 'ENTITY_TP': e['entity'], 'NAME': e['name'], 'STATE': states.get(e['name'].upper(), ''),
+                                  'TRANSACTION_DT': e['date'][5:7] + e['date'][8:10] + e['date'][:4], 'TRANSACTION_AMT': str(e['usd']), 'FILE_NUM': e['filing'], 'IMAGE_NUM': '',
+                                  'MEMO_CD': 'X' if e['memo'] else '', 'EMPLOYER': ''})
+            swapped = {'committee': AMERICA_PAC, 'bulkLinesThrough': bulk_last, 'researchLinesThrough': max(e['date'] for e in extra), 'bulkIndividualCashReplacedUsd': round(dropped, 2),
+                       'reason': 'the bulk indiv file has no America PAC lines after its processing date; its rows are replaced by the research note\'s lines, which were read from the Q3 and pre-general filings'}
+    for r in bulk_rows:
+        if r['AMNDT_IND'] == 'T':
+            continue
+        amt = num(r['TRANSACTION_AMT'])
+        tp = r['TRANSACTION_TP']
+        types[tp] += 1
+        if tp.startswith('22'):         # a refund of a contribution: reduces the donor's total
+            amt = -abs(amt)
+        memo = r['MEMO_CD'] == 'X'
+        dt = iso_mdy(r['TRANSACTION_DT'])
+        if dt and dt <= cap and dt > last:
+            last = dt
+        pk = person_key(r['NAME'], r['STATE']) if r['ENTITY_TP'] == 'IND' else None
+        if pk is None:
+            if memo:
+                memo_org += amt
+            else:
+                org_total += amt
+            continue
+        n_lines += 1
+        d = don.setdefault(pk, {'name': display_name(r['NAME']), 'best': 0.0, 'state': r['STATE'], 'cash': 0.0, 'memo': 0.0, 'cashLines': 0, 'memoLines': 0, 'by': collections.defaultdict(float),
+                                'lines': [], 'memoList': [], 'first': '9999', 'last': '', 'employer': collections.Counter(), 'variants': set()})
+        d['variants'].add(r['NAME'].strip())
+        if abs(amt) > d['best']:
+            d['best'] = abs(amt); d['name'] = display_name(r['NAME'])
+        if memo:
+            d['memo'] += amt; d['memoLines'] += 1
+            d['memoList'].append((amt, dt, r['FILE_NUM'], r['CMTE_ID'], r['IMAGE_NUM'], r['RPT_TP']))
+            continue
+        d['cash'] += amt; d['cashLines'] += 1; d['by'][r['CMTE_ID']] += amt
+        d['employer'][(r['EMPLOYER'] or '').strip()] += 1
+        d['lines'].append((amt, dt, r['FILE_NUM'], r['CMTE_ID'], r['IMAGE_NUM'], r['RPT_TP']))
+        if dt:
+            d['first'] = min(d['first'], dt); d['last'] = max(d['last'], dt)
+    ranked = sorted(don.values(), key=lambda d: -d['cash'])
+    receipts = sum(num(r['TTL_RECEIPTS']) for r in sp)
+    indv = sum(num(r['INDV_CONTRIB']) for r in sp)
+    cash_all = sum(d['cash'] for d in don.values())
+    top = lambda n: sum(d['cash'] for d in ranked[:n])
+    big = [d for d in ranked if d['cash'] >= 1e6 or d['memo'] >= 1e6]
+    named = []
+    for d in sorted(big, key=lambda d: (d['cash'] < 1e6, -(d['cash'] if d['cash'] >= 1e6 else d['memo'])))[:25]:     # cash donors by cash, then memo-only by the memo-attributed amount
+        lines = sorted(d['lines'], reverse=True)[:4]
+        mlines = sorted(d['memoList'], reverse=True)[:3]
+        named.append({'name': d['name'], 'state': d['state'], 'employer': (d['employer'].most_common(1) or [('', 0)])[0][0],
+                      'cashUsd': round(d['cash'], 2), 'cashLines': d['cashLines'], 'memoAttributedUsd': round(d['memo'], 2), 'memoLines': d['memoLines'],
+                      'firstDate': d['first'] if d['cashLines'] else '', 'lastDate': d['last'],
+                      'filings': len({ln[2] for ln in d['lines']}),
+                      'topCommittees': [{'id': i, 'name': cn.get(i, ''), 'usd': round(v, 2)} for i, v in sorted(d['by'].items(), key=lambda kv: -kv[1])[:3]],
+                      'nameVariants': len(d['variants']),
+                      'largestLines': [{'usd': round(a, 2), 'date': dt, 'filing': f, 'committee': cm, 'committeeName': cn.get(cm, ''), 'image': im, 'report': rp} for a, dt, f, cm, im, rp in lines],
+                      'largestMemoLines': [{'usd': round(a, 2), 'date': dt, 'filing': f, 'committee': cm, 'committeeName': cn.get(cm, ''), 'image': im, 'report': rp} for a, dt, f, cm, im, rp in mlines]})
+    return {'superPacReceiptsUsd': round(receipts, 2), 'superPacIndividualContributionsUsd': round(indv, 2),
+            'itemizedIndividualCashUsd': round(cash_all, 2), 'itemizedIndividualDonors': len(don), 'itemizedIndividualLines': n_lines,
+            'itemizedIndividualShareOfIndividualContributions': round(cash_all / indv, 4) if indv else None,
+            'itemizedOrganizationUsd': round(org_total, 2), 'memoLinesOrganizationUsd': round(memo_org, 2),
+            'top10Usd': round(top(10), 2), 'top100Usd': round(top(100), 2),
+            'top10ShareOfReceipts': round(top(10) / receipts, 4) if receipts else None, 'top100ShareOfReceipts': round(top(100) / receipts, 4) if receipts else None,
+            'top10ShareOfIndividualContributions': round(top(10) / indv, 4) if indv else None, 'top100ShareOfIndividualContributions': round(top(100) / indv, 4) if indv else None,
+            'donorsAtLeast1M': len([d for d in ranked if d['cash'] >= 1e6]), 'donorsAtLeast1MUsd': round(sum(d['cash'] for d in ranked if d['cash'] >= 1e6), 2),
+            'named': named, 'transactionTypes': dict(types), 'lastLine': last, 'replacedLines': swapped}
+
+
+def america_lines():
+    """America PAC's 2026 lines from the research note's receipts CSV as donor rows (cash from individuals, memo attributions, in-kind and small itemized from
+    organisations), and None for the swap record."""
+    path = os.path.join(RESEARCH, 'data/america-pac-c00879510-receipts-2025-2026-musk-and-in-kind-lines.csv')
+    out = []
+    for r in csv.DictReader(open(path, newline='')):
+        memo = r['line_type'].startswith('memo attribution')
+        org = r['line_type'].startswith('in-kind') or r['line_type'].startswith('other small')
+        out.append({'name': r['contributor'], 'usd': float(r['amount_usd']), 'date': r['date'], 'filing': r['filing_id'], 'memo': memo, 'entity': 'ORG' if org else 'IND'})
+    return out, None
+
+
+
+def committee_totals(c, ie_by_cmte, party_coord):
+    """Totals of super PACs, hybrid PACs, party committees and the two conduits for cycle c (webk<YY>), and what part of the spending a race can be
+    named for. Schedule E: the committee summary's own independent-expenditure total (IND_EXP, same filings as the disbursements) and, beside it, the sum
+    of the Schedule E file for the same committees (it carries 24- and 48-hour reports the summaries have not caught up with)."""
+    rows = get_webk(c)
+    out, dates = {}, collections.defaultdict(list)
+    for g, label in GROUPS:
+        out[g] = {'what': label, 'committees': 0, 'receiptsUsd': 0.0, 'disbursementsUsd': 0.0, 'individualContributionsUsd': 0.0, 'transfersInUsd': 0.0,
+                  'transfersOutUsd': 0.0, 'contributionsToOtherCommitteesUsd': 0.0, 'refundsUsd': 0.0, 'loanRepaymentsUsd': 0.0,
+                  'scheduleESummaryUsd': 0.0, 'scheduleEFileUsd': 0.0, 'partyCoordinatedUsd': 0.0}
+    top = collections.defaultdict(list)
+    for r in rows:
+        g = group_of(r)
+        if not g:
+            continue
+        o = out[g]
+        o['committees'] += 1
+        o['receiptsUsd'] += num(r['TTL_RECEIPTS']); o['disbursementsUsd'] += num(r['TTL_DISB']); o['individualContributionsUsd'] += num(r['INDV_CONTRIB'])
+        o['transfersInUsd'] += num(r['TRANS_FROM_AFF']); o['transfersOutUsd'] += num(r['TRANF_TO_AFF']); o['contributionsToOtherCommitteesUsd'] += num(r['CONTRIB_TO_OTHER_CMTE'])
+        o['refundsUsd'] += num(r['INDV_REFUNDS']) + num(r['OTHER_POL_CMTE_REFUNDS']); o['loanRepaymentsUsd'] += num(r['CAND_LOAN_REPAY']) + num(r['LOAN_REPAY'])
+        o['scheduleESummaryUsd'] += num(r['IND_EXP'])
+        o['scheduleEFileUsd'] += ie_by_cmte.get(r['CMTE_ID'], 0.0)
+        if g == 'party':
+            o['partyCoordinatedUsd'] += party_coord.get(r['CMTE_ID'], 0.0)
+        d = iso_mdy(r['CVG_END_DT'])
+        if d and d <= (datetime.date.today().isoformat() if c == 2026 else f'{c + 1}-03-31'):
+            dates[g].append(d)
+        top[g].append({'id': r['CMTE_ID'], 'name': r['CMTE_NM'], 'receiptsUsd': round(num(r['TTL_RECEIPTS']), 2), 'disbursementsUsd': round(num(r['TTL_DISB']), 2),
+                       'scheduleESummaryUsd': round(num(r['IND_EXP']), 2), 'scheduleEFileUsd': round(ie_by_cmte.get(r['CMTE_ID'], 0.0), 2), 'coverageEnd': d})
+    for g, o in out.items():
+        for k in list(o):
+            if k.endswith('Usd'):
+                o[k] = round(o[k], 2)
+        # What no race can be named for: disbursements less the Schedule E total (and, for parties, coordinated expenditures).
+        o['allocatedToARaceUsd'] = round(o['scheduleESummaryUsd'] + o['partyCoordinatedUsd'], 2)
+        o['notAllocatedToARaceUsd'] = round(o['disbursementsUsd'] - o['allocatedToARaceUsd'], 2)
+        o['notAllocatedIfScheduleEFileUsd'] = round(o['disbursementsUsd'] - o['scheduleEFileUsd'] - o['partyCoordinatedUsd'], 2)
+        o['coverageEndLatest'] = max(dates[g]) if dates[g] else ''
+        o['top'] = sorted(top[g], key=lambda x: -x['disbursementsUsd'])[:8]
+    tu = [r for r in rows if r['CMTE_TP'] == 'U']
+    out['excluded'] = {'typeU': {'what': 'type U committees (single-candidate independent expenditure), not counted above', 'committees': len(tu),
+                                  'receiptsUsd': round(sum(num(r['TTL_RECEIPTS']) for r in tu), 2)}}
+    return out, [r for r in rows if r['CMTE_TP'] == 'O']
 
 
 # ---------------------------------------------------------------- build
@@ -317,9 +567,65 @@ def fec_compare(totals):
     return rows
 
 
+RESEARCH = os.path.expanduser('~/tcp-kb-internal/cascade-research/notes')
+AMERICA_PAC = 'C00879510'
+
+
+def america_pac(ie_2026):
+    """America PAC, 2026 cycle: the committee summary, Schedule E, and the Musk and in-kind lines from the research note's receipts CSV
+    (cascade-research/notes/vt-same-ballot-senate-vs-governor-gaps-2026-method-and-results.md, "America PAC"), whose July to October lines come
+    straight from the Q3 and pre-general filings. Figures here are recomputed from that CSV, not typed."""
+    tot = next(r for r in get_webk(2026) if r['CMTE_ID'] == AMERICA_PAC)
+    csv_path = os.path.join(RESEARCH, 'data/america-pac-c00879510-receipts-2025-2026-musk-and-in-kind-lines.csv')
+    SOURCES['america-pac-receipts'] = {'file': 'america-pac-c00879510-receipts-2025-2026-musk-and-in-kind-lines.csv (cascade-research/notes/data)',
+        'note': 'Research note vt-same-ballot-senate-vs-governor-gaps-2026-method-and-results: FEC API schedule_a through 2026-06-30, then filings 2026216 (Q3) and 2038959 (pre-general) read directly'}
+    rows = list(csv.DictReader(open(csv_path, newline='')))
+    cash = [r for r in rows if r['contributor'] == 'MUSK, ELON' and r['line_type'] == 'cash from individual']
+    memo = [r for r in rows if r['line_type'].startswith('memo attribution')]
+    inkind = [r for r in rows if r['line_type'].startswith('in-kind receipt')]
+    sm = lambda L: round(sum(float(r['amount_usd']) for r in L), 2)
+    biggest = sorted(cash, key=lambda r: -float(r['amount_usd']))[:5]
+    receipts = num(tot['TTL_RECEIPTS'])
+    return {'committee': AMERICA_PAC, 'name': tot['CMTE_NM'], 'type': tot['CMTE_TP'], 'cycle': 2026,
+            'summary': {'receiptsUsd': receipts, 'disbursementsUsd': num(tot['TTL_DISB']), 'scheduleESummaryUsd': num(tot['IND_EXP']), 'coverageEnd': iso_mdy(tot['CVG_END_DT']),
+                        'src': 'webk26', 'note': 'committee summary file; the FEC API committee totals for the same cycle give $215,977,673.63 through 2026-10-14 (research note c4)'},
+            'scheduleEFileUsd': round(ie_2026.get(AMERICA_PAC, 0.0), 2), 'scheduleEFileSrc': 'ie2026',
+            'scheduleENote': 'The summary line and the Schedule E file measure different things: the file carries 24- and 48-hour reports the committee\'s periodic summary has not caught up with. The research note found $51.4M (committee totals) and $71.4M (Schedule E file as of 2026-10-26).',
+            'notAllocatedToARaceUsd': round(num(tot['TTL_DISB']) - num(tot['IND_EXP']), 2), 'notAllocatedIfScheduleEFileUsd': round(num(tot['TTL_DISB']) - ie_2026.get(AMERICA_PAC, 0.0), 2),
+            'notAllocatedNote': 'Canvassing, petitions and operations are reported as operating expenditures, not Schedule E, so they are in this part.',
+            'musk': {'cashUsd': sm(cash), 'cashLines': len(cash), 'cashShareOfReceipts': round(sm(cash) / receipts, 4), 'cashFirst': min(r['date'] for r in cash), 'cashLast': max(r['date'] for r in cash),
+                     'inKindFromUnitedStatesOfAmericaIncUsd': sm(inkind), 'memoAttributionToMuskUsd': sm(memo), 'memoNote': 'each in-kind line booked to United States of America Inc is followed by a Musk memo line marked as an attribution; memo lines are not additive',
+                     'cashPlusAttributedUsd': round(sm(cash) + sm(memo), 2), 'cashPlusAttributedShareOfReceipts': round((sm(cash) + sm(memo)) / receipts, 4),
+                     'largestCashLines': [{'usd': float(r['amount_usd']), 'date': r['date'], 'filing': r['filing_id'], 'source': r['source']} for r in biggest],
+                     'filings': sorted({r['filing_id'] for r in rows}), 'src': 'america-pac-receipts'}}
+
+
+
+def sides_of(c, cs, v, cand_ie):
+    """The two candidates named in the vote record (Democratic side, Republican side) matched to FEC candidates in the state: by surname inside the
+    vote record's name (so an independent counted on the Democratic side, such as Angus King, is found), else by FEC party code, the one with the most
+    receipts. Each side carries that candidate's own spending and the outside money naming them: ieFor supporting, ieAgainst opposing, coord party
+    coordinated. Outside money that names no candidate id is in the race totals only."""
+    def find(name, pty):
+        up = re.sub(r'[^A-Z ]', ' ', name.upper())
+        hit = [x for x in cs if re.search(r'\b' + re.escape(re.sub(r'[^A-Z ]', ' ', x['name'].split(',')[0].strip().upper()).strip()) + r'\b', up)]
+        how = 'name'
+        if not hit:
+            hit = [x for x in cs if x['party'] == pty]; how = 'party'
+        return (max(hit, key=lambda x: x['receipts']), how) if hit else (None, None)
+    d, dh = find(v[2], 'DEM')
+    r_, rh = find(v[3], 'REP')
+    if not d or not r_ or d['id'] == r_['id']:
+        return None
+    side = lambda x, how: {'id': x['id'], 'name': x['name'], 'party': x['party'], 'matched': how, 'spentUsd': round(x['disb'], 2), 'coordUsd': round(cand_ie[(c, x['id'])]['C'], 2),
+                           'ieForUsd': round(cand_ie[(c, x['id'])]['S'], 2), 'ieAgainstUsd': round(cand_ie[(c, x['id'])]['O'], 2)}
+    return {'D': side(d, dh), 'R': side(r_, rh)}
+
+
+
 def main():
     sen_votes, pres_votes, vote_checks = load_votes()
-    out = {'method': __doc__.strip().split('\n\n')[0], 'cycles': CYCLES, 'senate': [], 'president': [], 'checks': {}, 'unmapped': {}}
+    out = {'method': (__doc__ or '').strip().split('\n\n')[0], 'cycles': CYCLES, 'senate': [], 'president': [], 'checks': {}, 'unmapped': {}}
     cand_by_cycle = {}
     totals = {}
     for c in CYCLES:
@@ -335,6 +641,10 @@ def main():
     out_pres = collections.defaultdict(float)
     unm = collections.defaultdict(lambda: collections.defaultdict(float))
     ie_raw = {}
+    ie_cm = collections.defaultdict(lambda: collections.defaultdict(float))     # cycle -> committee -> Schedule E dollars (all offices)
+    pc_cm = collections.defaultdict(lambda: collections.defaultdict(float))     # cycle -> committee -> party coordinated (24C)
+    ie_last = {}
+    cand_ie = collections.defaultdict(lambda: collections.defaultdict(float))   # (cycle, candidate id) -> S support, O oppose, C party coordinated
     for c in CYCLES:
         cands = {k: v for k, v in cand_by_cycle[c].items() if v['receipts'] >= THRESH or v['disb'] >= THRESH}
         pres_surnames = {x['name'].split(',')[0].strip().upper() for x in cands.values() if x['office'] == 'P'}
@@ -357,8 +667,17 @@ def main():
             return (office, st) if office == 'H' else (None, None)
         if c >= 2010:
             rows, raw = ie_rows(c); ie_raw[c] = round(raw, 2)
-            for so, cid, off, st, dis, et, usd, nm in rows:
+            for so, cid, off, st, _dis, _et, usd, nm, spe, ied in rows:
+                ie_cm[c][spe] += usd
+                try:
+                    dd = datetime.datetime.strptime(ied, '%d-%b-%y').date().isoformat()
+                    if dd <= (datetime.date.today().isoformat() if c == 2026 else f'{c + 1}-03-31') and dd > ie_last.get(c, ''):
+                        ie_last[c] = dd
+                except ValueError:
+                    pass
                 o, s = race_of(cid, off, st, nm)
+                if o is not None and cid in cands:
+                    cand_ie[(c, cid)]['S' if so == 'S' else 'O'] += usd
                 if o is None:
                     unm[c]['EXCLUDED: IE row left out (candidate under $5,000, or id and row fields match no qualifying candidate)'] += usd
                 elif o == 'S' and s:
@@ -372,8 +691,14 @@ def main():
             srcie = f'ie{c}'
         else:
             srcie = 'pas208'
-        for tp, cid, usd in pas2_rows(c):
+        for tp, cid, usd, cmte in pas2_rows(c):
             x = cands.get(cid)
+            if tp == '24C':
+                pc_cm[c][cmte] += usd
+            elif c < 2010:
+                ie_cm[c][cmte] += usd
+            if x:
+                cand_ie[(c, cid)]['C' if tp == '24C' else 'S' if tp == '24E' else 'O'] += usd if (tp == '24C' or c < 2010) else 0
             if tp == '24C':
                 if x and x['office'] == 'S':
                     out_sen[(c, x['st'])]['party_coord'] += usd
@@ -430,6 +755,8 @@ def main():
                 race['money'] = m
                 race['candidates'] = len(cs)
                 if v:
+                    race['sides'] = sides_of(c, cs, v, cand_ie)
+                if v:
                     spent = m[3]['usd']
                     outs = m[5]['usd'] + m[6]['usd'] + m[7]['usd']
                     race['dollarsPerDecisiveVote'] = ratios(spent, outs, race['decisive'])
@@ -470,6 +797,28 @@ def main():
             race['usdPerTippingStateFlipVote'] = {'spent': round(spent / tipping['flip'], 2), 'spentPlusOutside': round((spent + outs) / tipping['flip'], 2),
                                                   'note': 'national dollars over the tipping state\'s votes to flip; not a per-state dollar figure'}
         out['president'].append(race)
+    # Outside money as committee totals, donor concentration, America PAC (2008-2026)
+    out['committees'] = {'note': ('Totals of the committees that spend outside the candidates, per two-year cycle, from the FEC PAC and party summary files (webk). '
+                                  'Each group shows what a race can be named for (Schedule E, and for parties coordinated expenditures: "allocatedToARace") and what it cannot '
+                                  '("notAllocatedToARace": disbursements less that). Receipts and disbursements include transfers between committees, so a dollar passed '
+                                  'from one committee to another is counted by both; the transfer fields show how much.'),
+                         'groups': {g: l for g, l in GROUPS}, 'cycles': {}}
+    out['donors'] = {'note': ('Itemized contributions from individuals to super PACs (type O), from the FEC indiv files (Schedule A line 11A), per cycle. Donors are keyed by '
+                              'name and state (the FEC has no donor id). Memo lines (an attribution of money received through another entity, such as an in-kind gift booked '
+                              'to a company) are totalled apart and not added to the donor\'s cash. Only donors of $1 million or more are named.'), 'cycles': {}}
+    coverage = {}
+    for c in CYCLES:
+        tot, sp = committee_totals(c, ie_cm[c], pc_cm[c])
+        out['committees']['cycles'][str(c)] = tot
+        ds = donor_stats(c, sp) if c >= 2010 else None
+        if ds:
+            out['donors']['cycles'][str(c)] = ds
+        cap = datetime.date.today().isoformat() if c == 2026 else f'{c + 1}-03-31'       # a few filings carry typo dates years out; a finished cycle's files run to its post-general reports
+        coverage[str(c)] = {'partial': c == 2026, 'committeeSummariesThrough': max(tot[g]['coverageEndLatest'] for g in ('superPac', 'hybrid', 'party')),
+                            'itemizedLinesThrough': ds['lastLine'] if ds else '', 'scheduleEFileThrough': ie_last.get(c, ''),
+                            'candidateSummariesThrough': max((iso_mdy(x['cvg']) for x in cand_by_cycle[c].values() if iso_mdy(x['cvg']) and iso_mdy(x['cvg']) <= cap), default='')}
+    out['coverage'] = coverage
+    out['americaPac'] = america_pac(ie_cm[2026])
     # checks
     out['checks'] = {
         'voteSources': vote_checks if vote_checks else 'simulator.json and the MIT files agree on every overlapping race',
