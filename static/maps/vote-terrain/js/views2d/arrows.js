@@ -1,9 +1,9 @@
 /* Arrows: one arrow per county, leaning toward the party it swung to, its length the swing. */
-import { INK, DIM } from './style.js';
+import { INK, DIM, niceBelow } from './style.js';
 
 export function arrowsView({ ctx, meta, DUR, head, body, foot, place, inSel, shiftOf, longPress, countyPath, centroid, bboxOf, statePath, W0, statesOf, rows }) {
   const { fmt } = ctx;
-  let svg, g, zoom, gMap, gArr, zoomedSt = null, byVotes = false, exceptions = false, k0 = 1, fitted = null;
+  let svg, g, zoom, gMap, gArr, zoomedSt = null, byVotes = false, exceptions = false, k0 = 1, fitted = null, counts = '';
   const PX_PER_POINT = 0.8;            // arrow length per point of swing, in map units at national scale
   function build() {
     fitted = null;                     // a new svg starts unzoomed: fit it on its first draw, whatever the size
@@ -23,7 +23,7 @@ export function arrowsView({ ctx, meta, DUR, head, body, foot, place, inSel, shi
       })
       .on('mousemove', (ev, f) => ctx.hover(f, ev.clientX, ev.clientY)).on('mouseleave', () => ctx.hover(null));
     gMap.append('path').attr('class', 'states').attr('d', statePath).attr('fill', 'none').attr('stroke', 'rgba(35,48,107,.5)').attr('stroke-width', 0.6).attr('pointer-events', 'none');
-    zoom = d3.zoom().scaleExtent([1, 14]).on('zoom', (ev) => { g.attr('transform', ev.transform); const k = ev.transform.k / k0; gArr.selectAll('path').attr('stroke-width', (r) => width(r) / k); });
+    zoom = d3.zoom().scaleExtent([1, 14]).on('zoom', (ev) => { g.attr('transform', ev.transform); const k = ev.transform.k / k0; gArr.selectAll('path').attr('stroke-width', (r) => width(r) / k); refGlyph(); });
     svg.call(zoom).on('dblclick.zoom', null);
     svg.on('click', (ev) => { if (ev.target === svg.node() && zoomedSt) { zoomedSt = null; reset(); } });
   }
@@ -67,10 +67,17 @@ export function arrowsView({ ctx, meta, DUR, head, body, foot, place, inSel, shi
     const all = pe.merge(p).attr('stroke', (r) => ctx.colour(r.s)).attr('stroke-width', (r) => width(r) / k)
       .attr('opacity', (r) => (S && !S.has(r.f) ? DIM : 0.92));
     (animate && DUR ? all.transition().duration(DUR) : all).attr('d', (r) => arrowD(r, r.s));
-    // Reference arrow, drawn at the map's current scale.
-    const L = 20 * PX_PER_POINT * (d3.zoomTransform(svg.node()).k || k0);
-    head.querySelector('.v2d-ref').innerHTML = `<svg width="${Math.ceil(L * 0.75 + 16)}" height="${Math.ceil(L * 0.75 + 10)}" style="vertical-align:middle"><path d="M${L * 0.71 + 6},${L * 0.71 + 4}L6,4M6,${4 + Math.min(8, L * .3)}L6,4L${6 + Math.min(8, L * .3)},4" stroke="${INK}" stroke-width="1.5" fill="none"/></svg> 20 points toward the Democrat; ` +
-      `${fmt(toD)} counties moved toward the Democrat, ${fmt(toR)} toward the Republican${exceptions ? '; only the exceptions shown' : ''}`;
+    counts = `${fmt(toD)} counties moved toward the Democrat, ${fmt(toR)} toward the Republican${exceptions ? '; only the exceptions shown' : ''}`;
+    refGlyph();
+  }
+  // Reference arrow: one box size, so the head never changes height and a redraw keeps the reader's zoom;
+  // the arrow is the largest round number of points that fits, labelled with it.
+  const REF_L = 34;
+  function refGlyph() {
+    const ref = head.querySelector('.v2d-ref'); if (!ref) return;
+    const perPt = PX_PER_POINT * (d3.zoomTransform(svg.node()).k || k0), pts = niceBelow(REF_L / perPt), L = pts * perPt, a = L * Math.SQRT1_2, hd = Math.min(8, L * 0.3);
+    const B = Math.ceil(REF_L * Math.SQRT1_2) + 10;
+    ref.innerHTML = `<svg width="${B + 6}" height="${B}" style="vertical-align:middle"><path d="M${(a + 6).toFixed(1)},${(a + 4).toFixed(1)}L6,4M6,${(4 + hd).toFixed(1)}L6,4L${(6 + hd).toFixed(1)},4" stroke="${INK}" stroke-width="1.5" fill="none"/></svg> ${pts} points toward the Democrat; ${counts}`;
   }
   return { build, draw, reset: () => { zoomedSt = null; reset(); }, zoomTo };
 }

@@ -2,7 +2,7 @@
    apart so none overlap (positions precomputed by build_circles.mjs; ctx.circles() hands over the layout for
    the election in view, or null while it loads). Drag draws a box; scroll or pinch zooms; Alt-drag or one
    finger pans. */
-import { INK, DIM } from './style.js';
+import { INK, DIM, niceBelow } from './style.js';
 
 export function circlesView({ ctx, DUR, head, body, foot, place, inSel, shiftOf, longPress, statePath, W0 }) {
   let svg, g, gSt, gC, box, zoom, k0 = 1, cur = new Map(), lay = null, fitted = null;
@@ -20,7 +20,7 @@ export function circlesView({ ctx, DUR, head, body, foot, place, inSel, shiftOf,
     box = svg.append('rect').attr('class', 'v2d-box').attr('fill', 'rgba(35,48,107,.08)').attr('stroke', INK).attr('stroke-dasharray', '3 3').attr('display', 'none');
     // Zoom takes the wheel, pinch and touch drags; a mouse drag is the box, unless Alt is held.
     zoom = d3.zoom().filter((ev) => ev.type === 'wheel' || ev.type.startsWith('touch') || (ev.type === 'mousedown' && ev.altKey && !ev.button))
-      .on('zoom', (ev) => { g.attr('transform', ev.transform); gC.selectAll('circle').attr('stroke-width', 0.35 / (ev.transform.k / k0)); });
+      .on('zoom', (ev) => { g.attr('transform', ev.transform); gC.selectAll('circle').attr('stroke-width', 0.35 / (ev.transform.k / k0)); refGlyph(); });
     svg.call(zoom).on('dblclick.zoom', null);
     const at = (ev) => { const b = svg.node().getBoundingClientRect(); return [ev.clientX - b.left, ev.clientY - b.top]; };
     // Circle under the pointer, in map units.
@@ -61,6 +61,7 @@ export function circlesView({ ctx, DUR, head, body, foot, place, inSel, shiftOf,
     // The foot's text first: it takes height from the map, so the fit below must see it.
     lay = ctx.circles();
     foot.textContent = lay ? '' : 'Loading the circles…';
+    refGlyph();                        // the head at its full height before the map is measured
     const { w, h } = place();
     svg.attr('width', w).attr('height', h);
     if (fitted !== w + 'x' + h) { fitted = w + 'x' + h; svg.call(zoom.transform, fit()); zoom.scaleExtent([k0 * 0.8, k0 * 24]); }
@@ -77,9 +78,16 @@ export function circlesView({ ctx, DUR, head, body, foot, place, inSel, shiftOf,
     (animate && DUR ? all.transition().duration(DUR) : all).attr('cx', (f) => cur.get(f).x).attr('cy', (f) => cur.get(f).y).attr('r', (f) => cur.get(f).r).attr('fill', (f) => ctx.fill(f));
     // Small circles on top, so a big county never hides its neighbours.
     all.sort((a, b) => cur.get(b).r - cur.get(a).r);
-    // Reference circle, at the map's current scale.
-    const unit = ctx.sizeUnit(), ref = unit.ref, rr = Math.sqrt(lay.r * ref) * (d3.zoomTransform(svg.node()).k || k0);
-    head.querySelector('.v2d-ref').innerHTML = `<svg width="${Math.ceil(rr * 2 + 4)}" height="${Math.ceil(rr * 2 + 4)}" style="vertical-align:middle"><circle cx="${rr + 2}" cy="${rr + 2}" r="${rr}" fill="none" stroke="${INK}" stroke-width="1.2"/></svg> ${unit.label}`;
+    refGlyph();
+  }
+  // Reference circle: one box size, so the head never changes height and a redraw keeps the reader's zoom;
+  // the circle is the largest round amount that fits, and its label says what it is at this zoom.
+  const REF_R = 18;
+  function refGlyph() {
+    if (!lay || !head.querySelector('.v2d-ref')) return;
+    const unit = ctx.sizeUnit(), k = d3.zoomTransform(svg.node()).k || k0;
+    const n = niceBelow((REF_R / (Math.sqrt(lay.r) * k)) ** 2 / unit.ref), rr = Math.sqrt(lay.r * n * unit.ref) * k;
+    head.querySelector('.v2d-ref').innerHTML = `<svg width="${REF_R * 2 + 4}" height="${REF_R * 2 + 4}" style="vertical-align:middle"><circle cx="${REF_R + 2}" cy="${REF_R + 2}" r="${rr.toFixed(2)}" fill="none" stroke="${INK}" stroke-width="1.2"/></svg> ${unit.label(n)}`;
   }
   return { build, draw, reset, zoomTo };
 }
