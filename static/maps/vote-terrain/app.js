@@ -7,7 +7,7 @@
    Encoding: height (and the shading the light puts on it) carries votes; colour carries swing or margin
    through hue and saturation only, every colour at one lightness, so the two never compete. */
 (async function () {
-  const [geo, el, bal] = await Promise.all(['geometry.json', 'elections.json', 'balance.json'].map((u) => fetch(u).then((r) => r.json())));
+  const [geo, el, bal, eff] = await Promise.all(['geometry.json', 'elections.json', 'balance.json', 'effective.json'].map((u) => fetch(u).then((r) => r.json())));
   const { meta, pieces, presets } = geo;
   const { order, tracks, sameOffice, k, elections, notes } = el;
   // Office tracks: the timeline shows the elections of the office in view.
@@ -21,7 +21,7 @@
   // ---------- state, mirrored in the URL hash ----------
   // w: the view tab; sel: the selection, as states (s:CA,NV), a rule from a drag (r:, q:, b:) or a list of counties (c:).
   const state = { e: 'pres2024', h: 'total', c: 'margin', s: 'terrain', m: '1', v: 'west', d: '3d', u: 'd', n: 'area', l: 'votes', g: '0', w: 'terrain', sel: '' };
-  const TABS = ['terrain', 'arrows', 'dots', 'scatter'], TAB_NAME = { terrain: 'Terrain', arrows: 'Arrows', dots: 'Dots', scatter: 'Scatter' };
+  const TABS = ['terrain', 'circles', 'arrows', 'dots', 'scatter'], TAB_NAME = { terrain: 'Terrain', circles: 'Circles', arrows: 'Arrows', dots: 'Dots', scatter: 'Scatter' };
   // Lenses: one question each, setting several controls at once. Changing any control in Adjust makes the view "custom".
   const LENSES = {
     votes: { set: { n: 'area', h: 'total', c: 'margin', g: '0', d: '3d' }, v: 'national',
@@ -30,8 +30,8 @@
       how: 'Mountains are where Democrats won more votes than Republicans, valleys where Republicans did. Their volumes net to the margin across the map.' },
     changed: { set: { n: 'area', h: 'total', c: 'swing', g: '1', d: '3d' }, v: 'west',
       how: 'Colour is the swing since the last race for the same office. The faint grid is that race\'s land: where it shows above the surface, fewer votes were cast this time. Press play to step through the elections.' },
-    worth: { set: { n: 'area', h: 'ev', c: 'margin', g: '0', d: '3d' }, v: 'national',
-      how: 'Height is votes scaled by each state\'s share of the Electoral College (or of the Senate) per vote cast. Small states rise; large ones sink.' },
+    worth: { set: { n: 'area', h: 'ev', c: 'weight', g: '0', d: '3d' }, v: 'national',
+      how: 'Height is votes scaled by each state\'s share of the Electoral College (or of the Senate) per vote cast, or the population each county is apportioned for. Colour is the electoral weight of one vote cast there, against the national average.' },
   };
   let sel = null, selVersion = 0;                      // the reader's selection: { states: [..] | null, counties: Set, rule }
   const firstVisit = !location.hash;                    // a shared link opens still; a first visit spins
@@ -43,7 +43,10 @@
     if (!['1', '8'].includes(state.m)) state.m = '1';
     if (!LENSES[state.l] && state.l !== 'custom') state.l = 'votes';
     if (!['0', '1'].includes(state.g)) state.g = '0';
+    // Phones open on Circles: the flat view that reads at that width.
+    if (!q.get('w') && window.innerWidth <= 640) state.w = 'circles';
     if (!TABS.includes(state.w)) state.w = 'terrain';
+    if (!['margin', 'swing', 'weight'].includes(state.c)) state.c = 'margin';
     state.sel = q.get('sel') || '';
   };
   const toHash = () => history.replaceState(null, '', '#' + new URLSearchParams(state).toString());
@@ -61,6 +64,10 @@
     return d3.interpolateLab(NEUTRAL, x >= 0 ? SAPPHIRE : GARNET)(t);
   };
   const SWING_MAX = 26, MARGIN_MAX = 70;
+  // Weight per vote is not a party measure: its own hue pair, ochre above the national average and teal
+  // below, at the same lightness, on a doubling scale (log2 of the ratio; WEIGHT_MAX 2 = four times).
+  const OCHRE = end(72, 90), TEAL = end(196, 90), WEIGHT_MAX = 2;
+  const towardW = (x, max) => d3.interpolateLab(NEUTRAL, x >= 0 ? OCHRE : TEAL)(Math.sqrt(Math.min(1, Math.abs(x) / max)));
   const rgb = (c) => { const x = d3.rgb(c); return [x.r, x.g, x.b]; };
   const NODATA = [238, 241, 241];          // close to the ground: no race here, not a value
 
@@ -68,7 +75,8 @@
   // Swing is always against the last race for the same office: president against president, each 2026
   // Senate seat against its own previous race.
   const baselineOf = () => sameOffice[state.e] || null;
-  const isMargin = () => state.c === 'margin' || !baselineOf();
+  const isWeight = () => state.c === 'weight';
+  const isMargin = () => state.c === 'margin' || (state.c === 'swing' && !baselineOf());
   const swingOf = (f) => {
     const b = baselineOf(); if (!b) return null;
     const m1 = margin(elections[state.e].data[f]), m0 = margin(elections[b].data[f]);
@@ -83,6 +91,7 @@
   const colourRaw = (f) => {
     const v = elections[state.e].data[f];
     if (!v) return NODATA;
+    if (isWeight()) { const x = effOf(f); return x ? rgb(towardW(Math.log2(x.r), WEIGHT_MAX)) : NODATA; }
     if (isMargin()) return rgb(toward(margin(v), MARGIN_MAX));
     const s = swingOf(f); return s == null ? NODATA : rgb(toward(s, SWING_MAX));
   };
@@ -103,8 +112,29 @@
     return (weightCache[key] = { factor, hi: ranked[0], lo: ranked[ranked.length - 1], n: S.length });
   };
   const weighted = () => (state.h === 'ev' || state.h === 'sen' ? weightsFor(state.e, state.h) : null);
+  // ---------- effective vote (effective.json, build_effective.py) ----------
+  // For county f in state s: electoral votes behind it evc = EV_s * pop_f / pop_s; weight per vote = evc / votes,
+  // as a ratio to the national average E / V; that ratio is exactly B_s * N_f * T_f (see the About drawer).
+  const V24 = Object.values(elections.pres2024.data).reduce((a, v) => a + v[0], 0);
+  const effCol = (b) => (b === '2010' ? 0 : 1);
+  const evcOf = (f, b) => { const c = eff.county[f], st = meta[f] && meta[f].st; return c && st && eff.ev[b][st] ? eff.ev[b][st] * c[effCol(b)] / eff.stPop[b][st] : 0; };
+  // Represented population as a volume: the county's share of the apportioned electoral votes, in units of
+  // President 2024's total votes, so the scale stays put from one election to the next.
+  const repVotesOf = (f, e = state.e) => { const E = eff.elections[e]; return E ? V24 * evcOf(f, E.basis) / eff.rep[E.basis].E : 0; };
+  const effCache = {};
+  const effOf = (f, e = state.e) => {
+    const E = eff.elections[e]; if (!E) return null;
+    const m = (effCache[e] ||= {});
+    if (f in m) return m[f];
+    const v = elections[e].data[f], c = eff.county[f]; if (!v || !v[0] || !c) return (m[f] = null);
+    const b = E.basis, st = meta[f].st, pop = c[effCol(b)], cvap = c[2 + effCol(b)], evc = evcOf(f, b);
+    return (m[f] = { r: evc / v[0] / E.A, B: (eff.ev[b][st] / eff.stPop[b][st]) / (E.E / E.P), N: (pop / cvap) / E.Nnat, T: (cvap / v[0]) / E.Tnat,
+      pop, cvap, votes: v[0], ppv: pop / v[0], u18: b === '2020' && c[4] ? 1 - c[4] / pop : null, basis: b, cvapLabel: E.cvap });
+  };
+  const multFor = (e) => { if (!eff.elections[e]) return null; const o = {}; for (const [f, v] of Object.entries(elections[e].data)) if (v[0]) o[f] = repVotesOf(f, e) / v[0]; return o; };
   const votesOf = (f) => {
     const v = elections[state.e].data[f]; if (!v) return 0;
+    if (state.h === 'pop') return repVotesOf(f);
     const w = weighted(); if (w) return v[0] * (w.factor[meta[f].st] || 0);
     // Net margin: Democratic minus Republican votes, signed so the chosen party's wins stand up.
     if (state.h === 'net') return (v[2] - v[1]) * (state.u === 'r' ? -1 : 1);
@@ -228,17 +258,25 @@
     for (let i = 0; i < size; i++) { const c = d3.rgb(toward(i / (size - 1) * 2 - 1, 1)); data.set([c.r, c.g, c.b, 255], i * 4); }
     return { data, size };
   };
+  const buildRamp2 = (size = 512) => {
+    const data = new Uint8Array(size * 4);
+    for (let i = 0; i < size; i++) { const c = d3.rgb(towardW(i / (size - 1) * 2 - 1, 1)); data.set([c.r, c.g, c.b, 255], i * 4); }
+    return { data, size };
+  };
   let terrain = null, views = null;
   const terrainState = () => {
-    const w = weighted(), b = baselineOf();
-    return { ...state, kc: kcOf(), mode: isMargin() ? 'margin' : 'swing', weights: w ? w.factor : null,
-      baseWeights: w && b ? weightsFor(b, state.h).factor : null };
+    const w = weighted(), b = baselineOf(), pop = state.h === 'pop';
+    let countyValue = null;
+    if (isWeight()) { countyValue = {}; for (const f in elections[state.e].data) { const x = effOf(f); if (x) countyValue[f] = Math.log2(x.r); } }
+    return { ...state, kc: kcOf(), mode: isWeight() ? 'value' : isMargin() ? 'margin' : 'swing', weights: w ? w.factor : null,
+      baseWeights: w && b ? weightsFor(b, state.h).factor : null,
+      countyMult: pop ? multFor(state.e) : null, baseCountyMult: pop && b ? multFor(b) : null, countyValue, valueMax: WEIGHT_MAX };
   };
   // Why a tab cannot be used for the election in view ('' when it can).
   const tabWhy = (w) => (w === 'terrain' && glFailed ? 'needs WebGL, which this browser is not providing'
     : (w === 'arrows' || w === 'scatter') && !baselineOf() ? 'needs an earlier race for the same seat, and this election has none in the data' : '');
-  // The view drawn: the chosen tab, or a flat view when that tab cannot draw here.
-  const effW = () => (!tabWhy(state.w) ? state.w : state.w === 'terrain' && baselineOf() ? 'arrows' : 'dots');
+  // The view drawn: the chosen tab, or Circles when that tab cannot draw here.
+  const effW = () => (!tabWhy(state.w) ? state.w : 'circles');
   const showView = () => {
     const w = effW(), is3d = w === 'terrain', on = is3d && state.s === 'terrain' && terrain;
     document.getElementById('map').style.display = is3d && !on && deckgl ? 'block' : 'none';
@@ -250,13 +288,13 @@
   // The terrain shows the selection: whole states outlined, selected counties in full colour.
   const terrainSel = (fly) => { if (terrain) terrain.highlight(sel && sel.states, { counties: sel && !sel.states ? sel.counties : null, fly }); };
   if (!glFailed) (window.VTTerrain ? Promise.resolve() : new Promise((r) => window.addEventListener('vt-terrain-ready', r, { once: true })))
-    .then(() => window.VTTerrain.init({ container: document.getElementById('terrain'), geo, ramp: buildRamp(), onHover, labels: METROS,
+    .then(() => window.VTTerrain.init({ container: document.getElementById('terrain'), geo, ramp: buildRamp(), ramp2: buildRamp2(), onHover, labels: METROS,
       locator: document.getElementById('locator') }))
     .then((t) => { terrain = t; showView(); terrain.setState(terrainState(), { animate: false, base: baselineOf() }); terrain.view(state.v, presets, sideSpace(), false);
       terrainSel(false);
       if (firstVisit && state.s === 'terrain' && effW() === 'terrain') terrain.spin(); })
     .catch(() => noGL());
-  // WebGL missing or lost: switch to Dots (or Arrows when there is a baseline), keep the state, say why in the panel.
+  // WebGL missing or lost: switch to Circles, keep the state, say why in the panel.
   function noGL() {
     if (noGL.done) return; noGL.done = glFailed = true;
     if (deckgl) { try { deckgl.finalize(); } catch (e) { /* already gone */ } deckgl = null; }
@@ -307,9 +345,32 @@
       `${fmt(v[0])} votes, ${fmt(v[0] / m.sqmi)} per square mile<br>` +
       `Republican ${fmt(v[1])}, Democratic ${fmt(v[2])}<br>Margin ${lead(mg)}` +
       (s != null ? `<br>Swing since ${baselineLabel(m.st)}: ${Math.abs(s).toFixed(1)} points toward the ${s >= 0 ? 'Democrat' : 'Republican'}` : '') +
-      (weighted() ? `<br>${state.h === 'ev' ? 'Electoral' : 'Senate'} weight of a vote in ${bal.stateNames[m.st] || m.st}: ${(weighted().factor[m.st] || 0).toFixed(2)} times the average` : '') +
+      (weighted() && !effShown() ? `<br>${state.h === 'ev' ? 'Electoral' : 'Senate'} weight of a vote in ${bal.stateNames[m.st] || m.st}: ${(weighted().factor[m.st] || 0).toFixed(2)} times the average` : '') +
+      (effShown() ? effTip(f) : '') +
       `<br><span style="color:#5B6168">${e.source}</span>` };
   }
+  // Effective vote in the tooltip: residents per vote, the weight ratio and its three parts as a bar on a
+  // doubling scale (parts above 1 stack right of the centre line, parts below 1 stack left; the black tick
+  // is their product, the county's ratio).
+  const effShown = () => isWeight() || state.h === 'pop' || state.l === 'worth';
+  const PARTS = [['B', 'State electoral votes per resident', '#23306B'], ['N', 'Residents per eligible citizen', '#8890B4'], ['T', 'Eligible citizens per vote cast', '#C3C7CE']];
+  const partsBar = (x, w = 200) => {
+    const u = w / 2 / 2.5;                     // pixels per doubling: the bar spans 2.5 doublings each way
+    let pos = w / 2, neg = w / 2, h = '';
+    for (const [k, , col] of PARTS) {
+      const l = Math.log2(x[k]) * u;
+      if (l >= 0) { h += `<i style="left:${pos.toFixed(1)}px;width:${l.toFixed(1)}px;background:${col}"></i>`; pos += l; }
+      else { neg += l; h += `<i style="left:${neg.toFixed(1)}px;width:${(-l).toFixed(1)}px;background:${col}"></i>`; }
+    }
+    const t = clamp(w / 2 + Math.log2(x.r) * u, 1, w - 1);
+    return `<span class="pbar" style="width:${w}px" role="img" aria-label="Weight ${x.r.toFixed(2)} times the average">${h}<span class="z" style="left:${w / 2}px"></span><span class="t" style="left:${t.toFixed(1)}px"></span></span>`;
+  };
+  const partsLegend = (x) => `<span class="plegend">${PARTS.map(([k, name, col]) => `<span><i style="background:${col}"></i>${name} ×${x[k].toFixed(2)}</span>`).join('')}</span>`;
+  const effTip = (f) => {
+    const x = effOf(f); if (!x) return '';
+    return `<br>${x.ppv.toFixed(2)} residents per vote (${x.basis} Census)${x.u18 != null ? `; ${(x.u18 * 100).toFixed(0)}% under 18` : ''}` +
+      `<br>Electoral weight per vote: ${x.r.toFixed(2)}× the national average${partsBar(x)}${partsLegend(x)}`;
+  };
 
   // ---------- controls ----------
   const timeline = document.getElementById('timeline');
@@ -562,6 +623,15 @@
   }
 
   // ---------- flat views (views2d.js): the space between the panel, the key and the timeline ----------
+  // Circles layouts are loaded per election (or per census, for represented population) the first time they are needed.
+  const circleCache = {}; let lastCircles = null;
+  const circlesFor = () => {
+    const E = eff.elections[state.e], name = state.h === 'pop' && E ? 'rep' + E.basis : state.e, c = circleCache[name];
+    if (c && c.p) return (lastCircles = c);
+    if (!c) circleCache[name] = fetch(`circles-${name}.json`).then((r) => r.json())
+      .then((d) => { circleCache[name] = d; if (effW() === 'circles') views.redraw(true); }).catch(() => { delete circleCache[name]; });
+    return lastCircles;
+  };
   const region = () => {
     const W = window.innerWidth, box = (q) => document.querySelector(q).getBoundingClientRect();
     const tw = document.getElementById('tabWhy'), top = (tw.hidden ? box('#tabs') : tw.getBoundingClientRect()).bottom + 10;
@@ -580,6 +650,11 @@
     selection: () => sel,
     viewNote: (t) => { const n = document.getElementById('viewNote'); n.textContent = t; n.hidden = !t; },
     stateName: stName, key: () => state.e + '|' + baselineOf(),
+    circles: () => circlesFor(),
+    size: (f) => { const v = elections[state.e].data[f]; return !v ? 0 : state.h === 'pop' ? repVotesOf(f) : v[0]; },
+    sizeUnit: () => { const E = eff.elections[state.e];
+      return state.h === 'pop' && E ? { ref: V24 / eff.rep[E.basis].E, label: 'residents apportioned one electoral vote' } : { ref: 1e6, label: '1,000,000 votes' }; },
+    fill: (f) => `rgb(${colourRaw(f).join(',')})`,
   });
   window.addEventListener('resize', () => { if (effW() !== 'terrain') views.redraw(false); });
   document.getElementById('tabs').addEventListener('click', (ev) => {
@@ -637,6 +712,9 @@
       ...(b ? [['Swing', (r) => r.s, (s) => (s == null ? '' : `${Math.abs(s).toFixed(1)} to ${s >= 0 ? 'D' : 'R'}`)]] : []),
       ...(b && w === 'scatter' ? [['Rep. votes', (r) => (r.b && r.b[1] > 0 ? pctCh(r.v[1], r.b[1]) : null), signedPct],
         ['Dem. votes', (r) => (r.b && r.b[2] > 0 ? pctCh(r.v[2], r.b[2]) : null), signedPct]] : []),
+      ...(effShown() ? [['Residents per vote', (r) => (effOf(r.f) || {}).ppv, (x) => (x == null ? '' : x.toFixed(2))],
+        ...[['Weight per vote', 'r'], ['State EV per resident', 'B'], ['Residents per eligible', 'N'], ['Eligible per vote', 'T']]
+          .map(([name, key]) => [name, (r) => (effOf(r.f) || {})[key], (x) => (x == null ? '' : x.toFixed(2) + '×')])] : []),
     ];
     if (tableSort.k >= cols.length) tableSort = { k: 2, dir: -1 };
     const get = cols[tableSort.k][1];
@@ -679,7 +757,7 @@
     if (effW() !== 'terrain') document.getElementById('keyTerrain').hidden = document.getElementById('keyBlocks').hidden = true;
     sh.textContent = 'Per county: height is each county\'s own total, not its votes per square mile, smoothed a little across county lines. Big counties with many votes stand as plateaus; volume no longer equals votes.';
     document.querySelectorAll('[data-c]').forEach((b) => {
-      b.setAttribute('aria-pressed', b.dataset.c === (isMargin() ? 'margin' : 'swing'));
+      b.setAttribute('aria-pressed', b.dataset.c === (isWeight() ? 'weight' : isMargin() ? 'margin' : 'swing'));
       if (b.dataset.c === 'swing') b.disabled = !baselineOf();
     });
     const bo = baselineOf();
@@ -696,7 +774,8 @@
     document.querySelectorAll('[data-wh]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.wh === state.h));
     const per = state.n === 'county' ? 'per county' : 'per sq mi', vw0 = effW();
     document.getElementById('keyHeight').textContent = vw0 === 'dots' ? 'Dot area: votes' : vw0 === 'scatter' ? 'Circle area: votes' : vw0 === 'arrows' ? 'Arrow length: swing'
-      : state.d === '2d' ? 'Flat map: colour only'
+      : vw0 === 'circles' ? (state.h === 'pop' ? 'Area: represented people' : 'Circle area: votes')
+      : state.d === '2d' ? 'Flat map: colour only' : state.h === 'pop' ? 'Height: represented people'
       : state.h === 'net' ? `Height: net margin ${per}` : state.h === 'ev' || state.h === 'sen' ? `Height: votes × ${state.h === 'ev' ? 'electoral' : 'Senate'} weight`
       : `Height: ${{ total: 'votes', dem: 'Democratic votes', rep: 'Republican votes' }[state.h]} ${per}`;
     document.getElementById('lensState').textContent = state.l === 'custom' ? '(custom view)' : '';
@@ -706,8 +785,11 @@
     // Weighted views: one plain sentence in the panel, the extremes in the key.
     const w = weighted(), wh = document.getElementById('weightHow'), kw = document.getElementById('keyWeight');
     const aw = document.getElementById('aboutWeight');
-    wh.hidden = !w && state.h !== 'net'; kw.hidden = !w; aw.textContent = '';
-    if (state.h === 'net') {
+    wh.hidden = !w && state.h !== 'net' && state.h !== 'pop'; kw.hidden = !w; aw.textContent = '';
+    if (state.h === 'pop') {
+      const E = eff.elections[state.e];
+      wh.textContent = `Height is the population each county is apportioned electoral votes for (${E ? E.basis : ''} Census), so a county's volume is its share of the Electoral College whatever its turnout.`;
+    } else if (state.h === 'net') {
       // Volume above ground minus volume below is the margin in votes across every county in the map.
       let dem = 0, rep = 0;
       for (const v of Object.values(elections[state.e].data)) { dem += v[2]; rep += v[1]; }
@@ -729,12 +811,16 @@
 
     // Key
     // The key follows the view drawn: Dots and Arrows colour by swing when there is a baseline, Scatter by margin.
-    const kw2 = effW(), m = kw2 === 'terrain' ? isMargin() : kw2 === 'scatter' || !baselineOf(), max = m ? MARGIN_MAX : SWING_MAX;
-    document.getElementById('keyTitle').textContent = m ? `Margin, ${elections[state.e].label}` : `Swing since ${baselineLabel()}`;
-    document.getElementById('ramp').innerHTML = d3.range(-max, max + 0.001, max / 6).map((x) => `<i style="background:${toward(x, max)}"></i>`).join('');
-    document.getElementById('rampLabels').innerHTML = m
+    const kw2 = effW(), panelColour = kw2 === 'terrain' || kw2 === 'circles', wt = panelColour && isWeight();
+    const m = panelColour ? isMargin() : kw2 === 'scatter' || !baselineOf(), max = m ? MARGIN_MAX : SWING_MAX;
+    document.getElementById('keyTitle').textContent = wt ? 'Weight per vote' : m ? `Margin, ${elections[state.e].label}` : `Swing since ${baselineLabel()}`;
+    document.getElementById('ramp').innerHTML = wt ? d3.range(-WEIGHT_MAX, WEIGHT_MAX + 0.001, WEIGHT_MAX / 6).map((x) => `<i style="background:${towardW(x, WEIGHT_MAX)}"></i>`).join('')
+      : d3.range(-max, max + 0.001, max / 6).map((x) => `<i style="background:${toward(x, max)}"></i>`).join('');
+    document.getElementById('rampLabels').innerHTML = wt ? '<span>¼×</span><span>average</span><span>4×</span>' : m
       ? `<span>R+${max}</span><span>even</span><span>D+${max}</span>`
       : `<span>${max} R</span><span>no change</span><span>${max} D</span>`;
+    document.getElementById('rankBtn').hidden = !effShown() || !eff.elections[state.e];
+    if (!rankBox.hidden) renderRank();
 
     const e = elections[state.e];
     const n = [notes.AK, notes.CT, notes.KC, notes.VA];
@@ -750,9 +836,10 @@
     const nt = document.getElementById('notice');
     nt.hidden = !glFailed;
     if (glFailed) document.getElementById('locator').style.display = 'none';   // the locator is drawn by the terrain
-    nt.textContent = 'This browser is not drawing 3D (WebGL is off or unavailable), so the map is shown as Dots or Arrows. Everything else works.';
+    nt.textContent = 'This browser is not drawing 3D (WebGL is off or unavailable), so the map is shown as Circles. Everything else works.';
     tourBtn().disabled = vw !== 'terrain';
-    for (const id of ['flat', 'reset']) document.getElementById(id).disabled = vw === 'dots' || vw === 'scatter';
+    document.getElementById('flat').disabled = vw !== 'terrain';
+    document.getElementById('reset').disabled = vw === 'dots' || vw === 'scatter';
     if (sel) document.getElementById('selText').textContent = selSummary();
     showView();
     if (vw === 'terrain') {
@@ -781,7 +868,7 @@
   document.addEventListener('keydown', (ev) => {
     if (ev.target.closest('select, input, textarea') || ev.metaKey || ev.ctrlKey || ev.altKey) return;
     const k = ev.key;
-    if (k === 'Escape') { if (!about.hidden) closeAbout(); else if (!findBox.hidden) closeFind(); else if (!tableWrap.hidden) closeTable(); else if (sel) setSelection(null); }
+    if (k === 'Escape') { if (!rankBox.hidden) rankBox.hidden = true; else if (!about.hidden) closeAbout(); else if (!findBox.hidden) closeFind(); else if (!tableWrap.hidden) closeTable(); else if (sel) setSelection(null); }
     else if (k === 'ArrowLeft') { stop(); go(trk().indexOf(state.e) - 1); }
     else if (k === 'ArrowRight') { stop(); go(trk().indexOf(state.e) + 1); }
     else if (k >= '1' && k <= '4') { if (terrain) terrain.stopMotion(); applyLens(['votes', 'won', 'changed', 'worth'][+k - 1]); }
@@ -813,6 +900,36 @@
   aboutBtn.addEventListener('click', () => (about.hidden ? openAbout() : closeAbout()));
   document.getElementById('keyInfo').addEventListener('click', () => openAbout('aboutKeyHead'));
   document.getElementById('aboutClose').addEventListener('click', closeAbout);
+  // State ranking: weight per vote by state for the election in view, with its three parts; a row selects its state.
+  const rankBox = document.getElementById('rank');
+  const renderRank = () => {
+    const E = eff.elections[state.e]; if (!E) { rankBox.hidden = true; return; }
+    const rows = Object.entries(E.states).sort((a, b) => b[1][0] - a[1][0]);
+    document.getElementById('rankTitle').textContent = `Weight per vote, ${elections[state.e].label}`;
+    const cur = sel && sel.states ? new Set(sel.states) : new Set();
+    document.getElementById('rankBody').innerHTML = rows.map(([st, [r, B, N, T]]) => { const x = { r, B, N, T };
+      return `<button class="rrow" data-st="${st}" aria-pressed="${cur.has(st)}"><span class="rn">${esc(stName(st))}</span><span class="rv">${r.toFixed(2)}×</span>${partsBar(x, 150)}</button>`; }).join('');
+    document.getElementById('rankLegend').innerHTML = partsLegend({ B: NaN, N: NaN, T: NaN }).replace(/ ×NaN/g, '');
+  };
+  document.getElementById('rankBody').addEventListener('click', (ev) => { const b = ev.target.closest('[data-st]'); if (b) { tip.hidden = true; setSelection({ states: [b.dataset.st] }, { toggle: true, frame: true }); renderRank(); } });
+  document.getElementById('rankBody').addEventListener('mousemove', (ev) => { const b = ev.target.closest('[data-st]'); if (!b) return; const E = eff.elections[state.e], [r, B, N, T] = E.states[b.dataset.st];
+    placeTip(`<b>${esc(stName(b.dataset.st))}</b><br>Electoral weight per vote: ${r.toFixed(2)}× the national average${partsBar({ r, B, N, T })}${partsLegend({ r, B, N, T })}`, ev.clientX, ev.clientY); });
+  document.getElementById('rankBody').addEventListener('mouseleave', () => { tip.hidden = true; });
+  document.getElementById('rankBtn').addEventListener('click', () => { rankBox.hidden = !rankBox.hidden; if (!rankBox.hidden) { renderRank(); document.getElementById('rankClose').focus(); } });
+  document.getElementById('rankClose').addEventListener('click', () => { rankBox.hidden = true; });
+  // About: the effective-vote method, its checks and sources (read once, so it lives here).
+  {
+    const c = eff.checks, pc = c.population;
+    document.getElementById('aboutEff').innerHTML =
+      `<p>Each county's votes stand for a share of its state's electoral votes: the state's electoral votes times the county's share of the state's census population. Weight per vote is that share divided by the votes cast, shown against the national average (all electoral votes on the map over all votes cast). It splits exactly into three parts that multiply back to it:</p>` +
+      `<dl><dt>State electoral votes per resident</dt><dd>the state's electoral votes over its census population, against the national figure (two Senate electors per state, and House seats rounded to whole numbers).</dd>` +
+      `<dt>Residents per eligible citizen</dt><dd>census population over citizens of voting age, against the national figure (children and non-citizens are counted for apportionment but cannot vote).</dd>` +
+      `<dt>Eligible citizens per vote cast</dt><dd>citizens of voting age over votes cast, against the national figure (turnout).</dd></dl>` +
+      `<p>Residents per vote is census population over votes cast. Represented population, as a height or circle size, is each county's share of the apportioned electoral votes, drawn on President 2024's vote scale so it does not move with turnout.</p>` +
+      `<p class="note">${esc(eff.notes.basis)} ${esc(eff.notes.CT)} ${esc(eff.notes.fold)} ${esc(eff.notes.AK)} ${esc(eff.notes.senate_governor)} Citizen counts are survey estimates, so the smallest counties carry wide margins of error.</p>` +
+      `<p class="note">Checks: the three parts multiply back to the ratio for every county and state in every election (largest difference ${c.decomposition_max_relative_error.toExponential(0)}). County populations sum to the census national totals: ${fmt(pc['2010_counties_plus_AK'])} in 2010 and ${fmt(pc['2020_counties_plus_AK'])} in 2020, Alaska included as a state total. House seats plus two equal each state's electoral votes for both apportionments.</p>` +
+      `<p class="src">Sources: ${eff.sources.map((x) => `<a href="${esc(x.url)}">${esc(x.what)}</a>`).join('; ')}. Every figure: <a href="effective.json">effective.json</a>.</p>`;
+  }
   const applyLens = (key) => {
     const L2 = LENSES[key]; if (!L2) return;
     lensHint(key);
@@ -845,7 +962,7 @@
   document.getElementById('timeline').addEventListener('click', () => { if (terrain) { terrain.stopMotion(); } }, true);
   // Reset returns to the lens's own view (From the west for a custom view).
   document.getElementById('reset').addEventListener('click', () => {
-    if (effW() === 'arrows') { views.frame(null); return; }
+    if (effW() === 'arrows' || effW() === 'circles') { views.frame(null); return; }
     state.v = LENSES[state.l] ? LENSES[state.l].v : 'west'; state.d = '3d'; render(); setCamera(state.v);
   });
   document.getElementById('flat').addEventListener('click', () => {

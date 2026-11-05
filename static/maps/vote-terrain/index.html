@@ -149,6 +149,7 @@
   .v2d-label { color:var(--graphite); }
   .v2d-body { flex:1; min-height:0; position:relative; display:flex; flex-direction:column; }
   .v2d-body svg { display:block; overflow:visible; }
+  .v2d-body svg.v2d-circles { overflow:hidden; }
   .v2d-body text { font-family:'Courier Prime', monospace; font-size:11px; fill:var(--graphite); }
   .v2d-body .axis-title { font-size:12px; fill:var(--ink); }
   .v2d-body .quad { font-size:12px; fill:var(--ink); font-weight:700; }
@@ -178,6 +179,19 @@
   .table-wrap th[aria-sort] { text-decoration:underline; }
   .table-wrap tr.sel td { background:rgba(35,48,107,.07); }
   .quick { display:flex; flex-wrap:wrap; gap:6px; }
+  /* Effective vote: the three-part bar (tooltip, ranking) and the state ranking drawer */
+  .pbar { position:relative; display:block; height:10px; background:rgba(35,48,107,.07); margin:5px 0 3px; overflow:hidden; }
+  .pbar i { position:absolute; top:0; bottom:0; }
+  .pbar .z { position:absolute; top:0; bottom:0; border-left:1px dashed var(--ink); }
+  .pbar .t { position:absolute; top:0; bottom:0; width:2px; margin-left:-1px; background:#111; }
+  .plegend span { display:block; font-size:11.5px; color:var(--graphite); line-height:1.35; }
+  .plegend i { display:inline-block; width:9px; height:9px; margin-right:5px; vertical-align:-1px; }
+  .key #rankBtn { margin-top:5px; }
+  .rank { left:auto; right:206px; width:300px; }
+  .rank .rrow { display:grid; grid-template-columns:1fr auto; gap:0 8px; width:100%; font:inherit; font-size:12px; color:var(--ink); text-align:left; background:transparent; border:0; border-top:1px solid rgba(35,48,107,.1); padding:3px 2px; cursor:pointer; }
+  .rank .rrow .pbar { grid-column:1 / -1; margin:2px 0 1px; height:7px; }
+  .rank .rrow[aria-pressed=true] { background:rgba(35,48,107,.08); font-weight:700; }
+  .rank .rrow:hover { background:rgba(35,48,107,.05); }
   @media (max-width: 900px) {
     .key { top:auto; bottom:96px; right:12px; }
     .bop { top:14px; bottom:auto; right:12px; max-height:45%; }
@@ -193,7 +207,7 @@
     body[data-w=dots] .key, body[data-w=arrows] .key, body[data-w=scatter] .key { width:150px; padding:8px 10px; }
     #locator { display:none !important; }
     h1 { font-size:24px; }
-    .about { left:10px; right:10px; top:10px; width:auto; max-height:calc(100% - 20px); }
+    .about, .rank { left:10px; right:10px; top:10px; width:auto; max-height:calc(100% - 20px); }
     .key { top:50px; right:10px; bottom:auto; width:170px; }
     .bop, .bop.open { top:50px; bottom:auto; left:10px; right:auto; width:184px; max-height:60%; z-index:3; }
     .bop.open { right:10px; width:auto; z-index:6; }
@@ -210,7 +224,7 @@
 <div id="v2d"></div>
 <div id="grain" aria-hidden="true"></div>
 <nav class="tabs" id="tabs" aria-label="View">
-  <button data-w="terrain">Terrain</button><button data-w="arrows">Arrows</button><button data-w="dots">Dots</button><button data-w="scatter">Scatter</button>
+  <button data-w="terrain">Terrain</button><button data-w="circles">Circles</button><button data-w="arrows">Arrows</button><button data-w="dots">Dots</button><button data-w="scatter">Scatter</button>
 </nav>
 <p class="tab-why" id="tabWhy" hidden></p>
 <div class="find" id="find" hidden role="dialog" aria-label="Find a county or state">
@@ -231,7 +245,7 @@
     <div class="lens"><button data-l="worth">What a vote is worth</button><button class="lens-i" data-li="worth" aria-label="What “What a vote is worth” shows">i</button></div>
   </div>
   <div class="seg seg2" id="worthRow" role="group" aria-label="Weight by" hidden style="margin-bottom:8px">
-    <button data-wh="ev">Electoral College</button><button data-wh="sen">Senate</button>
+    <button data-wh="ev">Electoral</button><button data-wh="sen">Senate</button><button data-wh="pop" title="Represented population">People</button>
   </div>
   <p class="notice" id="notice" hidden></p>
   <p class="lens-how" id="lensHow" hidden><span id="lensHowText"></span><button id="lensHowClose" aria-label="Dismiss">×</button></p>
@@ -263,8 +277,8 @@
     <div class="seg seg2" role="group" aria-label="Height weighted by power">
       <button data-h="ev">Electoral weight</button><button data-h="sen">Senate weight</button>
     </div>
-    <div class="seg seg2" role="group" aria-label="Height by net margin">
-      <button data-h="net">Net margin</button>
+    <div class="seg seg2" role="group" aria-label="Height by net margin or represented population">
+      <button data-h="net">Net margin</button><button data-h="pop">Represented population</button>
     </div>
     <div class="seg seg2" role="group" aria-label="Which party is up" id="upRow" hidden>
       <button data-u="d">Democrats up</button><button data-u="r">Republicans up</button>
@@ -276,6 +290,9 @@
     <span class="name" id="c-name">Colour</span>
     <div class="seg" role="group" aria-labelledby="c-name">
       <button data-c="margin">Margin</button><button data-c="swing" id="swingBtn">Swing</button>
+    </div>
+    <div class="seg seg2" role="group" aria-label="Colour by weight per vote">
+      <button data-c="weight">Weight per vote</button>
     </div>
     <p class="how" id="swingHow"></p>
   </div>
@@ -298,6 +315,8 @@
   <p class="contours" id="keyTerrain"><i></i>Contours at 100, 1,000 and 10,000 votes per square mile, and at 10 when zoomed in.<br>Smoothed so each county's volume equals its votes; the shape inside a county is an estimate.</p>
   <p id="keyBlocks">Off the Gulf coast: two blocks of 1,000,000 votes each on different footprints. Same volume, different height.</p>
   <p id="aboutWeight"></p>
+  <h3 id="aboutEffHead">Effective vote</h3>
+  <div id="aboutEff"></div>
   <h3>Moving around</h3>
   <p>Drag to move the map. Shift-drag, or drag with two fingers, to tilt and turn. Scroll or pinch to zoom. Click a county to select it; shift-click or long-press to add. Keys: ← → elections, 1–4 lenses, V next view, Space play, Esc clear, / find, T table.</p>
   <h3>Notes and sources</h3>
@@ -311,7 +330,15 @@
   <div class="ramp-labels" id="rampLabels"></div>
   <div class="vol" id="keyHeight"></div>
   <div class="vol" id="keyWeight" hidden></div>
+  <button class="link" id="rankBtn" hidden aria-controls="rank">State ranking</button>
 </div>
+
+<aside class="about rank" id="rank" hidden role="dialog" aria-labelledby="rankTitle">
+  <header><b id="rankTitle">Weight per vote</b><button id="rankClose">Close</button></header>
+  <p class="note">Times the national average. Bars: the three parts on a doubling scale; the black tick is their product.</p>
+  <p id="rankLegend"></p>
+  <div id="rankBody"></div>
+</aside>
 
 <section class="bop" id="bop" aria-labelledby="bopTitle">
   <header><b id="bopTitle">Balance of power</b><button id="bopToggle" aria-expanded="false" aria-controls="bopBody">More</button></header>
@@ -322,8 +349,8 @@
 <div class="offices" id="offices" role="group" aria-label="Office"></div>
 <nav class="timeline" id="timeline" aria-label="Election"></nav>
 <canvas id="locator" aria-label="Locator: the whole country from above, with the part in view marked. Click to move the view there." role="button" tabindex="0"></canvas>
-<script src="views2d.js?v=71"></script>
-<script type="module" src="terrain.js?v=71"></script>
-<script src="app.js?v=71"></script>
+<script src="views2d.js?v=74"></script>
+<script type="module" src="terrain.js?v=74"></script>
+<script src="app.js?v=74"></script>
 </body>
 </html>

@@ -12,7 +12,7 @@ const GROUND = new THREE.Color('#E8ECEC');
 
 async function bin(url, Type) { return new Type(await (await fetch(url)).arrayBuffer()); }
 
-async function init({ container, geo, ramp, onHover, labels = [], locator = null }) {
+async function init({ container, geo, ramp, ramp2 = null, onHover, labels = [], locator = null }) {
   const H = await (await fetch('terrain.json')).json();
   const [owner, cells] = await Promise.all([bin('terrain-counties.bin', Uint16Array), bin('terrain-cells.bin', Uint32Array)]);
   const { cols, rows, cell: CELL, x0, yTop, land: L, k, sqmiPerUnit2, fips } = H;
@@ -54,6 +54,9 @@ async function init({ container, geo, ramp, onHover, labels = [], locator = null
 
   const rampTex = new THREE.DataTexture(ramp.data, ramp.size, 1, THREE.RGBAFormat);
   rampTex.colorSpace = THREE.SRGBColorSpace; rampTex.magFilter = rampTex.minFilter = THREE.LinearFilter; rampTex.needsUpdate = true;
+  // Second ramp for a per-county value that is not a party measure (weight per vote).
+  const rampTex2 = ramp2 ? new THREE.DataTexture(ramp2.data, ramp2.size, 1, THREE.RGBAFormat) : rampTex;
+  if (ramp2) { rampTex2.colorSpace = THREE.SRGBColorSpace; rampTex2.magFilter = rampTex2.minFilter = THREE.LinearFilter; rampTex2.needsUpdate = true; }
   const light = new THREE.Vector3(-0.55, 0.85, 1.25).normalize();
   const material = new THREE.ShaderMaterial({
     uniforms: {
@@ -240,19 +243,23 @@ async function init({ container, geo, ramp, onHover, labels = [], locator = null
     const a = decode(setting, st.e), b = base ? decode(setting, base) : null;
     const share = H.share, NODATA = H.nodata;
     const cv = {};                                         // county index -> its total of the chosen votes
+    // Per-county height multiplier (represented population) and per-county colour value, by county index.
+    const byIdx = (o) => (o ? Float32Array.from(fips, (f) => (o[f] == null ? NaN : o[f])) : null);
+    const cm = byIdx(st.countyMult), cval = st.mode === 'value' ? byIdx(st.countyValue) : null;
     for (let j = 0; j < L; j++) {
       const g = cells[j], t = (a.T[j] * a.sc) ** 2;
       if (a.D[j] === NODATA) { no[g] = 1; continue; }
       const d = t * a.D[j] / share, r = t * a.R[j] / share;
       // Weighted views: total votes times the state's power per vote relative to the national average.
       // Net margin: signed, so the chosen party's wins rise and the other's sink below ground.
-      const votes = st.weights ? t * (st.weights[cellSt[j]] || 0) : st.h === 'net' ? (d - r) * (st.u === 'r' ? -1 : 1)
+      const votes = cm ? t * (cm[owner[j] - 1] || 0) : st.weights ? t * (st.weights[cellSt[j]] || 0) : st.h === 'net' ? (d - r) * (st.u === 'r' ? -1 : 1)
         : st.h === 'dem' ? d : st.h === 'rep' ? r : t;
       z[g] = flat ? 0 : k * votes / cellArea;
       if (st.n === 'county') cv[owner[j]] = (cv[owner[j]] || 0) + votes;   // county totals for the per-county scale
       de[g] = Math.log10(Math.max(Math.abs(votes) / (cellArea * sqmiPerUnit2), 1e-3));
       const m = t > 0 ? (d - r) / t * 100 : 0;
-      if (st.mode === 'swing' && b) {
+      if (cval) { const x = cval[owner[j] - 1]; if (Number.isNaN(x)) no[g] = 1; else v[g] = x; }
+      else if (st.mode === 'swing' && b) {
         if (b.D[j] === NODATA) { no[g] = 1; continue; }
         v[g] = m - (b.D[j] - b.R[j]) / share * 100;
       } else v[g] = m;
@@ -522,13 +529,14 @@ async function init({ container, geo, ramp, onHover, labels = [], locator = null
       if (st.m && Number(st.m) !== setting && H.settings.includes(Number(st.m))) setting = Number(st.m);
       await Promise.all([loadGrid(st.e, setting), base ? loadGrid(base, setting) : null]);
       flat = st.d === '2d';
-      material.uniforms.uMax.value = st.mode === 'swing' ? 26 : 70;
-      material.uniforms.uContours.value = st.n === 'county' ? 0 : 1;   // contours are votes per square mile
+      material.uniforms.uMax.value = st.mode === 'value' ? st.valueMax : st.mode === 'swing' ? 26 : 70;
+      material.uniforms.uRamp.value = st.mode === 'value' ? rampTex2 : rampTex;
+      material.uniforms.uContours.value = st.n === 'county' || st.countyMult ? 0 : 1;   // contours are votes per square mile
       const next = target(st, base);
       cur = st; apply(next, animate);
       // Ghost: the baseline election's surface in the same height mode (weights of the baseline election).
       const ghostOn = st.g === '1' && base && !flat;
-      if (ghostOn) { const gt = target({ ...st, e: base, mode: 'margin', weights: st.baseWeights || st.weights }, null); setGhost(gt.z, gt.no, next.no); }
+      if (ghostOn) { const gt = target({ ...st, e: base, mode: 'margin', weights: st.baseWeights || st.weights, countyMult: st.baseCountyMult }, null); setGhost(gt.z, gt.no, next.no); }
       showGhost(!!ghostOn);
       drawOutline(hovered || pinned);
     },
