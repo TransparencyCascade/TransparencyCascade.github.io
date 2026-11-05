@@ -10,7 +10,8 @@
 import { state, TABS, TAB_NAME, LENSES, fromHash, toHash } from './state.js';
 import { toward, towardW, buildRamp, GARNET, SAPPHIRE, NEUTRAL, NODATA, SWING_MAX, MARGIN_MAX, WEIGHT_MAX } from './colour.js';
 import { reduced, fmt, clamp, $ } from './util.js';
-import { getJSON } from './data.js';
+import { getJSON, getBin } from './data.js';
+import { decodeGeometry } from './geometry.js';
 import { createModel } from './model.js';
 import { createTooltip } from './tooltip.js';
 import { createBalance } from './balance.js';
@@ -23,7 +24,8 @@ import { createViews2d } from './views2d/index.js';
 // Without WebGL the 3D views cannot draw: the page falls back to a flat view (see noGL) and keeps everything else.
 const hasGL = (() => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return false; } })();
 const terrainModule = hasGL ? import('./terrain.js') : null;   // three.js loads alongside the data
-const [geo, el, bal, eff] = await Promise.all(['geometry.json', 'elections.json', 'balance.json', 'effective.json'].map(getJSON));
+const [geoHead, geoBytes, el, bal, eff] = await Promise.all([getJSON('geometry.json'), getBin('geometry.bin', Uint8Array), ...['elections.json', 'balance.json', 'effective.json'].map(getJSON)]);
+const geo = decodeGeometry(geoHead, geoBytes);
 const { meta, pieces, presets } = geo;
 const { order, tracks, sameOffice, elections, notes } = el;
 

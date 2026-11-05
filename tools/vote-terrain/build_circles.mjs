@@ -16,6 +16,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { readGeometry } from './geometry_codec.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(HERE, '..', '..', 'static', 'maps', 'vote-terrain');
@@ -24,7 +25,7 @@ const require = createRequire(path.join(MODULES, 'x.js'));
 const { forceSimulation, forceX, forceY, forceCollide } = require('d3-force');
 const { polygonCentroid } = require('d3-polygon');
 
-const geo = JSON.parse(fs.readFileSync(path.join(OUT, 'geometry.json')));
+const geo = readGeometry(OUT);
 const el = JSON.parse(fs.readFileSync(path.join(OUT, 'elections.json')));
 const eff = JSON.parse(fs.readFileSync(path.join(OUT, 'effective.json')));
 

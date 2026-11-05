@@ -5,7 +5,8 @@
 //   (one-time: npm i d3-geo@3.1.1 topojson-client@3.1.0 in that dir)
 //
 // Writes into static/maps/vote-terrain/ (the page; this script lives in tools/ so Hugo does not publish it):
-//   geometry.json   counties pre-projected to d3.geoAlbersUsa (equal-area; Alaska and Hawaii insets),
+//   geometry.json + geometry.bin (packed by geometry_codec.mjs)
+//                   counties pre-projected to d3.geoAlbersUsa (equal-area; Alaska and Hawaii insets),
 //                   one item per polygon piece: fips, county name, state, rings (y flipped so north is up),
 //                   the county's projected area (px^2) and true area (sq mi)
 //   elections.json  per election and county: [total votes cast, Republican votes, Democratic votes]
@@ -23,6 +24,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { writeGeometry } from './geometry_codec.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(HERE, '..', '..', 'static', 'maps', 'vote-terrain');
@@ -235,7 +237,7 @@ for (const e of Object.values(elections)) for (const [f, [t]] of Object.entries(
 const MAX_HEIGHT = 260;                 // projected px units for the densest county
 const k = MAX_HEIGHT / maxD;            // height = k * votes / area_px
 
-fs.writeFileSync(path.join(OUT, 'geometry.json'), JSON.stringify({ meta, pieces, presets }));
+writeGeometry(OUT, { meta, pieces, presets });   // geometry.json + geometry.bin, packed losslessly (geometry_codec.mjs)
 fs.writeFileSync(path.join(OUT, 'elections.json'), JSON.stringify({
   order: [...tracks.president, ...tracks.senate, ...tracks.governor], tracks, sameOffice, k, maxHeight: MAX_HEIGHT, elections,
   notes: {

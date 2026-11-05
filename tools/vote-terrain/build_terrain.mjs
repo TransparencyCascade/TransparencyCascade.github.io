@@ -23,6 +23,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readGeometry } from './geometry_codec.mjs';
 
 const HERE = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'static', 'maps', 'vote-terrain');
 const CELL = 2;                              // projected units per cell (about 6 miles)
@@ -32,7 +33,7 @@ const CELL = 2;                              // projected units per cell (about 
 const SETTINGS = [1, 8];
 const ITERATIONS = 80;
 const SHARE = 65534, NODATA = 65535;          // share coding: 0..65534 of the cell's total; 65535 = no data
-const geo = JSON.parse(fs.readFileSync(path.join(HERE, 'geometry.json'), 'utf8'));
+const geo = readGeometry(HERE);
 const el = JSON.parse(fs.readFileSync(path.join(HERE, 'elections.json'), 'utf8'));
 const ELECTIONS = [...el.order, 'senprior', 'govprior'];
 
