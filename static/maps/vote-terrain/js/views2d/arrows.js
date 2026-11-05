@@ -1,9 +1,9 @@
 /* Arrows: one arrow per county, leaning toward the party it swung to, its length the swing. */
-import { INK, DIM, niceBelow } from './style.js';
+import { INK, DIM, niceBelow, OV_INK, OV_HALO, OV_DIAMOND } from './style.js';
 
 export function arrowsView({ ctx, meta, DUR, head, body, foot, place, inSel, shiftOf, longPress, countyPath, centroid, bboxOf, statePath, W0, statesOf, rows }) {
   const { fmt } = ctx;
-  let svg, g, zoom, gMap, gArr, zoomedSt = null, byVotes = false, exceptions = false, k0 = 1, fitted = null, counts = '';
+  let svg, g, zoom, gMap, gArr, gOv, zoomedSt = null, byVotes = false, exceptions = false, k0 = 1, fitted = null, counts = '';
   const PX_PER_POINT = 0.8;            // arrow length per point of swing, in map units at national scale
   function build() {
     fitted = null;                     // a new svg starts unzoomed: fit it on its first draw, whatever the size
@@ -13,7 +13,7 @@ export function arrowsView({ ctx, meta, DUR, head, body, foot, place, inSel, shi
     head.querySelector('[data-a="exc"]').addEventListener('click', (e) => { exceptions = !exceptions; e.currentTarget.setAttribute('aria-pressed', exceptions); draw(true); });
     body.innerHTML = '';
     svg = d3.select(body).append('svg').attr('class', 'v2d-map');
-    g = svg.append('g'); gMap = g.append('g'); gArr = g.append('g');
+    g = svg.append('g'); gMap = g.append('g'); gArr = g.append('g'); gOv = g.append('g').attr('class', 'ov-marks').style('pointer-events', 'none');
     gMap.selectAll('path.c').data(Object.keys(countyPath)).join('path').attr('class', 'c').attr('d', (f) => countyPath[f])
       .attr('fill', '#DCE1E2').attr('stroke', '#E8ECEC').attr('stroke-width', 0.25)
       .on('click', (ev, f) => {
@@ -23,7 +23,7 @@ export function arrowsView({ ctx, meta, DUR, head, body, foot, place, inSel, shi
       })
       .on('mousemove', (ev, f) => ctx.hover(f, ev.clientX, ev.clientY)).on('mouseleave', () => ctx.hover(null));
     gMap.append('path').attr('class', 'states').attr('d', statePath).attr('fill', 'none').attr('stroke', 'rgba(35,48,107,.5)').attr('stroke-width', 0.6).attr('pointer-events', 'none');
-    zoom = d3.zoom().scaleExtent([1, 14]).on('zoom', (ev) => { g.attr('transform', ev.transform); const k = ev.transform.k / k0; gArr.selectAll('path').attr('stroke-width', (r) => width(r) / k); refGlyph(); });
+    zoom = d3.zoom().scaleExtent([1, 14]).on('zoom', (ev) => { g.attr('transform', ev.transform); const k = ev.transform.k / k0; gArr.selectAll('path').attr('stroke-width', (r) => width(r) / k); marks(k); refGlyph(); });
     svg.call(zoom).on('dblclick.zoom', null);
     svg.on('click', (ev) => { if (ev.target === svg.node() && zoomedSt) { zoomedSt = null; reset(); } });
   }
@@ -67,8 +67,17 @@ export function arrowsView({ ctx, meta, DUR, head, body, foot, place, inSel, shi
     const all = pe.merge(p).attr('stroke', (r) => ctx.colour(r.s)).attr('stroke-width', (r) => width(r) / k)
       .attr('opacity', (r) => (S && !S.has(r.f) ? DIM : 0.92));
     (animate && DUR ? all.transition().duration(DUR) : all).attr('d', (r) => arrowD(r, r.s));
+    marks(k);
     counts = `${fmt(toD)} counties moved toward the Democrat, ${fmt(toR)} toward the Republican${exceptions ? '; only the exceptions shown' : ''}`;
     refGlyph();
+  }
+  // Overlay: a small diamond at each marked county's centre, one size on screen at any zoom.
+  function marks(k) {
+    const O = ctx.overlay(), fl = O ? [...O].filter((f) => centroid[f]) : [];
+    const m = gOv.selectAll('path').data(fl, (f) => f);
+    m.exit().remove();
+    m.enter().append('path').attr('d', OV_DIAMOND).attr('fill', OV_HALO).attr('stroke', OV_INK).merge(m)
+      .attr('transform', (f) => `translate(${centroid[f][0]},${centroid[f][1]}) scale(${(1 / (k * k0)).toFixed(4)})`).attr('stroke-width', 1.3);
   }
   // Reference arrow: one box size, so the head never changes height and a redraw keeps the reader's zoom;
   // the arrow is the largest round number of points that fits, labelled with it.

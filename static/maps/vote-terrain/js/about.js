@@ -80,5 +80,12 @@ export function createAbout({ el, eff, state, tip, selection, select, stName, ho
       `<dt>Efficiency gap</dt><dd>${esc(EG_DEF.replace(/^Efficiency gap: /, ''))}</dd></dl>` +
       `<p class="note">Swings are measured only between elections on unchanged lines. Sources: ${H.years.map((y) => esc(H.sources[y])).join('; ')}.</p>`;
   }
+  // The Power tab: its three charts, one at a time.
+  $('aboutPower').innerHTML =
+    `<p>Three charts of how the system turns votes into power, for the election in view (county tracks only), one at a time:</p>` +
+    `<dl><dt>Weight per vote</dt><dd>States ranked by the electoral weight of one vote against the national average, each bar split into the three parts above, on a doubling scale so the parts add up to the state's weight.</dd>` +
+    `<dt>Cartogram</dt><dd>One square per state, sized by its share of the votes cast, of the electoral votes in force or of the Senate's seats; choosing a measure plays the change between them.</dd>` +
+    `<dt>Concentration</dt><dd>Each party's counties ordered from most of its votes to fewest, against the share of the land (or of the counties) they cover. Drag the marker; the counties it reaches become the selection.</dd></dl>` +
+    `<p class="note">${esc(eff.notes.AK)}</p>`;
   return { lensHint, infoButton, closeAbout, isAboutOpen: () => !about.hidden, renderRank, isRankOpen: () => !rank.hidden, closeRank: () => { rank.hidden = true; } };
 }

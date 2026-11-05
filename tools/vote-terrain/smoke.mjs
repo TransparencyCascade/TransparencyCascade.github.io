@@ -302,8 +302,42 @@ const SCENARIOS = [
     const tot = fs.reduce((a, f) => a + d[f][2], 0); let c = 0, n = 0; for (const f of fs) { c += d[f][2]; n++; if (c >= tot / 2) break; }
     const C = P.curve('pres2024', 'd'), half = P.reach('pres2024', 'd', 50);
     return { states: R.length, top: [R[0].st, R[0].r], bottom: [R[R.length - 1].st, R[R.length - 1].r], ev, sen, half: half.n, direct: n,
-      ok: sorted && parts && sameAsEff && Math.abs(sum('votes') - 1) < 1e-9 && Math.abs(sum('ev') - 1) < 1e-9 && Math.abs(sum('sen') - 1) < 1e-9 && ev === 535 && sen === 98 &&
+      ok: sorted && parts && sameAsEff && Math.abs(sum('votes') - 1) < 1e-9 && Math.abs(sum('ev') - 1) < 1e-9 && Math.abs(sum('sen') - 1) < 1e-9 && ev === 538 && sen === 100 && R.some((x) => x.st === 'AK') && T.rows.some((x) => x.st === 'AK' && x.votes === eff.elections.pres2024.stateOnly.AK.votes) &&
         Math.abs(C[C.length - 1].cv - 1) < 1e-9 && Math.abs(C[C.length - 1].ca - 1) < 1e-9 && half.n === n }; }) },
+  // Overlays: marks on every county view, the comparison card, its selection rule and a direct recount of the comparison.
+  { name: 'o-monitors-circles', hash: 'e=sen2026&w=circles&c=swing&ov=monitors' },
+  { name: 'o-detention-terrain', hash: 'e=sen2026&c=swing&v=national&ov=detention', probe: (page) => page.evaluate(() => ({ marks: document.querySelectorAll('.ov-mark').length, key: document.getElementById('keyOvText').textContent })) },
+  { name: 'o-monitors-dots', hash: 'e=sen2026&w=dots&ov=monitors', probe: (page) => page.evaluate(() => ({ rings: document.querySelectorAll('#v2d circle.ov').length })) },
+  { name: 'o-detention-arrows', hash: 'e=sen2026&w=arrows&ov=detention', probe: (page) => page.evaluate(() => ({ marks: document.querySelectorAll('#v2d .ov-marks path').length })) },
+  { name: 'o-monitors-pres2024', hash: 'e=pres2024&w=circles&c=swing&ov=monitors', probe: (page) => page.evaluate(() => ({ card: document.getElementById('ovText').textContent })) },
+  { name: 'o-no-baseline', hash: 'e=sen2018&w=circles&ov=detention', probe: (page) => page.evaluate(() => ({ card: document.getElementById('ovText').textContent })) },
+  { name: 'o-house-hidden', hash: 'e=house2026&w=strips&ov=monitors', probe: (page) => page.evaluate(() => ({ card: document.getElementById('ovCard').hidden, key: document.getElementById('keyOv').hidden })) },
+  { name: 'o-menu', hash: 'e=sen2026&w=circles&c=swing', act: seq(click('#adjust summary'), click('[data-ov=detention]')), probe: (page) => page.evaluate(() => ({ ov: window.__vt.state.ov, l: window.__vt.state.l, card: !document.getElementById('ovCard').hidden })) },
+  { name: 'o-select', hash: 'e=sen2026&w=circles&c=swing&ov=monitors', act: click('#ovSelect'),
+    probe: (page) => page.evaluate(() => { const v = window.__vt, O = v.overlays.sets.monitors; return { sel: v.state.sel, n: v.sel() && v.sel().counties.size, ok: !!v.sel() && v.sel().counties.size === O.size && [...O].every((f) => v.sel().counties.has(f)) }; }) },
+  { name: 'o-table', hash: 'e=sen2026&w=circles&c=swing&ov=detention', act: key('t') },
+  { name: 'o-hover', hash: 'e=sen2026&w=circles&c=swing&ov=detention', act: async (page) => { await page.evaluate(() => window.__vt.setSelection({ counties: ['48479'] }, { frame: true })); await page.waitForTimeout(900); const b = await page.locator('#v2d svg.v2d-circles').boundingBox(); await page.mouse.move(b.x + b.width / 2 - 30, b.y + b.height / 2 - 30); await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.waitForTimeout(250); }, tip: true },
+  { name: 'o-data', hash: 'e=sen2026&w=circles&ov=monitors', probe: (page) => page.evaluate(async () => {
+    // The comparison recounted from the files, by a second route: cells of state, lean and size; weighted median.
+    const v = window.__vt, ov = await (await fetch('overlays.json')).json(), el = await (await fetch('elections.json')).json(), out = {};
+    for (const k of ['monitors', 'detention']) {
+      const L = ov.layers[k], e = L.election, b = el.sameOffice[e], d = el.elections[e].data, bd = el.elections[b].data, S = new Set(Object.keys(L.counties));
+      const m = (x) => (x[2] - x[1]) / x[0] * 100, band = (x) => { const r = -m(x); return [r < 0 ? 0 : r < 20 ? 1 : r < 40 ? 2 : 3, x[0] < 1e4 ? 0 : x[0] < 5e4 ? 1 : x[0] < 2e5 ? 2 : 3].join(); };
+      const cells = new Map();
+      for (const f of Object.keys(d)) { if (!v.meta[f] || !bd[f] || !d[f][0] || !bd[f][0]) continue; const c = v.meta[f].st + band(bd[f]); if (!cells.has(c)) cells.set(c, { a: [], o: [] }); cells.get(c)[S.has(f) ? 'a' : 'o'].push(m(d[f]) - m(bd[f])); }
+      const ins = [], outs = []; let un = 0;
+      for (const { a, o } of cells.values()) { if (!a.length) continue; if (!o.length) { un += a.length; continue; } ins.push(...a); for (const x of o) outs.push([x, a.length / o.length]); }
+      ins.sort((x, y) => x - y); outs.sort((x, y) => x[0] - y[0]);
+      const med = ins.length % 2 ? ins[(ins.length - 1) / 2] : (ins[ins.length / 2 - 1] + ins[ins.length / 2]) / 2;
+      const T = outs.reduce((a, x) => a + x[1], 0); let c = 0, wm = null;
+      for (let i = 0; i < outs.length; i++) { c += outs[i][1]; if (c >= T / 2 - 1e-9) { wm = c > T / 2 + 1e-9 || i === outs.length - 1 ? outs[i][0] : (outs[i][0] + outs[i + 1][0]) / 2; break; } }
+      const P = v.overlays.compare(k, e);
+      out[k] = { counties: S.size, inN: ins.length, unmatched: un, inMed: +med.toFixed(3), outMed: +wm.toFixed(3), page: [P.inN, P.unmatched, +P.inMed.toFixed(3), +P.outMed.toFixed(3)],
+        ok: P.inN === ins.length && P.unmatched === un && Math.abs(P.inMed - med) < 1e-9 && Math.abs(P.outMed - wm) < 1e-9 };
+    }
+    return { ...out, ok: out.monitors.ok && out.detention.ok }; }) },
+  ...['overlay-monitors-2026', 'overlay-detention-2026'].map((v) => ({ name: `v-view-${v}`, query: `view=${v}`,
+    probe: (page) => page.evaluate(() => ({ card: document.getElementById('viewCard').innerText.replace(/\s+/g, ' '), ov: window.__vt.state.ov, w: window.__vt.effW() })) })),
   { name: 'p-power-table-rank', hash: 'w=power', act: key('t') },
   { name: 'p-power-table-tiles', hash: 'w=power&pc=tiles', act: key('t') },
   { name: 'p-power-table-conc', hash: 'w=power&pc=conc', act: key('t') },
@@ -338,7 +372,7 @@ const fingerprint = (page, withTip) => page.evaluate(async (withTip) => {
     disabled: [...document.querySelectorAll('button:disabled')].map((b) => b.id || b.textContent.trim()).join(' | '),
     text: Object.fromEntries(['#keyTitle', '#rampLabels', '#keyHeight', '#keyWeight', '#bopTitle', '#bopLines', '#bopBody', '#notes', '#source', '#selChip',
       '#tabWhy', '#notice', '#viewNote', '#weightHow', '#swingHow', '#scaleHow', '#lensHow', '#lensState', '#swingBtn', '.v2d-head', '.v2d-foot', '#tableWrap',
-      '#findList', '#about', '#rank', '.tour-caption'].map((q) => [q, txt(q)])),
+      '#findList', '#about', '#rank', '.tour-caption', '#ovCard', '#keyOv'].map((q) => [q, txt(q)])),
     ramp: document.getElementById('ramp').innerHTML,
     svg: await Promise.all(svgs.map((s) => sha(s.outerHTML))),
     svgCounts: svgs.map((s) => s.querySelectorAll('circle, path, line').length).join(','),

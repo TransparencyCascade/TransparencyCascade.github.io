@@ -5,7 +5,7 @@
    vote by state; votes, electoral votes and Senate seats by state; or each party's concentration at fixed shares). */
 import { fmt, esc, countyLabelOf, $ } from './util.js';
 
-export function createTable({ geo, el, state, model, house, history, selection, effW, pctCh, OFFICE_NAME, stName, simCtx, power }) {
+export function createTable({ geo, el, state, model, house, history, selection, effW, pctCh, OFFICE_NAME, stName, simCtx, power, overlays, ovSet, ovSummary }) {
   const { meta } = geo, { elections } = el;
   const wrap = $('tableWrap'), table = $('table');
   let sort = { k: 2, dir: -1 };
@@ -100,7 +100,7 @@ export function createTable({ geo, el, state, model, house, history, selection, 
       cols = [['State', (r) => stName(r.st), String], ['Votes cast', (r) => r.votes, fmt], ['Share of votes', (r) => r.share.votes, p2], ['Electoral votes', (r) => r.ev, fmt],
         ['Share of electoral votes', (r) => r.share.ev, p2], ['Senate seats', (r) => r.sen, fmt], ['Electoral weight per vote', (r) => r.evPerVote, x2], ['Senate weight per vote', (r) => (r.sen ? r.senPerVote : null), x2]];
       $('tableTitle').textContent = `Votes cast, electoral votes and Senate seats by state, ${L}`;
-      $('tableNote').textContent = `${fmt(rs.length)} states with results (Alaska left out: no county votes in the page). Weight per vote: the state's share of electoral votes (or Senate seats) over its share of votes cast. Click a heading to sort.`;
+      $('tableNote').textContent = `${fmt(rs.length)} rows with results${rs.some((r) => r.stateOnly) ? ' (Alaska from its statewide total; it reports by House district)' : ' (Alaska left out: no statewide total for this race in the page)'}. Weight per vote: the state's share of electoral votes (or Senate seats) over its share of votes cast. Click a heading to sort.`;
     } else {
       rs = (power.rank(e) || []).slice(); if (sts) rs = rs.filter((r) => sts.has(r.st));
       cols = [['State', (r) => stName(r.st), String], ['Weight per vote', (r) => r.r, x2], ['State electoral votes per resident', (r) => r.B, x2], ['Residents per eligible citizen', (r) => r.N, x2], ['Eligible citizens per vote cast', (r) => r.T, x2]];
@@ -132,13 +132,17 @@ export function createTable({ geo, el, state, model, house, history, selection, 
       ...(model.effShown() ? [['Residents per vote', (r) => (effOf(r.f) || {}).ppv, (x) => (x == null ? '' : x.toFixed(2))],
         ...[['Weight per vote', 'r'], ['State EV per resident', 'B'], ['Residents per eligible', 'N'], ['Eligible per vote', 'T']]
           .map(([name, key]) => [name, (r) => (effOf(r.f) || {})[key], (x) => (x == null ? '' : x.toFixed(2) + '×')])] : []),
+      // An overlay in force: whether the county is marked (and what by), and the lean and size bands its match uses.
+      ...(ovSet && ovSet() ? [[overlays.layer(state.ov).short, (r) => (ovSet().has(r.f) ? overlays.detail(state.ov, r.f) : null), (x) => x || ''],
+        ...(b ? [['Lean band', (r) => (r.b && r.b[0] ? overlays.lean(r.b) : null), (x) => x || ''], ['Size band', (r) => (r.b && r.b[0] ? overlays.size(r.b) : null), (x) => x || '']] : [])] : []),
     ];
     if (sort.k >= cols.length) sort = { k: 2, dir: -1 };
     const get = cols[sort.k][1];
     rs = rs.slice().sort((x, y) => { const a = get(x), c = get(y); if (a == null) return 1; if (c == null) return -1; return (typeof a === 'string' ? a.localeCompare(c) : a - c) * sort.dir; });
     $('tableTitle').textContent = `${sel ? 'Selected counties' : 'Every county'}, ${elections[state.e].label}`;
     $('tableNote').textContent = `${fmt(rs.length)} ${rs.length === 1 ? 'county' : 'counties'}` + (b ? `. Swing in points since ${model.baselineLabel()}` : '') +
-      (b && w === 'scatter' ? '; vote changes in percent since the same race' : '') + '. Click a heading to sort.';
+      (b && w === 'scatter' ? '; vote changes in percent since the same race' : '') + '. Click a heading to sort.' +
+      (ovSet && ovSet() ? ' ' + ovSummary() : '');
     table.innerHTML = '<thead><tr>' + cols.map((c, i) => `<th data-k="${i}"${i === sort.k ? ` aria-sort="${sort.dir > 0 ? 'ascending' : 'descending'}"` : ''}>${c[0]}</th>`).join('') + '</tr></thead><tbody>' +
       (rs.length ? rs.map((r) => '<tr>' + cols.map((c) => `<td>${esc(c[2](c[1](r)))}</td>`).join('') + '</tr>').join('')
         : `<tr><td colspan="${cols.length}">No ${OFFICE_NAME[model.officeOf(state.e)].toLowerCase()} race with county results here in ${elections[state.e].year}.</td></tr>`) + '</tbody>';

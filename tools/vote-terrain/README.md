@@ -24,6 +24,7 @@ checks it; Hugo does not publish `tools/`.
 | `power.js` | The Power tab's arithmetic (pure): weight per vote by state with its three parts, each state's share of votes, electoral votes and Senate seats, each party's concentration curve and the counties that reach a share of its votes (also the selection rule `k:`) |
 | `sim.js` | The swing simulator's arithmetic (pure): each place's flip point under uniform or proportional swing, seats and control at a swing, where control changes |
 | `views.js` | Saved views and tours (`views.json`): `?view=`, `?tour=`, the card with the caption, caption tokens resolved from the data |
+| `overlays.js` | Overlays from our research (`overlays.json`, `ov=` in the link): each layer's counties, and their swing against matched unmarked counties (same state, lean band and size band; also the selection rule `o:`). Marks are drawn by `terrain.js` (`marks()`), `views2d/circles.js`, `dots.js` and `arrows.js` |
 
 `window.__vt` exists only for the smoke test, `export.mjs` and console checks. When you change a module, bump the
 `?v=` on `js/main.js` in `index.html`; the other modules are not versioned, so a browser may need a hard
@@ -42,6 +43,9 @@ Run from the repository root, in this order (each step reads what the one before
 4. `python3 -I tools/vote-terrain/build_balance.py <downloads> <countypres csv> <house district csv> static/maps/vote-terrain/balance.json`
    The smallest change uses certified state totals from the FEC (2016 and 2020 Federal Elections Table 2, the
    2024 official results file), not the county file's state sums; the build prints every state where the two differ.
+   `noCounty.AK`: Alaska's statewide totals (president 2016-2024 and Senate 2020-2022 from the FEC; Senate 2026 from
+   the AP feed, unofficial). Alaska reports by House district, not by county, so the county views leave it out and
+   `build_effective.py` adds it to the state figures and national totals as one unit; governor races have no Alaska total.
 5. `python3 -I tools/vote-terrain/build_effective.py <downloads> static/maps/vote-terrain/elections.json static/maps/vote-terrain/balance.json static/maps/vote-terrain/effective.json`
 6. `VT_MODULES=<dir with node_modules/d3-force, d3-polygon> node tools/vote-terrain/build_circles.mjs` — `circles-*.json`.
 7. `python3 -I tools/vote-terrain/build_house.py <house district csv> <house state csv> static/maps/vote-terrain/balance.json static/maps/vote-terrain/house.json`
@@ -73,6 +77,13 @@ Run from the repository root, in this order (each step reads what the one before
 
 `geometry_codec.mjs` packs the geometry (lossless; it checks the round trip). To convert a geometry.json in
 the old shape: `node tools/vote-terrain/geometry_codec.mjs <old geometry.json> static/maps/vote-terrain`.
+
+10. `python3 -I tools/vote-terrain/build_overlays.py ~/detention-pipeline static/maps/vote-terrain/overlays.json`
+   Overlays from our research (`ov=monitors|detention`). DOJ monitors: the counties holding a jurisdiction on DOJ's
+   Nov. 3, 2026 list, from the monitors page's join (`static/monitors/data.json`; a listed city counts as its county).
+   ICE detention: the counties holding a facility averaging 10 or more people a day in fiscal 2026, from the
+   detention-pipeline site's facility entries (Vera Institute ICE Detention Trends, FY2026). Each layer lists the
+   places it cannot draw (Alaska, Puerto Rico, Guam and others). Refresh when either source changes.
 
 ## Smoke test
 

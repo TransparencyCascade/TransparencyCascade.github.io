@@ -17,6 +17,8 @@
      filter pt: a swing as unsigned points (1.8).
    calc.power.<election>: rank { hi, lo ({ st, r, B, N, T }), hiName, loName, n }; tiles { hi, lo ({ st, name, votes, ev, sen
      (shares, percent), evPerVote }), n }; conc { q (50), d, r ({ n, of, land, counties: percent }) } (power.js).
+   calc.ov.<layer>: n (counties marked), election (label), inN, outN, inMed, outMed, diff, unmatched, more (the party the
+     marked counties moved more toward); roots ov.layers.<layer>: the layer record (name, rule, source, asof).
    calc.house.<year>: ps, captured, contestable, atRisk, apart, capv, capvShare, st.<ST>.{captured, contestable, atRisk}
      (bands at the default plausible swing). An unknown token stops the caption and logs an error, so a broken
      caption cannot reach a card unnoticed. */
@@ -24,7 +26,7 @@ import { fmt, esc, list, $ } from './util.js';
 import { createHouse } from './house.js';
 import { createSim, RANGE } from './sim.js';
 
-export function createSavedViews({ registry, bal, eff, houseData, histData, simData, elections, stName, power, apply }) {
+export function createSavedViews({ registry, bal, eff, houseData, histData, simData, elections, stName, power, overlays, apply }) {
   const etTime = (iso) => new Date(iso).toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', month: 'short', day: 'numeric', year: 'numeric' }) + ' ET';
   // Derived figures, computed once from the data files (the House bands with their own state, at the default plausible swing).
   const calc = { eff: {}, house: {} };
@@ -95,9 +97,17 @@ export function createSavedViews({ registry, bal, eff, houseData, histData, simD
     return (o[e] = { rank: R && { hi: R[0], lo: R[R.length - 1], hiName: stName(R[0].st), loName: stName(R[R.length - 1].st), n: R.length },
       tiles: { hi: tile(T[0]), lo: tile(T[T.length - 1]), n: T.length }, conc: { q: 50, d: conc('d'), r: conc('r') } });
   } });
-  const roots = { bal, eff, house: houseData, hist: histData, elections, calc, sim: simData };
+  // Overlays (overlays.js), each on the election its layer belongs to: counties marked, and the comparison of their
+  // swing with matched unmarked counties { inN, outN, inMed, outMed, diff, unmatched }; filter swing gives
+  // "1.2 points toward the Democrat".
+  calc.ov = {};
+  if (overlays) for (const k of Object.keys(overlays.sets)) {
+    const L = overlays.layer(k), c = overlays.compare(k, L.election) || {};
+    calc.ov[k] = { ...c, n: overlays.sets[k].size, election: elections[L.election].label, more: c.diff >= 0 ? 'Democrat' : 'Republican' };
+  }
+  const roots = { bal, eff, house: houseData, hist: histData, elections, calc, sim: simData, ov: overlays && { layers: Object.fromEntries(Object.keys(overlays.sets).map((k) => [k, overlays.layer(k)])) } };
   const FILTERS = {
-    n: (v) => fmt(v), raw: (v) => String(v), pt: (v) => Math.abs(v).toFixed(1), x: (v) => v.toFixed(1) + '×', x2: (v) => v.toFixed(2) + '×', pct: (v) => v.toFixed(1) + '%', pct2: (v) => v.toFixed(2) + '%', et: (v) => etTime(v),
+    n: (v) => fmt(v), raw: (v) => String(v), pt: (v) => Math.abs(v).toFixed(1), swing: (v) => `${Math.abs(v).toFixed(1)} points toward the ${v >= 0 ? 'Democrat' : 'Republican'}`, x: (v) => v.toFixed(1) + '×', x2: (v) => v.toFixed(2) + '×', pct: (v) => v.toFixed(1) + '%', pct2: (v) => v.toFixed(2) + '%', et: (v) => etTime(v),
     last: (v) => String(v).split(' ').pop(), states: (v) => list(v.map(stName)),
     perstate: (v) => list(Object.entries(v).sort((a, b) => b[1] - a[1]).map(([st, n]) => `${fmt(n)} in ${stName(st)}`)),
   };

@@ -2,10 +2,10 @@
    apart so none overlap (positions precomputed by build_circles.mjs; ctx.circles() hands over the layout for
    the election in view, or null while it loads). Drag draws a box; scroll or pinch zooms; Alt-drag or one
    finger pans. */
-import { INK, DIM, niceBelow } from './style.js';
+import { INK, DIM, niceBelow, OV_INK, OV_HALO } from './style.js';
 
 export function circlesView({ ctx, DUR, head, body, foot, place, inSel, shiftOf, longPress, statePath, W0 }) {
-  let svg, g, gSt, gC, box, zoom, k0 = 1, cur = new Map(), lay = null, fitted = null;
+  let svg, g, gSt, gC, gO, box, zoom, k0 = 1, cur = new Map(), lay = null, fitted = null;
   function build() {
     fitted = null;                     // a new svg starts unzoomed: fit it on its first draw, whatever the size
     // How to use it sits behind an "i": read once, it should not take a line of the view.
@@ -15,12 +15,12 @@ export function circlesView({ ctx, DUR, head, body, foot, place, inSel, shiftOf,
       : 'Drag a box to select; shift adds. Scroll or pinch to zoom; Alt-drag to pan.'));
     body.innerHTML = '';
     svg = d3.select(body).append('svg').attr('class', 'v2d-map v2d-circles');
-    g = svg.append('g'); gSt = g.append('g'); gC = g.append('g');
+    g = svg.append('g'); gSt = g.append('g'); gC = g.append('g'); gO = g.append('g').attr('class', 'ov-rings').style('pointer-events', 'none');
     gSt.append('path').attr('class', 'states').attr('d', statePath).attr('fill', 'none').attr('stroke', 'rgba(35,48,107,.22)').attr('stroke-width', 0.5).attr('pointer-events', 'none');
     box = svg.append('rect').attr('class', 'v2d-box').attr('fill', 'rgba(35,48,107,.08)').attr('stroke', INK).attr('stroke-dasharray', '3 3').attr('display', 'none');
     // Zoom takes the wheel, pinch and touch drags; a mouse drag is the box, unless Alt is held.
     zoom = d3.zoom().filter((ev) => ev.type === 'wheel' || ev.type.startsWith('touch') || (ev.type === 'mousedown' && ev.altKey && !ev.button))
-      .on('zoom', (ev) => { g.attr('transform', ev.transform); gC.selectAll('circle').attr('stroke-width', 0.35 / (ev.transform.k / k0)); refGlyph(); });
+      .on('zoom', (ev) => { g.attr('transform', ev.transform); gC.selectAll('circle').attr('stroke-width', 0.35 / (ev.transform.k / k0)); rings(ev.transform.k / k0); refGlyph(); });
     svg.call(zoom).on('dblclick.zoom', null);
     const at = (ev) => { const b = svg.node().getBoundingClientRect(); return [ev.clientX - b.left, ev.clientY - b.top]; };
     // Circle under the pointer, in map units.
@@ -78,7 +78,18 @@ export function circlesView({ ctx, DUR, head, body, foot, place, inSel, shiftOf,
     (animate && DUR ? all.transition().duration(DUR) : all).attr('cx', (f) => cur.get(f).x).attr('cy', (f) => cur.get(f).y).attr('r', (f) => cur.get(f).r).attr('fill', (f) => ctx.fill(f));
     // Small circles on top, so a big county never hides its neighbours.
     all.sort((a, b) => cur.get(b).r - cur.get(a).r);
+    rings(k);
     refGlyph();
+  }
+  // Overlay: a dark ring just outside each marked county's circle, its width fixed on screen.
+  function rings(k) {
+    const O = ctx.overlay(), fl = O ? [...O].filter((f) => cur.has(f)) : [];
+    const sel = gO.selectAll('g').data(fl, (f) => f);
+    sel.exit().remove();
+    const en = sel.enter().append('g'); en.append('circle').attr('class', 'halo'); en.append('circle').attr('class', 'ring');
+    const all = en.merge(sel);
+    all.select('.halo').attr('cx', (f) => cur.get(f).x).attr('cy', (f) => cur.get(f).y).attr('r', (f) => cur.get(f).r + 1.6 / k).attr('fill', 'none').attr('stroke', OV_HALO).attr('stroke-width', 2.6 / k);
+    all.select('.ring').attr('cx', (f) => cur.get(f).x).attr('cy', (f) => cur.get(f).y).attr('r', (f) => cur.get(f).r + 1.6 / k).attr('fill', 'none').attr('stroke', OV_INK).attr('stroke-width', 1.3 / k);
   }
   // Reference circle: one box size, so the head never changes height and a redraw keeps the reader's zoom;
   // the circle is the largest round amount that fits, and its label says what it is at this zoom.

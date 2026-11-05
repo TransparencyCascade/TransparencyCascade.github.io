@@ -40,6 +40,8 @@ export function createTooltip({ geo, el, bal, state, model }) {
       `<br>Electoral weight per vote: ${x.r.toFixed(2)}× the national average${partsBar(x)}${partsLegend(x)}`;
   };
 
+  // A line the page adds for an overlay in force (main.js, overlays.js): the layer's places in this county.
+  let extra = () => '';
   // A county's numbers in the election in view.
   const countyHtml = (f) => {
     const m = meta[f], e = elections[state.e], v = e.data[f], office = model.officeOf(state.e);
@@ -47,7 +49,7 @@ export function createTooltip({ geo, el, bal, state, model }) {
     if (!v) {
       const why = m.st === 'AK' ? notes.AK : office === 'president' ? 'No result in the source for this county.'
         : `No Democrat-vs-Republican ${OFFICE_NAME[office].toLowerCase()} race with county results here in ${e.year} (see the notes in the panel).`;
-      return head + why;
+      return head + why + extra(f);
     }
     const s = model.swingOf(f), w = model.weighted(), effOn = model.effShown();
     return head + `${e.label}${e.unofficial ? ' (unofficial)' : ''}<br>` +
@@ -55,11 +57,11 @@ export function createTooltip({ geo, el, bal, state, model }) {
       `Republican ${fmt(v[1])}, Democratic ${fmt(v[2])}<br>Margin ${lead(model.margin(v))}` +
       (s != null ? `<br>Swing since ${model.baselineLabel(m.st)}: ${Math.abs(s).toFixed(1)} points toward the ${s >= 0 ? 'Democrat' : 'Republican'}` : '') +
       (w && !effOn ? `<br>${state.h === 'ev' ? 'Electoral' : 'Senate'} weight of a vote in ${bal.stateNames[m.st] || m.st}: ${(w.factor[m.st] || 0).toFixed(2)} times the average` : '') +
-      (effOn ? effTip(f) : '') +
+      (effOn ? effTip(f) : '') + extra(f) +
       `<br><span style="color:#5B6168">${e.source}</span>`;
   };
   // Hover from a view: a county under the pointer, or null to hide.
   const hoverCounty = (f, x, y) => { if (!f) hide(); else place(countyHtml(f), x, y); };
 
-  return { place, hide, hidden: () => tip.hidden, countyHtml, hoverCounty, partsBar, partsLegend, OFFICE_NAME };
+  return { place, hide, hidden: () => tip.hidden, countyHtml, hoverCounty, partsBar, partsLegend, OFFICE_NAME, setExtra: (fn) => { extra = fn; } };
 }

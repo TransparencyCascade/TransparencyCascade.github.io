@@ -1,5 +1,8 @@
 /* Ink, rules and the fade for counties outside the selection, shared by the flat views. */
 export const INK = '#23306B', GRAPHITE = '#5B6168', RULE = 'rgba(35,48,107,0.28)', DIM = 0.35;
+// Overlay marks (overlays.js): a ring on circles and dots, a small diamond on maps; one ink, a pale halo so it reads on any colour.
+export const OV_INK = '#14193A', OV_HALO = 'rgba(244,246,246,.85)';
+export const OV_DIAMOND = 'M0,-3.6L3.6,0L0,3.6L-3.6,0Z';
 // The reference glyph in a map's head keeps one size: its label says what it stands for at the current
 // zoom. The largest 1, 2 or 5 times a power of ten not above x.
 export const niceBelow = (x) => { const p = 10 ** Math.floor(Math.log10(x)); return [5, 2, 1].map((m) => m * p).find((v) => v <= x) || p; };

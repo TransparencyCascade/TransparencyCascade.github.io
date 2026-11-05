@@ -109,6 +109,17 @@
   .timeline .nav.hint { box-shadow:inset 0 0 0 2px var(--ink); }
   /* Metro labels and the locator */
   .metro-labels { position:fixed; inset:0; pointer-events:none; z-index:2; }
+  .ov-mark { position:absolute; left:0; top:0; z-index:0; width:7px; height:7px; background:rgba(244,246,246,.85); border:1.5px solid #14193A; }
+  .metro-labels .metro { z-index:1; }
+  .ov-card { border:1px solid var(--rule); padding:8px 10px; margin:0 0 10px; font-size:13px; text-align:left; }
+  .ov-card p { margin:0 0 6px; }
+  .ov-card .ov-head { display:flex; align-items:center; gap:6px; }
+  .ov-card .ov-head b { flex:1; text-align:left; font-size:13px; }
+  .ov-card details summary { cursor:pointer; }
+  .ov-card #ovOff { font:inherit; background:transparent; border:0; color:var(--ink); cursor:pointer; font-size:16px; padding:0 2px; }
+  .ov-sym { flex:none; width:7px; height:7px; border:1.5px solid #14193A; background:rgba(244,246,246,.85); transform:rotate(45deg); margin:0 3px; }
+  .ov-card .tools { margin:4px 0 6px; }
+  .ov-card .how { margin:0; }
   .metro { position:absolute; left:0; top:0; font-size:12px; line-height:1; white-space:nowrap; color:var(--ink);
           background:rgba(243,245,245,.88); border:1px solid var(--rule); padding:3px 5px; visibility:hidden; }
   .metro.st-label { font-size:14px; font-weight:700; padding:3px 6px; }
@@ -311,9 +322,21 @@
   <p class="lens-how" id="lensHow" hidden><span id="lensHowText"></span><button id="lensHowClose" aria-label="Dismiss">×</button></p>
   <div class="sel-chip" id="selChip" hidden><span id="selText"></span><button id="selFrame">Frame</button><button id="selClose" aria-label="Clear the selection">×</button></div>
   <p class="how" id="viewNote" hidden style="margin:0 0 10px"></p>
+  <div class="ov-card county-only" id="ovCard" hidden aria-live="polite">
+    <p class="ov-head"><span class="ov-sym" aria-hidden="true"></span><b id="ovTitle"></b><button class="lens-i" id="ovInfo" aria-label="How the comparison is made">i</button><button id="ovOff" aria-label="Turn the overlay off">×</button></p>
+    <p id="ovText"></p>
+    <div class="tools"><button id="ovSelect">Select these places</button></div>
+    <details class="how" id="ovSource"></details>
+  </div>
   <div class="tools quick"><button id="tour" aria-pressed="false">Tour</button><button id="reset">Reset view</button><button id="tableBtn">Table</button><button id="findBtn">Find</button></div>
   <details class="adjust" id="adjust">
     <summary>Adjust <span class="muted" id="lensState"></span></summary>
+  <div class="group county-only">
+    <span class="name" id="ov-name">Overlay from our research</span>
+    <div class="seg" role="group" aria-labelledby="ov-name">
+      <button data-ov="">None</button><button data-ov="monitors">DOJ monitors</button><button data-ov="detention">ICE detention</button>
+    </div>
+  </div>
   <div class="group" id="psGroup" hidden>
     <span class="name" id="ps-name">Plausible swing</span>
     <div class="ps-row"><input type="range" id="psRange" min="1" max="30" step="0.5" aria-labelledby="ps-name" aria-describedby="psHow"><output id="psOut" for="psRange"></output></div>
@@ -387,6 +410,8 @@
   <div id="aboutEff"></div>
   <h3 id="aboutHouseHead">The House track</h3>
   <div id="aboutHouse"></div>
+  <h3 id="aboutPowerHead">The Power tab</h3>
+  <div id="aboutPower"></div>
   <h3>Moving around</h3>
   <p>Drag to move the map. Shift-drag, or drag with two fingers, to tilt and turn. Scroll or pinch to zoom. Click a county to select it; shift-click or long-press to add. Keys: ← → elections, 1–4 lenses, V next view, Space play, Esc clear, / find, T table.</p>
   <h3>Notes and sources</h3>
@@ -400,6 +425,7 @@
   <div class="ramp-labels" id="rampLabels"></div>
   <div class="vol" id="keyHeight"></div>
   <div class="vol" id="keyWeight" hidden></div>
+  <div class="vol" id="keyOv" hidden><span class="ov-sym" aria-hidden="true" style="display:inline-block;vertical-align:1px;margin-right:6px"></span><span id="keyOvText"></span></div>
   <button class="link" id="rankBtn" hidden aria-controls="rank">State ranking</button>
 </div>
 
@@ -419,6 +445,6 @@
 <div class="offices" id="offices" role="group" aria-label="Office"></div>
 <nav class="timeline" id="timeline" aria-label="Election"></nav>
 <canvas id="locator" aria-label="Locator: the whole country from above, with the part in view marked. Click to move the view there." role="button" tabindex="0"></canvas>
-<script type="module" src="js/main.js?v=86"></script>
+<script type="module" src="js/main.js?v=87"></script>
 </body>
 </html>

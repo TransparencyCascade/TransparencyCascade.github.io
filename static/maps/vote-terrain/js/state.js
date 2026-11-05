@@ -8,9 +8,10 @@
    empty for none; ps or -ps: the plausible swing in force, toward Democrats or Republicans), swr the rule
    (u uniform, p proportional), lock the states held at their actual result (CA,PA), sm which body its map shows.
    Power: pc the chart (rank, tiles, conc), pm what the cartogram's squares are sized by (votes, ev, sen), pk the
-   party the concentration marker follows (d, r), pa its horizontal axis (land, counties), pq the marker (1-99). */
+   party the concentration marker follows (d, r), pa its horizontal axis (land, counties), pq the marker (1-99).
+   ov: the overlay from our research marked on the county views (monitors, detention; empty for none; overlays.js). */
 import { parsePs } from './house.js';
-export const state = { e: 'pres2024', h: 'total', c: 'margin', s: 'terrain', m: '1', v: 'west', d: '3d', u: 'd', n: 'area', l: 'votes', g: '0', w: 'terrain', sel: '', ps: '', hc: 'seats', sw: '', swr: 'u', lock: '', sm: '', pc: 'rank', pm: 'votes', pk: 'd', pa: 'land', pq: '50' };
+export const state = { e: 'pres2024', h: 'total', c: 'margin', s: 'terrain', m: '1', v: 'west', d: '3d', u: 'd', n: 'area', l: 'votes', g: '0', w: 'terrain', sel: '', ps: '', hc: 'seats', sw: '', swr: 'u', lock: '', sm: '', pc: 'rank', pm: 'votes', pk: 'd', pa: 'land', pq: '50', ov: '' };
 // Districts and Seats and votes draw the House track (results by district); History draws the long view on any track;
 // the others need county results.
 export const TABS = ['terrain', 'circles', 'arrows', 'dots', 'scatter', 'strips', 'seats', 'history', 'sim', 'power'];
@@ -52,5 +53,6 @@ export const fromHash = (order) => {
   if (!['d', 'r'].includes(state.pk)) state.pk = 'd';
   if (!['land', 'counties'].includes(state.pa)) state.pa = 'land';
   state.pq = String(Math.max(1, Math.min(99, Math.round(+state.pq) || 50)));
+  state.ov = ['monitors', 'detention'].includes(q.get('ov')) ? q.get('ov') : '';
 };
 export const toHash = () => history.replaceState(null, '', '#' + new URLSearchParams(state).toString());

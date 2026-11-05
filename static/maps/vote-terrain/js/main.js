@@ -8,6 +8,8 @@
 
    The swing simulator (views2d/sim.js, sim.js, simulator.json): one swing for every race on the election day in view.
    Power (views2d/power.js, power.js): weight per vote ranked, the votes/electoral votes/Senate cartogram, concentration.
+   Overlays (overlays.js, overlays.json): counties our research marks (DOJ monitors, ICE detention), on every county view,
+   with their swing against matched counties in a card in the panel.
 
    Saved views and tours (views.js, views.json): ?view=<slug> and ?tour=<slug> open a named screen with its caption;
    ?export=1 hides the page's controls for tools/vote-terrain/export.mjs.
@@ -16,7 +18,7 @@
    only; nothing on the page reads it. */
 import { state, TABS, TAB_NAME, LENSES, fromHash, toHash } from './state.js';
 import { toward, towardW, buildRamp, GARNET, SAPPHIRE, NEUTRAL, NODATA, SWING_MAX, MARGIN_MAX, WEIGHT_MAX } from './colour.js';
-import { reduced, fmt, clamp, countyLabelOf, $ } from './util.js';
+import { reduced, fmt, clamp, countyLabelOf, esc, $ } from './util.js';
 import { getJSON, getBin, SNAPSHOT } from './data.js';
 import { decodeGeometry } from './geometry.js';
 import { createModel } from './model.js';
@@ -31,11 +33,12 @@ import { createHouse, PS_MIN, PS_MAX } from './house.js';
 import { createSavedViews, askedFor } from './views.js';
 import { createSim } from './sim.js';
 import { createPower } from './power.js';
+import { createOverlays } from './overlays.js';
 
 // Without WebGL the 3D views cannot draw: the page falls back to a flat view (see noGL) and keeps everything else.
 const hasGL = (() => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return false; } })();
 const terrainModule = hasGL ? import('./terrain.js') : null;   // three.js loads alongside the data
-const [geoHead, geoBytes, el, bal, eff, houseData, histData] = await Promise.all([getJSON('geometry.json'), getBin('geometry.bin', Uint8Array), ...['elections.json', 'balance.json', 'effective.json', 'house.json', 'history.json'].map(getJSON)]);
+const [geoHead, geoBytes, el, bal, eff, houseData, histData, ovData] = await Promise.all([getJSON('geometry.json'), getBin('geometry.bin', Uint8Array), ...['elections.json', 'balance.json', 'effective.json', 'house.json', 'history.json', 'overlays.json'].map(getJSON)]);
 const geo = decodeGeometry(geoHead, geoBytes);
 // ?view= or ?tour=: the registry of saved views, loaded only when one is asked for.
 const ASK = askedFor();
@@ -72,6 +75,10 @@ const model = createModel({ geo, el, bal, eff, state, selection: () => sel });
 const { officeOf, baselineOf, baselineLabel, isWeight, isMargin, weighted, weightsFor, effOf, multFor, effShown } = model;
 const tip = createTooltip({ geo, el, bal, state, model });
 const power = createPower({ meta, elections, eff, bal });
+const overlays = createOverlays({ data: ovData, meta, elections, sameOffice });
+// The overlay in force on a county track (null on the House track, where nothing is drawn by county).
+const ovSet = () => (state.ov && !isHouse() ? overlays.sets[state.ov] : null);
+tip.setExtra((f) => { const O = ovSet(); return O && O.has(f) ? `<br><span class="ov-sym" style="display:inline-block;margin-right:6px"></span>${overlays.layer(state.ov).short}: ${overlays.detail(state.ov, f)}` : ''; });
 const { OFFICE_NAME } = tip;
 
 // ---------- camera views shared by both 3D shapes ----------
@@ -144,7 +151,7 @@ const METROS = [['06037', 'Los Angeles'], ['36061', 'New York'], ['17031', 'Chic
 if (!glFailed) terrainModule
   .then((m) => m.initTerrain({ container: $('terrain'), geo, ramp: buildRamp(toward), ramp2: buildRamp(towardW), onHover: tip.hoverCounty, labels: METROS,
     locator: $('locator') }))
-  .then((t) => { terrain = t; showView(); if (!isHouse()) terrain.setState(terrainState(), { animate: false, base: baselineOf() }); terrain.view(state.v, presets, sideSpace(), false);
+  .then((t) => { terrain = t; showView(); terrainMarks(); if (!isHouse()) terrain.setState(terrainState(), { animate: false, base: baselineOf() }); terrain.view(state.v, presets, sideSpace(), false);
     terrainSel(framesSel(), false, 1.15);
     if (firstVisit && state.s === 'terrain' && effW() === 'terrain') terrain.spin(); })
   .catch(() => noGL());
@@ -215,7 +222,7 @@ const balance = createBalance({ el, bal, state, house, selection: () => sel, onR
 const stName = balance.stName;
 
 // ---------- selection: one set of counties shared by every view, kept across elections and tabs ----------
-const codec = createSelectionCodec({ geo, el, state, model, stName, house, power });
+const codec = createSelectionCodec({ geo, el, state, model, stName, house, power, overlays });
 // spec: { states } or { counties, rule }; opts.add merges, opts.toggle lets a second click clear it, opts.frame moves the camera to it.
 const setSelection = (spec, opts = {}) => {
   sel = codec.next(sel, spec, opts); selVersion++;
@@ -348,6 +355,7 @@ views = createViews2d({
   effSource: () => `Census Bureau decennial counts and the ACS citizen voting-age population tabulation (${eff.elections[state.e] ? eff.elections[state.e].cvap : 'ACS'}); electoral votes: National Archives. Votes: ${elections[state.e].source}`,
   power: () => ({ pc: state.pc, pm: state.pm, pk: state.pk, pa: state.pa, pq: state.pq, calc: power }),
   setPower: (patch) => { Object.assign(state, patch); render({ animate: false }); },
+  overlay: ovSet,
 });
 window.addEventListener('resize', () => { if (effW() !== 'terrain') views.redraw(false); });
 $('tabs').addEventListener('click', (ev) => {
@@ -363,11 +371,45 @@ const switchTab = (w) => {
 
 // ---------- find, table, read-once text ----------
 const find = createFind({ geo, el, ALL_ST: codec.ALL_ST, stName, choose: (spec) => setSelection(spec, { frame: true }) });
-const table = createTable({ geo, el, state, model, house, history: histData, selection: () => sel, effW, pctCh: codec.pctCh, OFFICE_NAME, stName, simCtx: () => simCtx(), power });
+const table = createTable({ geo, el, state, model, house, history: histData, selection: () => sel, effW, pctCh: codec.pctCh, OFFICE_NAME, stName, simCtx: () => simCtx(), power,
+  overlays, ovSet, ovSummary: () => $('ovText').textContent });
 const about = createAbout({ el, eff, state, tip, selection: () => sel, select: setSelection, stName, house });
+// The comparison's method, one click away: the matching, then the unmatched medians for reference.
+about.infoButton($('ovInfo'), () => {
+  const L = overlays.layer(state.ov), c = L && overlays.compare(state.ov, state.e); if (!L) return '';
+  return `${L.rule} Swing: each county's Democratic margin minus its margin in ${baselineLabel() || 'the last race for the same office'}. `
+    + `Matched counties: each marked county is set beside the unmarked counties in its state with the same lean (${overlays.bands.lean}) and size (${overlays.bands.size}); `
+    + `in each such group the unmarked counties are weighted so the group counts as much as its marked counties. Figures are medians of county swings; counties are not weighted by votes. `
+    + (c && c.rawInN ? `Unmatched, for reference: all ${fmt(c.rawInN)} marked counties with a result, ${swingText(c.rawIn)}; all ${fmt(c.rawOutN)} others, ${swingText(c.rawOut)}. ` : '')
+    + 'The figures describe the two groups. They do not say why the groups differ.';
+});
 
+// ---------- overlays: the card in the panel, the key line and the terrain's marks ----------
+let marksKey = null;
+const terrainMarks = () => { const O = ovSet(), key = O ? state.ov : ''; if (!terrain || key === marksKey) return; marksKey = key; terrain.marks(O ? [...O] : null); };
+const swingText = (x) => `${Math.abs(x).toFixed(1)} points toward the ${x >= 0 ? 'Democrat' : 'Republican'}`;
+const renderOverlay = () => {
+  document.querySelectorAll('[data-ov]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.ov === state.ov));
+  const O = ovSet(), L = O ? overlays.layer(state.ov) : null;
+  // Marks are drawn on the Terrain (its smooth shape), Circles, Arrows and Dots; the key names them only there.
+  const vw = effW(), marked = vw === 'circles' || vw === 'arrows' || vw === 'dots' || (vw === 'terrain' && state.s === 'terrain');
+  $('ovCard').hidden = !O; $('keyOv').hidden = !O || !marked;
+  terrainMarks();
+  if (!O) return;
+  $('keyOvText').textContent = `${L.short}: ${fmt(O.size)} counties`;
+  $('ovTitle').textContent = L.name;
+  const e = elections[state.e], c = overlays.compare(state.ov, state.e);
+  $('ovText').textContent = !c ? `${fmt(O.size)} counties marked. Comparing swing needs an earlier race for the same seat, and ${e.label} has none in the data.`
+    : !c.inN ? `${fmt(O.size)} counties marked; ${c.rawInN ? `none of the ${fmt(c.rawInN)} with a result in ${e.label} has a county in the same state, lean and size that is not marked` : `none has a result in ${e.label}`}.`
+    : `Median swing since ${baselineLabel()}, ${e.label}${e.unofficial ? ', unofficial' : ''}: marked counties (${fmt(c.inN)}), ${swingText(c.inMed)}; `
+      + `unmarked counties of the same state, lean and size (${fmt(c.outN)}), ${swingText(c.outMed)}. Difference ${Math.abs(c.diff).toFixed(1)} points.`
+      + (c.unmatched ? ` ${fmt(c.unmatched)} marked ${c.unmatched === 1 ? 'county has' : 'counties have'} no unmarked match.` : '');
+  $('ovSource').innerHTML = `<summary>${fmt(O.size)} counties marked; source</summary>${esc(L.rule)} Marked on Terrain (smooth shape), Circles, Arrows and Dots. ${esc(L.source)}${L.offMap.length ? ` Not on the county map: ${esc(L.offMap.join('; '))}.` : ''}`;
+  $('ovSelect').disabled = false;
+};
 function render(opts = {}) {
   buildTimeline();
+  renderOverlay();
   document.body.classList.toggle('house', isHouse());
   if (isHouse()) $('lensHow').hidden = true;
   $('psGroup').hidden = !isHouse();
@@ -541,7 +583,11 @@ document.querySelectorAll('[data-l]').forEach((b) => b.addEventListener('click',
 document.querySelectorAll('[data-wh]').forEach((b) => b.addEventListener('click', () => { state.h = b.dataset.wh; render(); }));
 $('ghost').addEventListener('click', () => { state.g = state.g === '1' ? '0' : '1'; render(); });
 // Any control inside Adjust turns the lens into a custom view (the capture runs before the control's own handler).
-$('adjust').addEventListener('click', (ev) => { if (ev.target.closest('button')) state.l = 'custom'; }, true);
+$('adjust').addEventListener('click', (ev) => { if (ev.target.closest('button') && !ev.target.closest('[data-ov]')) state.l = 'custom'; }, true);
+// Overlays: one layer at a time; the card's button makes its counties the selection.
+document.querySelectorAll('[data-ov]').forEach((b) => b.addEventListener('click', () => { state.ov = b.dataset.ov; render({ animate: false }); }));
+$('ovOff').addEventListener('click', () => { state.ov = ''; render({ animate: false }); });
+$('ovSelect').addEventListener('click', () => { const O = ovSet(); if (O) setSelection({ counties: [...O], rule: 'o:' + state.ov }, { frame: true }); });
 document.querySelectorAll('[data-s]').forEach((b) => b.addEventListener('click', () => {
   state.s = b.dataset.s; render({ animate: false }); setCamera(state.v, false);
 }));
@@ -582,7 +628,7 @@ const followHash = (forceCamera = false) => {
 };
 window.addEventListener('hashchange', () => followHash());
 // Saved views and tours: the card with the caption; a tour step sets the whole state, as a link would.
-const savedViews = registry ? createSavedViews({ registry, bal, eff, houseData, histData, simData, elections, stName, power,
+const savedViews = registry ? createSavedViews({ registry, bal, eff, houseData, histData, simData, elections, stName, power, overlays,
   apply: (st) => { if (terrain) terrain.stopMotion(); history.replaceState(null, '', location.search + '#' + hashFor(st)); followHash(true); if (st.sel && sel) applySelection({ frame: true, fit: 1.15 }); } }) : null;
 if (savedViews) {
   savedViews.setOnResize(() => { if (views && effW() !== 'terrain') views.redraw(false); });
@@ -596,7 +642,7 @@ const fitHeights = () => {
   if (f < 1) kh.textContent += `; heights drawn at ${Math.round(f * 100)}% to fit the card`;
   return f;
 };
-window.__vt = { state, elections, power, sim: () => simCtx(), fitHeights, saved: () => savedViews, meta, house: () => house.now(), terrain: () => terrain, blocks: () => blocks, views: () => views, sel: () => sel, setSelection, effW, tipHtml: tip.countyHtml,
+window.__vt = { state, elections, power, overlays, sim: () => simCtx(), fitHeights, saved: () => savedViews, meta, house: () => house.now(), terrain: () => terrain, blocks: () => blocks, views: () => views, sel: () => sel, setSelection, effW, tipHtml: tip.countyHtml,
   colours: { GARNET: GARNET + '', SAPPHIRE: SAPPHIRE + '', NEUTRAL: NEUTRAL + '' } };
 sel = codec.decode(state.sel); state.sel = codec.encode(sel);
 ready = true;

@@ -513,6 +513,31 @@ export async function initTerrain({ container, geo, ramp, ramp2, onHover, labels
     }
   }
 
+  // ---------- overlay marks: a small diamond on each marked county, at the cell nearest the middle of its land ----------
+  let marks = [], cellsByOwner = null;
+  const setMarks = (fl) => {
+    for (const m of marks) m.el.remove(); marks = [];
+    if (!fl || !fl.length) return;
+    if (!cellsByOwner) { cellsByOwner = new Map(); for (let j = 0; j < L; j++) { const o = owner[j]; if (!cellsByOwner.has(o)) cellsByOwner.set(o, []); cellsByOwner.get(o).push(cells[j]); } }
+    for (const f of fl) {
+      const cl = cellsByOwner.get(fipsIdx.get(f)); if (!cl || !cl.length) continue;
+      let sx = 0, sy = 0; for (const g of cl) { sx += pos[g * 3]; sy += pos[g * 3 + 1]; }
+      const mx = sx / cl.length, my = sy / cl.length; let g0 = cl[0], d0 = Infinity;
+      for (const g of cl) { const d = (pos[g * 3] - mx) ** 2 + (pos[g * 3 + 1] - my) ** 2; if (d < d0) { d0 = d; g0 = g; } }
+      const el = document.createElement('div'); el.className = 'ov-mark'; labelBox.appendChild(el);
+      marks.push({ f, g: g0, el });
+    }
+  };
+  function placeMarks() {
+    if (!marks.length || labelBox.style.display === 'none') return;
+    const W = renderer.domElement.clientWidth, Hh = renderer.domElement.clientHeight;
+    for (const m of marks) {
+      const { x, y, front } = toScreen(m.g, W, Hh), show = front && x > 0 && x < W && y > 0 && y < Hh;
+      if (show) m.el.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%) rotate(45deg)`;
+      m.el.style.visibility = show ? 'visible' : 'hidden';
+    }
+  }
+
   // ---------- locator: the land from above, with the ground the camera sees ----------
   let loc = null;
   if (locator) {
@@ -555,7 +580,7 @@ export async function initTerrain({ container, geo, ramp, ramp2, onHover, labels
 
   (function loop() {
     requestAnimationFrame(loop); frame++;
-    placeLabels(); if (frame % 2 === 0) drawLocator();
+    placeLabels(); placeMarks(); if (frame % 2 === 0) drawLocator();
     if (motion) stepMotion(performance.now()); else { lastT = performance.now(); controls.update(); }
     if (natDist) material.uniforms.uMinLevel.value = camera.position.distanceTo(controls.target) < natDist * 0.42 ? 0.95 : 1.95;
     renderer.render(scene, camera);
@@ -632,6 +657,8 @@ export async function initTerrain({ container, geo, ramp, ramp2, onHover, labels
       if (on) resize();
     },
     pin(f) { pinned = f || null; drawOutline(hovered || pinned); },
+    // Overlay marks: a list of county FIPS (or null for none), each drawn as a small diamond on its land.
+    marks(fl) { setMarks(fl); },
     spin(onEnd) { if (reduced) return; stopMotion(); motion = { kind: 'spin' }; onMotionEnd = onEnd; },
     // stops: [{ f: county FIPS }]; the camera looks along the direction of travel from a low angle.
     tour(stops, { onStop, onEnd } = {}) {

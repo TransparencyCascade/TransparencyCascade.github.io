@@ -1,5 +1,5 @@
 /* Dots: every county on a margin or swing axis (a beeswarm, dot area = votes), with a strip per state below. */
-import { INK, GRAPHITE, RULE, DIM } from './style.js';
+import { INK, GRAPHITE, RULE, DIM, OV_INK } from './style.js';
 
 export function dotsView({ ctx, DUR, head, body, place, inSel, shiftOf, dragGuard, nearest, hitLayer, rows }) {
   const { fmt } = ctx;
@@ -71,6 +71,14 @@ export function dotsView({ ctx, DUR, head, body, place, inSel, shiftOf, dragGuar
     all.attr('r', (r) => rad(r)).attr('fill', (r) => ctx.colour(val(r))).attr('stroke', 'rgba(35,48,107,.35)').attr('stroke-width', 0.3)
       .attr('opacity', (r) => (S && !S.has(r.f) ? DIM : 0.95));
     (animate && DUR ? all.transition().duration(DUR) : all).attr('cx', (r) => nodes.get(r.f).x).attr('cy', (r) => nodes.get(r.f).y);
+    // Overlay: a dark ring around each marked county's dot.
+    const O = ctx.overlay(), od = O ? data.filter((r) => O.has(r.f)) : [];
+    const ov = gBand.selectAll('circle.ov').data(od, (r) => r.f);
+    ov.exit().remove();
+    const ovAll = ov.enter().append('circle').attr('class', 'ov').style('pointer-events', 'none').attr('fill', 'none').merge(ov)
+      .attr('r', (r) => rad(r) + 1.6).attr('stroke', OV_INK).attr('stroke-width', 1.3)
+      .attr('cx', (r) => nodes.get(r.f).x).attr('cy', (r) => nodes.get(r.f).y);
+    ovAll.raise();
     // Brush along the value axis: live count and votes; the selection on release.
     const note = svg.select('.brush-note text').attr('class', 'brush-label').text('');
     const brush = (narrow ? d3.brushY().extent([[pad.l, pad.t], [w - pad.r, bandH - pad.b]]) : d3.brushX().extent([[pad.l, pad.t], [w - pad.r, bandH - pad.b]]))

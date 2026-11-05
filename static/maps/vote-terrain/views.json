@@ -184,7 +184,7 @@
       "title": "Votes and electoral votes, by state, 2024",
       "file": "Each state's share of the electoral votes; President 2024",
       "caption": "Each square is the state's share of the electoral votes in 2024. {calc.power.pres2024.tiles.hi.name} cast {calc.power.pres2024.tiles.hi.votes|pct2} of the votes counted here and holds {calc.power.pres2024.tiles.hi.ev|pct2} of the electoral votes; {calc.power.pres2024.tiles.lo.name} cast {calc.power.pres2024.tiles.lo.votes|pct2} and holds {calc.power.pres2024.tiles.lo.ev|pct2}.",
-      "sources": "{elections.pres2024.source} Electoral votes: National Archives, 2020 apportionment. Alaska is left out: the page has no county votes for it.",
+      "sources": "{elections.pres2024.source} Alaska: {eff.elections.pres2024.stateOnly.AK.source} Electoral votes: National Archives, 2020 apportionment.",
       "state": {
         "e": "pres2024",
         "w": "power",
@@ -205,6 +205,34 @@
         "pk": "d",
         "pa": "land",
         "pq": "50"
+      }
+    },
+    {
+      "slug": "overlay-monitors-2026",
+      "title": "DOJ election monitors: county swing, Senate 2026",
+      "file": "{ov.layers.monitors.short}, marked; swing since each seat's previous race, Senate 2026",
+      "caption": "Counties holding a jurisdiction on the Justice Department's Nov. 3, 2026 monitoring list are marked with a diamond ({calc.ov.monitors.n} on the map). In the unofficial 2026 Senate count, the {calc.ov.monitors.inN} marked counties with a match swung a median {calc.ov.monitors.inMed|swing} since each seat's previous race; unmarked counties of the same state, lean and size swung {calc.ov.monitors.outMed|swing}, a difference of {calc.ov.monitors.diff|pt} points.",
+      "sources": "{ov.layers.monitors.source} Votes: {elections.sen2026.source} Comparison: medians of county swing, each marked county against unmarked counties in its state with the same lean and size band.",
+      "state": {
+        "e": "sen2026",
+        "w": "terrain",
+        "v": "national",
+        "c": "swing",
+        "ov": "monitors"
+      }
+    },
+    {
+      "slug": "overlay-detention-2026",
+      "title": "ICE detention facilities: county swing, Senate 2026",
+      "file": "{ov.layers.detention.short}, marked; swing since each seat's previous race, Senate 2026",
+      "caption": "Counties holding an ICE detention facility that averaged {ov.layers.detention.minAdp} or more people a day in fiscal 2026 are marked with a diamond ({calc.ov.detention.n} on the map). In the unofficial 2026 Senate count, the {calc.ov.detention.inN} marked counties with a match swung a median {calc.ov.detention.inMed|swing} since each seat's previous race; unmarked counties of the same state, lean and size swung {calc.ov.detention.outMed|swing}, a difference of {calc.ov.detention.diff|pt} points.",
+      "sources": "{ov.layers.detention.source} Votes: {elections.sen2026.source} Comparison: medians of county swing, each marked county against unmarked counties in its state with the same lean and size band.",
+      "state": {
+        "e": "sen2026",
+        "w": "terrain",
+        "v": "national",
+        "c": "swing",
+        "ov": "detention"
       }
     }
   ],
