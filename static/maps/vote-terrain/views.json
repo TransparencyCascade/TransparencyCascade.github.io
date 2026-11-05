@@ -353,6 +353,60 @@
         "w": "history",
         "hc": "bias"
       }
+    },
+    {
+      "slug": "money-dollars-per-decisive-vote",
+      "title": "Dollars per decisive vote, Senate races {money.cycles.0|raw} to {money.cycles.9|raw}",
+      "file": "Dollars per decisive vote, Senate, {money.cycles.0|raw} to {money.cycles.9|raw}",
+      "caption": "In the {calc.money.y2024.races} Senate races of {calc.money.y2024.year|raw} with dollars assigned, the median race had {calc.money.y2024.medFlip|usd} of candidate spending per vote to flip ({calc.money.y2024.medFlipOut|usd} with party and race-named outside money) and {calc.money.y2024.medMoved|usd} per vote moved. Beside the dots: super and hybrid PACs disbursed {calc.money.y2024.disb|usdw} that cycle, {calc.money.y2024.alloc|usdw} named for a race (Schedule E) and {calc.money.y2024.notAlloc|usdw} not. Spending and votes sit side by side, not as cause and effect.",
+      "sources": "FEC bulk files retrieved {money.sources.webk24.retrieved|raw}: candidate summaries, committee summaries, party coordinated expenditures, Schedule E. Votes: MIT Election Data and Science Lab and certified results; {calc.money.y2026.year|raw} partial (committee summaries through {calc.money.y2026.committeesThrough|raw}) and unofficial (AP feed). Not named for a race: operations, canvassing, transfers to other committees, races not drawn. Unreported money (501(c)(4) groups and other organizations that do not disclose) is not counted and not estimated.",
+      "state": {
+        "e": "sen2024",
+        "w": "money",
+        "mc": "time",
+        "md": "flip",
+        "mm": "out"
+      }
+    },
+    {
+      "slug": "money-outspent-and-lost-2024",
+      "title": "Outspent and lost, Senate {calc.money.y2024.year|raw}",
+      "file": "Spending share against vote share, Senate {calc.money.y2024.year|raw}",
+      "caption": "Of {calc.money.y2024.lostOf} Senate races of {calc.money.y2024.year|raw} where the two candidates' spending can be compared, the side that spent more lost in {calc.money.y2024.lostN} counting candidates alone and {calc.money.y2024.lostOutN} of {calc.money.y2024.lostOutOf} counting also party and race-named outside money. Dots sit by the Democratic side's share of that spending and of the two-party vote; shaded quadrants: the bigger spender lost. Side by side, not cause and effect.",
+      "sources": "FEC bulk files retrieved {money.sources.webk24.retrieved|raw}: candidate summaries (through {calc.money.y2024.candidatesThrough|raw}), party coordinated expenditures and Schedule E, which names the candidate supported or opposed. Votes: MIT Election Data and Science Lab and certified results. Unreported money (501(c)(4) groups and other organizations that do not disclose) is not counted and not estimated.",
+      "state": {
+        "e": "sen2024",
+        "w": "money",
+        "mc": "lost",
+        "mm": "out",
+        "my": "2024"
+      }
+    },
+    {
+      "slug": "money-where-it-came-from-2026",
+      "title": "Where the super PAC money came from, {calc.money.y2026.year|raw} (partial)",
+      "file": "Individual donors to super PACs, {calc.money.y2026.year|raw} (partial)",
+      "caption": "Through {calc.money.y2026.itemizedThrough|raw}, {calc.money.y2026.n1m} individuals gave $1 million or more in itemized cash to {calc.money.y2026.year|raw} super PACs; the top 10 gave at least {calc.money.y2026.top10|pct} of the super PACs' receipts, the top 100 at least {calc.money.y2026.top100|pct}. America PAC took in {calc.money.america.receipts|usd} through {calc.money.america.through|raw}: {calc.money.america.muskCash|usd} is Elon Musk's cash and {calc.money.america.inKind|usd} more is in-kind lines memo-attributed to him. Its Schedule E shows {calc.money.america.schedE|usd} (summary) to {calc.money.america.schedEFile|usd} (file).",
+      "sources": "FEC itemized individual contributions and committee summaries (through {calc.money.y2026.committeesThrough|raw}), Schedule E file (through {calc.money.america.schedEThrough|raw}), retrieved {money.sources.webk26.retrieved|raw}; America PAC lines from our research note on the 2026 same-ballot gaps (filings 2026216, 2038959). Names only at $1 million or more; memo lines are not added to cash. The FEC has not itemized every 2026 gift, so the shares can only rise. Unreported money (501(c)(4) groups and other organizations that do not disclose) is not counted and not estimated.",
+      "state": {
+        "e": "sen2024",
+        "w": "money",
+        "mc": "donors",
+        "my": "2026"
+      }
+    },
+    {
+      "slug": "money-cost-of-the-smallest-change-2022",
+      "title": "The money in the smallest change, Senate {calc.money.y2022.year|raw}",
+      "file": "Net margin by county, Senate {calc.money.y2022.year|raw}; the decisive races",
+      "caption": "{bal.elections.d2022.smallest.senate.votes|n} votes in {bal.elections.d2022.smallest.senate.races.0.state} and {bal.elections.d2022.smallest.senate.races.1.state} would have given Republicans the Senate. Candidates in those races spent {calc.money.y2022.cost.senateSpent|usdw} (spent), {calc.money.y2022.cost.senatePerFlip|usd} per vote to flip; counting also party and race-named outside money, {calc.money.y2022.cost.senateOutPerFlip|usd} per vote to flip. Money beside votes, not as their cause.",
+      "sources": "Votes: half each state's certified margin plus one, from the FEC, {bal.sources.fec2022}; {bal.elections.d2022.smallest.senate.label} Dollars: FEC candidate summaries through {calc.money.y2022.candidatesThrough|raw}, party coordinated expenditures and Schedule E. Unreported money (501(c)(4) groups and other organizations that do not disclose) is not counted and not estimated.",
+      "state": {
+        "e": "sen2022",
+        "w": "circles",
+        "l": "won",
+        "sel": "s:NV,NH"
+      }
     }
   ],
   "tours": [

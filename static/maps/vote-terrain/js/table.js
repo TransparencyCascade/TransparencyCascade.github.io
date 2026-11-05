@@ -4,8 +4,9 @@
    with the swing at which it changes hands and its winner at the swing in force. Power: the chart in view (weight per
    vote by state; votes, electoral votes and Senate seats by state; or each party's concentration at fixed shares). */
 import { fmt, esc, countyLabelOf, $ } from './util.js';
+import * as Mn from './money.js';
 
-export function createTable({ geo, el, state, model, house, history, selection, effW, pctCh, OFFICE_NAME, stName, simCtx, power, roadCtx, closestCtx, overlays, ovSet, ovSummary, turnout }) {
+export function createTable({ geo, el, state, model, house, history, money, selection, effW, pctCh, OFFICE_NAME, stName, simCtx, power, roadCtx, closestCtx, overlays, ovSet, ovSummary, turnout }) {
   const { meta } = geo, { elections } = el;
   const wrap = $('tableWrap'), table = $('table');
   let sort = { k: 2, dir: -1 };
@@ -179,7 +180,43 @@ export function createTable({ geo, el, state, model, house, history, selection, 
     table.innerHTML = '<thead><tr>' + cols.map((c, i) => `<th data-k="${i}"${i === sort.k ? ` aria-sort="${sort.dir > 0 ? 'ascending' : 'descending'}"` : ''}>${esc(c[0])}</th>`).join('') + '</tr></thead><tbody>' +
       rs.map((r) => '<tr>' + cols.map((c) => `<td>${esc(c[2](c[1](r)))}</td>`).join('') + '</tr>').join('') + '</tbody>';
   };
+  // Money: the figures behind each chart, every one with its type: medians per cycle, the outside money by committee group (named for a race and not),
+  // every Senate race, outspent and lost, and the donors.
+  const renderMoney = () => {
+    const D = money, sec = (t, n) => `<tr><th colspan="${n}">${esc(t)}</th></tr>`, cyc = Mn.CYCLES, row = (cells) => '<tr>' + cells.map((c) => `<td>${esc(c)}</td>`).join('') + '</tr>', hd = (cells) => '<tr>' + cells.map((c) => `<th>${esc(c)}</th>`).join('') + '</tr>';
+    $('tableTitle').textContent = 'Money: dollars per decisive vote, outside money by committee, outspent and lost, and individual donors to super PACs';
+    $('tableNote').textContent = `Each figure's type is in its heading: spent (candidates' disbursements), outside (reported to the FEC as spent by others, for or against the candidates, or by party committees), received. 2026 is partial: committee summaries through ${D.coverage['2026'].committeeSummariesThrough}, itemized lines through ${D.coverage['2026'].itemizedLinesThrough}, and unofficial votes. Unreported money (501(c)(4) groups and other organizations that do not disclose) is not in these figures and is not estimated.`;
+    const my = state.my || (state.mc === 'donors' ? '2026' : 'all'), dc = my === 'all' ? 2026 : +my;
+    let h = '<tbody>' + sec('Median dollars per decisive vote, Senate races with dollars assigned (spent; spent plus party coordinated; spent plus party and independent expenditures naming the candidates)', 8) +
+      hd(['Cycle', 'Races', 'Spent per vote to flip', '+ parties', '+ outside', 'Spent per vote moved', '+ parties', '+ outside']) +
+      cyc.map((c) => row([c === 2026 ? '2026 (partial, unofficial)' : c, Mn.races(D, c, 'cand', 'flip').length, ...['flip', 'moved'].flatMap((d) => ['cand', 'party', 'out'].map((m) => Mn.usd(Mn.medianOf(D, c, m, d))))])).join('') +
+      sec('Outside money as committee totals: disbursements (spent) and what a race can be named for (Schedule E, outside), by cycle, super PACs and hybrid PACs', 8) +
+      hd(['Cycle', 'Super PAC receipts', 'Super PAC disbursements', 'Super PAC Schedule E', 'Super PAC, no race named', 'Hybrid disbursements', 'Hybrid Schedule E', 'Hybrid, no race named']) +
+      cyc.map((c) => { const v = Mn.committees(D, c); return row([c === 2026 ? '2026 (partial)' : c, Mn.usd(v.superPac.receiptsUsd), Mn.usd(v.superPac.disbursementsUsd), Mn.usd(v.superPac.scheduleESummaryUsd), Mn.usd(v.superPac.notAllocatedToARaceUsd), Mn.usd(v.hybrid.disbursementsUsd), Mn.usd(v.hybrid.scheduleESummaryUsd), Mn.usd(v.hybrid.notAllocatedToARaceUsd)]); }).join('') +
+      sec('Party committees (types Y and Z): disbursements, Schedule E and coordinated expenditures (outside), the rest', 6) + hd(['Cycle', 'Receipts', 'Disbursements', 'Schedule E', 'Coordinated', 'No race named']) +
+      cyc.map((c) => { const p = Mn.committees(D, c).party; return row([c, Mn.usd(p.receiptsUsd), Mn.usd(p.disbursementsUsd), Mn.usd(p.scheduleESummaryUsd), Mn.usd(p.partyCoordinatedUsd), Mn.usd(p.notAllocatedToARaceUsd)]); }).join('') +
+      sec(`Outspent and lost, ${my === 'all' ? 'every cycle' : my}, money counted: ${Mn.COUNTS[state.mm]} (the Democratic side and the Republican side are the two candidates named in the vote record)`, 8) +
+      hd(['Cycle', 'State', 'Democratic share of vote', 'Democratic side, $', 'Republican side, $', 'Democratic share of spending', 'Winner', 'Bigger spender lost']) +
+      Mn.lostRows(D, my === 'all' ? null : +my, state.mm).map((x) => row([x.cycle, x.st, x.vd == null ? '' : (x.vd * 100).toFixed(1) + '%', Mn.usd(x.dUsd), Mn.usd(x.rUsd), (x.sd * 100).toFixed(1) + '%', x.winner === 'D' ? 'Democratic' : 'Republican', x.lost ? 'yes' : 'no'])).join('') +
+      sec('Every Senate race: dollars (spent, outside) and decisive votes', 11) +
+      hd(['Cycle', 'State', 'Winner', 'Votes to flip', 'Votes moved', 'Spent', 'Party coordinated (outside)', 'Independent expenditures (outside)', 'Spent per flip', 'With outside per flip', 'Votes']) +
+      D.senate.filter((r) => r.money && r.decisive).map((r) => { const f = Mn.figures(r); return row([r.cycle + (r.special ? ' special' : ''), r.st, r.votes.D > r.votes.R ? 'Democratic' : 'Republican', fmt(r.decisive.flip), r.decisive.moved != null ? fmt(r.decisive.moved) : '', Mn.usd(f.spent), Mn.usd(f.coord), Mn.usd(f.ie), Mn.usd(Mn.perVote(r, 'cand', 'flip')), Mn.usd(Mn.perVote(r, 'out', 'flip')), M2votes(r)]); }).join('') +
+      sec('Individual donors to super PACs (itemized cash), by cycle: concentration (2026 shares are lower bounds: the FEC has not itemized all its gifts yet)', 8) + hd(['Cycle', 'Super PAC receipts', 'Top 10 gave', 'Top 10 share', 'Top 100 gave', 'Top 100 share', 'Donors of $1 million or more', 'Itemized, share of individual gifts']) +
+      Mn.donorCycles(D).map((c) => { const d = D.donors.cycles[c]; return row([c === 2026 ? '2026 (partial)' : c, Mn.usd(d.superPacReceiptsUsd), Mn.usd(d.top10Usd), Mn.pct(d.top10ShareOfReceipts), Mn.usd(d.top100Usd), Mn.pct(d.top100ShareOfReceipts), d.donorsAtLeast1M, Mn.pct(d.itemizedIndividualShareOfIndividualContributions, 0)]); }).join('');
+    for (const c of Mn.donorCycles(D).filter((c) => c === dc)) {
+      h += sec(`Donors of $1 million or more, ${c}: itemized cash; memo lines are attributions and are not added (largest line with its filing)`, 7) + hd(['Donor', 'State', 'Cash', 'Memo-attributed', 'First gift', 'Last gift', 'Largest line: amount, date, filing, committee']);
+      h += D.donors.cycles[c].named.map((n) => { const L = n.largestLines[0] || n.largestMemoLines[0]; return row([n.name, n.state, Mn.usd(n.cashUsd), n.memoAttributedUsd ? Mn.usd(n.memoAttributedUsd) : '', n.firstDate, n.lastDate, L ? `${Mn.usd(L.usd)}${n.largestLines[0] ? '' : ' (memo)'}, ${L.date}, filing ${L.filing}, ${L.committeeName}` : '']); }).join('');
+    }
+    const A = D.americaPac;
+    h += sec(`America PAC (${A.committee}), 2026 cycle, as filed`, 2) + [['Receipts, through ' + A.summary.coverageEnd, Mn.usd(A.summary.receiptsUsd)], ['Disbursements (spent)', Mn.usd(A.summary.disbursementsUsd)], ['Schedule E, committee summary (outside)', Mn.usd(A.summary.scheduleESummaryUsd)],
+      ['Schedule E, FEC file through ' + D.coverage['2026'].scheduleEFileThrough + ' (outside)', Mn.usd(A.scheduleEFileUsd)], ['Disbursements no race is named for (summary basis)', Mn.usd(A.notAllocatedToARaceUsd)],
+      [`Musk cash, ${A.musk.cashFirst} to ${A.musk.cashLast}`, Mn.usd(A.musk.cashUsd)], ['In-kind lines booked to United States of America Inc', Mn.usd(A.musk.inKindFromUnitedStatesOfAmericaIncUsd)], ['Memo attribution to Musk (not added)', Mn.usd(A.musk.memoAttributionToMuskUsd)],
+      ['Filings', A.musk.filings.join(', ')]].map((r) => row(r)).join('') + '</tbody>';
+    table.innerHTML = h;
+  };
+  const M2votes = (r) => fmt(r.votes.D + r.votes.R);
   const render = () => {
+    if (effW() === 'money') return renderMoney();
     if (effW() === 'dropoff') return renderDropoff();
     if (effW() === 'split') return renderSplit();
     if (effW() === 'road') return renderRoad();

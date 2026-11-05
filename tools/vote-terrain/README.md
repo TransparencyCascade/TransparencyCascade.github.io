@@ -27,6 +27,7 @@ checks it; Hugo does not publish `tools/`.
 | `races.js` | Road to 270 (and 51) and Closest races (pure): the bar's segments, line and tipping point, every race on an election day with margin, votes to flip (half the margin plus one, as `balance.json`) and whether it changed hands; reads `simulator.json`, `house.json` and the county results |
 | `flips.js`, `swingview.js` | Flips and bellwethers (rules `f:<from>:<to>` and `w`, narrowed to a selection with `/<selection>`); margin against swing and its running median (rules `g:` box, `n:` quadrant) |
 | `turnout.js`, `places.js`, `drawers.js` | Turnout drop-off and ticket splitting (pure: the race used per state, shares, the 2022 band, Senate against governor margins); a place's history across every election (one county, its state, an area); the pinned County history card (`hk=`, opened by "History" in a tooltip, a double-click or the H key) and the side drawer (regional close-up `cu=`, the state's two races in Ticket splitting) |
+| `money.js`, `views2d/money.js` | The Money tab (`mc=time|lost|donors`, `md=flip|moved`, `mm=cand|party|out`, `my=` cycle; pure arithmetic in `money.js`, also used by the table, the caption tokens `calc.money.*` and the balance box's cost line): dollars per decisive vote per Senate race 2008-2026 with the outside money no race can be named for beside it; outspent and lost; where the money came from (donor concentration, donors of $1 million or more with their filings, America PAC) |
 | `views.js` | Saved views and tours (`views.json`): `?view=`, `?tour=`, the card with the caption, caption tokens resolved from the data |
 | `overlays.js` | Overlays from our research (`overlays.json`, `ov=` in the link): each layer's counties, and their swing against matched unmarked counties (same state, lean band and size band; also the selection rule `o:`). Marks are drawn by `terrain.js` (`marks()`), `views2d/circles.js`, `dots.js` and `arrows.js` |
 
@@ -140,33 +141,63 @@ A view with a selection is framed on it. Flat views drop their controls and foot
 only; when not every state fits, the head says which are shown ("the 12 states with the most seats ...").
 Needs python3 with Pillow, and ffmpeg for animations (without it, the frames and a note are written).
 
-## Money data (`money.json`, data only: no page view reads it yet)
+## Money data (`money.json`, read by the Money tab, the table, the caption tokens and the balance box)
 
-`python3 -I tools/vote-terrain/build_money.py` (cache `tools/vote-terrain/.fec-cache/`, about 240 MB, not committed; raw zips
-are deleted after extraction; pass `--cache` to move it). Phase 7, "Money: dollars per decisive vote". Rules are in the script's docstring.
+`python3 -I tools/vote-terrain/build_money.py` (cache `tools/vote-terrain/.fec-cache/`, about 1.0 GB, not committed; raw zips are deleted after
+extraction and the `indiv` files, 0.1 to 5.9 GB each, are streamed through `curl | bsdtar` and never stored whole; pass `--cache` to move it).
+Phase 7, "Money: dollars per decisive vote". Rules are in the script's docstring. The first run reads about 21 GB and takes about 18 minutes (a rerun on the cache, about 35 seconds).
 
-- **Files.** FEC bulk files for 2008-2024: `weball<YY>` (candidate totals; `webl<YY>` is fetched but not used), `cn<YY>` (candidate
+- **Files.** FEC bulk files for 2008-2026: `weball<YY>` (candidate totals; `webl<YY>` is fetched but not used), `cn<YY>` (candidate
   election year, so money raised toward another year's election is left out), `pas2<YY>` (types 24C party coordinated expenditures; 24A/24E
-  stand in for independent expenditures in 2008), `independent_expenditure_<YYYY>.csv` (2010 on; the FEC publishes none for 2008).
-  Votes: `simulator.json` (Senate 2016-2024, president), the MIT Senate state file (doi:10.7910/DVN/PEJ5QU) and the MIT president file
-  in `vt-history`; where two cover one race, every difference is listed in `checks.voteSources` (the simulator wins).
+  stand in for independent expenditures in 2008), `independent_expenditure_<YYYY>.csv` (2010 on; the FEC publishes none for 2008),
+  `webk<YY>` (PAC and party summaries), `indiv<YY>` (itemized individual contributions, filtered to super PAC recipients).
+  Votes: `simulator.json` (Senate 2016-2024 certified, 2026 the unofficial AP feed, flagged `simulator-unofficial`), the MIT Senate state file
+  (doi:10.7910/DVN/PEJ5QU) and the MIT president file in `vt-history`; where two cover one race, every difference is listed in
+  `checks.voteSources` (the simulator wins).
 - **Figures.** Every figure is `{type, what, usd, src}`: `raised` (candidate receipts), `spent` (candidate disbursements), `outside` (independent
   expenditures for and against, party coordinated). `sources` gives each file, URL, retrieval date and the FEC's Last-Modified.
 - **Decisive votes, two definitions.** `flip`: half the margin plus one. `moved`: the change in the Democratic-minus-Republican margin since the previous
   race for the same seat (Senate six years earlier, regular elections; president four years earlier). `dollarsPerDecisiveVote` divides candidate
-  spending, and candidate spending plus outside money, by each.
+  spending, and candidate spending plus outside money, by each. The page counts three ways (`mm=`): candidates; plus party coordinated expenditures;
+  plus the independent expenditures that name the race's candidates.
+- **Sides.** Each Senate race with votes carries `sides.D` and `sides.R`: the two candidates named in the vote record, matched to FEC candidates by
+  surname (so an independent counted on the Democratic side is found), else by party code. Each side has its own spending, the independent expenditures
+  for and against it and its party coordinated expenditures. Outside money naming no candidate id is in the race totals only. These feed "Outspent and lost".
 - **Independent expenditures.** The latest version per (committee, transaction) is kept, terminated rows dropped. Mapped to a race through the candidate
   named; an id that is on the cycle file but under $5,000 raised and spent is left out (the file holds bogus filings of up to $10 billion that would
   otherwise swamp a race), and an id on no cycle file falls back to the row's own state (Senate) or a surname match (president). Everything left out
   or not used is counted in `unmapped`.
+- **Outside money as committee totals** (`committees`, per cycle 2008-2026, from `webk<YY>`): super PACs (type O), hybrid PACs (types V and W, without
+  ActBlue and WinRed, which are type V but pass earmarked gifts through and are listed apart as `conduit`), party committees (types Y and Z; type X and the
+  single-candidate type U are left out and U is counted under `excluded`). Per group: receipts, disbursements, transfers, individual contributions,
+  Schedule E two ways (`scheduleESummaryUsd`: the committee summary's own independent-expenditure line, the same filings as the disbursements;
+  `scheduleEFileUsd`: the Schedule E file summed by committee, which carries 24- and 48-hour reports the summaries have not caught up with),
+  and the split the page shows: `allocatedToARaceUsd` (Schedule E, plus coordinated expenditures for parties) and `notAllocatedToARaceUsd` (disbursements
+  less that: operating costs such as canvassing, petitions and staff, transfers to other committees, and money for races the page does not draw). Receipts
+  and disbursements include transfers between committees, so a dollar passed along is counted by both. The page never shows one part without the other.
+- **Donor concentration** (`donors`, per cycle 2010-2026): itemized individual contributions (Schedule A line 11A, from `indiv<YY>`) to the cycle's
+  super PACs, deduplicated to the latest version per (committee, transaction), terminated rows dropped, refunds subtracted. Donors are keyed by name and
+  state (the FEC has no donor id: two people of one name in one state are one donor here). Entity type IND only; companies and LLCs are totalled apart
+  (`itemizedOrganizationUsd`). Memo lines (MEMO_CD X: an attribution of money received through another entity, such as an in-kind gift booked to a company)
+  are not added to a donor's cash and are totalled apart, labelled "memo-attributed". Shares: top 10 and top 100 donors' cash over the super PACs' total
+  receipts (`TTL_RECEIPTS`, which includes transfers between committees) and over their individual contributions. Only donors of $1 million or more are
+  named, each with the amount, first and last gift, the committees and the four largest lines with their filing number, date and image number.
+- **America PAC** (`americaPac`): the committee summary and Schedule E for C00879510, and the Musk cash, in-kind and memo lines recomputed from the research
+  note's receipts CSV (`cascade-research/notes/data/america-pac-c00879510-receipts-2025-2026-musk-and-in-kind-lines.csv`; note
+  `vt-same-ballot-senate-vs-governor-gaps-2026-method-and-results`), whose July to October lines come from filings 2026216 and 2038959.
+- **2026 is partial.** `coverage` gives, per cycle, the date each file's filings run through (committee summaries, candidate summaries, itemized lines,
+  Schedule E file); the page shows them. Votes are the unofficial AP feed.
 - **Checks against the FEC's own totals** (`checks.fecPublished`): 2016, per office, Presidential and Senate within 0.6% on receipts and
   disbursements (https://www.fec.gov/updates/statistical-summary-24-month-campaign-activity-2015-2016-election-cycle/); House plus Senate 3.3% / 4.2% above.
   2020: House plus Senate within 0.6% (https://www.fec.gov/updates/statistical-summary-24-month-campaign-activity-2019-2020-election-cycle/),
   presidential 2.1% / 1.9% below. Sources of difference: the FEC tables count candidates running in the cycle and stop at 31 December; `weball` is as of the file's date.
 - **Left out.** Presidential dollars are national (the files carry none by state), so only votes are by state. Two Senate seats in one state
   and cycle: votes, no dollars (the files do not name the seat). House races: about 4 MB at this shape against the 300 KB limit, and the page
-  has House votes only from 2022. Unreported money (issue ads, 501(c) spending that names no candidate, state-level party money) is described in
-  `unreported`, never estimated.
+  has House votes only from 2022. Unreported money (issue ads, 501(c) spending that names no candidate, state-level party money, contributions to
+  organizations that do not disclose) is described in `unreported`, never estimated. 2008 has no super PACs (they date from 2010) and no Schedule E file.
+- **API key.** None is needed or stored. The FEC API's `DEMO_KEY` allows 40 calls an hour and was already used up when this was built, so the itemized
+  contributions come from the bulk files; a personal key (https://api.data.gov/signup/, 1,000 calls an hour) would only be needed to refresh a single
+  committee between bulk releases.
 
 ## Snapshots
 
@@ -200,3 +231,7 @@ The open task is `cascade-research/notes/vote-terrain-refresh-2026-with-certifie
 6. Take the "unofficial" flag off an election only when its certified source is in place.
 7. Run the smoke test. Expected differences are the changed numbers; re-record once they are checked.
 8. Commit data, builders and notes by explicit paths. Deploying is Mark's call.
+9. Money: after the post-general reports are filed (due in early December) and the FEC has processed them, rerun `build_money.py` (delete the 2026 files in
+   `.fec-cache/` first: `*26*`, `indiv-2026-superpac.psv*`, `independent_expenditure_2026.csv*`, `pas2-2026-*`, `webk26*`). Check `coverage` for 2026 (committee
+   summaries, candidate summaries, itemized lines and the Schedule E file should run past 2026-11-25), then take the "partial" and "unofficial" labels off
+   2026 in `js/views2d/money.js` and `build_money.py` only when the votes are certified. Compare America PAC's totals with the research note's.

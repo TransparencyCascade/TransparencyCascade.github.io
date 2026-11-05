@@ -33,6 +33,12 @@
      med (the median difference, signed; filter toward), top { st, name, med } (the state with the largest median difference) };
      calc.county.<code>: { name, st, m.<election>, votes.<election> } (margin in points, signed; filter lead); calc.region.<id>: { name, n, m.<election>, votes.<election> }
      (the preset's counties together, regions.json).
+   calc.money.y<year> (2008-2026): { races, medFlip, medFlipParty, medFlipOut, medMoved, medMovedParty, medMovedOut (median dollars per decisive vote: candidates; plus party coordinated;
+     plus independent expenditures naming the candidates), superNot, superAlloc, superDisb, superReceipts, hybridNot, alloc, notAlloc, disb, notAllocShare (super and hybrid PACs: Schedule E and what no
+     race is named for), lostN, lostOutN, lostOf, lostOutOf (races where the bigger spender lost, counting candidates, and with outside money), top10, top100 (percent of super PAC receipts),
+     top10Usd, n1m, topName, topUsd, topDate, topFiling (the largest donor's largest line), committeesThrough, itemizedThrough, candidatesThrough, cost { senatePerFlip, senateOutPerFlip, senateSpent,
+     presPerVote, presSpent } }; calc.money.america: { receipts, disb, schedE, schedEFile, notAlloc, through, schedEThrough, muskCash, muskCashShare, inKind, memo, attributed, attributedShare };
+     filters usd ($12,345) and usdw ($4.2 million); root money is money.json itself (coverage, sources).
    calc.house.<year>: ps, captured, contestable, atRisk, apart, capv, capvShare, st.<ST>.{captured, contestable, atRisk}
      (bands at the default plausible swing). An unknown token stops the caption and logs an error, so a broken
      caption cannot reach a card unnoticed. */
@@ -41,8 +47,9 @@ import { createHouse } from './house.js';
 import { createSim, RANGE } from './sim.js';
 import { createRaces, OFFICES } from './races.js';
 import { tokens as biasTokens, ratioText } from './bias.js';
+import * as Mn from './money.js';
 
-export function createSavedViews({ registry, bal, eff, houseData, histData, simData, elections, stName, power, overlays, flips, meta, ms, sameOffice, turnout, places, regionData, apply }) {
+export function createSavedViews({ registry, bal, eff, houseData, histData, moneyData, simData, elections, stName, power, overlays, flips, meta, ms, sameOffice, turnout, places, regionData, apply }) {
   const etTime = (iso) => new Date(iso).toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', month: 'short', day: 'numeric', year: 'numeric' }) + ' ET';
   // Derived figures, computed once from the data files (the House bands with their own state, at the default plausible swing).
   const calc = { eff: {}, house: {} };
@@ -185,9 +192,31 @@ export function createSavedViews({ registry, bal, eff, houseData, histData, simD
     const A = places.areaOf(r.counties);
     return (o[id] = { name: r.name, n: r.counties.length, m: byElection(A, (x) => x.m), votes: byElection(A, (x) => x.votes) });
   } });
-  const roots = { bal, eff, house: houseData, hist: histData, elections, calc, sim: simData, ov: overlays && { layers: Object.fromEntries(Object.keys(overlays.sets).map((k) => [k, overlays.layer(k)])) } };
+  // Money (money.js): per cycle, the median dollars per decisive vote, the outside money no race is named for, outspent and lost, the donors, and the
+  // smallest change's cost line. Percentages are percent numbers (filter pct); dollars take filter usd or usdw.
+  calc.money = new Proxy({}, { get: (o, k) => {
+    if (typeof k === 'string' && k in o) return o[k];
+    const m = typeof k === 'string' && /^y(20\d\d)$/.exec(k), D = moneyData; if (!m || !D || !D.committees.cycles[m[1]]) return undefined;
+    if (o[k]) return o[k];
+    const y = +m[1], med = (c, d) => Mn.medianOf(D, y, c, d), C = Mn.committees(D, y), dn = D.donors.cycles[y], top = dn && dn.named[0], L = (c) => Mn.lostRows(D, y, c);
+    const day = { 2016: 'pres2016', 2018: 'd2018', 2020: 'pres2020', 2022: 'd2022', 2024: 'pres2024', 2026: 'sen2026' }[y], cost = day && bal.elections[day] && Mn.costLine(D, y, bal.elections[day].smallest);
+    return (o[k] = { year: y, races: Mn.races(D, y, 'cand', 'flip').length,
+      medFlip: med('cand', 'flip'), medFlipParty: med('party', 'flip'), medFlipOut: med('out', 'flip'), medMoved: med('cand', 'moved'), medMovedParty: med('party', 'moved'), medMovedOut: med('out', 'moved'),
+      superNot: C.superPac.notAllocatedToARaceUsd, superAlloc: C.superPac.allocatedToARaceUsd, superDisb: C.superPac.disbursementsUsd, superReceipts: C.superPac.receiptsUsd, hybridNot: C.hybrid.notAllocatedToARaceUsd,
+      alloc: C.allocated, notAlloc: C.notAllocated, disb: C.disbursed, notAllocShare: C.disbursed ? C.notAllocated / C.disbursed * 100 : null,
+      lostN: L('cand').filter((x) => x.lost).length, lostOutN: L('out').filter((x) => x.lost).length, lostOf: L('cand').length, lostOutOf: L('out').length,
+      top10: dn && dn.top10ShareOfReceipts * 100, top100: dn && dn.top100ShareOfReceipts * 100, top10Usd: dn && dn.top10Usd, n1m: dn && dn.donorsAtLeast1M, topName: top && top.name, topUsd: top && top.cashUsd,
+      topDate: top && top.largestLines[0] && top.largestLines[0].date, topFiling: top && top.largestLines[0] && top.largestLines[0].filing,
+      committeesThrough: D.coverage[y].committeeSummariesThrough, itemizedThrough: D.coverage[y].itemizedLinesThrough, candidatesThrough: D.coverage[y].candidateSummariesThrough,
+      cost: cost && { senatePerFlip: cost.senate && cost.senate.spent / cost.senate.flip, senateOutPerFlip: cost.senate && cost.senate.out / cost.senate.flip, senateSpent: cost.senate && cost.senate.spent,
+        presPerVote: cost.president && cost.president.spent / cost.president.votes, presSpent: cost.president && cost.president.spent } });
+  } });
+  if (moneyData) { const A = moneyData.americaPac; calc.money.america = { receipts: A.summary.receiptsUsd, disb: A.summary.disbursementsUsd, schedE: A.summary.scheduleESummaryUsd, schedEFile: A.scheduleEFileUsd, notAlloc: A.notAllocatedToARaceUsd,
+    through: A.summary.coverageEnd, schedEThrough: moneyData.coverage['2026'].scheduleEFileThrough, muskCash: A.musk.cashUsd, muskCashShare: A.musk.cashShareOfReceipts * 100, inKind: A.musk.inKindFromUnitedStatesOfAmericaIncUsd, memo: A.musk.memoAttributionToMuskUsd,
+    attributed: A.musk.cashPlusAttributedUsd, attributedShare: A.musk.cashPlusAttributedShareOfReceipts * 100 }; }
+  const roots = { bal, eff, house: houseData, hist: histData, money: moneyData, elections, calc, sim: simData, ov: overlays && { layers: Object.fromEntries(Object.keys(overlays.sets).map((k) => [k, overlays.layer(k)])) } };
   const FILTERS = {
-    ratio: (v) => ratioText(v), n: (v) => fmt(v), raw: (v) => String(v), pt: (v) => Math.abs(v).toFixed(1), lead: (v) => (v >= 0 ? 'D+' : 'R+') + Math.abs(v).toFixed(1), toward: (v) => `${Math.abs(v).toFixed(1)} points toward ${v >= 0 ? 'Democrats' : 'Republicans'}`, swing: (v) => `${Math.abs(v).toFixed(1)} points toward the ${v >= 0 ? 'Democrat' : 'Republican'}`, x: (v) => v.toFixed(1) + '×', x2: (v) => v.toFixed(2) + '×', pct: (v) => v.toFixed(1) + '%', pct2: (v) => v.toFixed(2) + '%', et: (v) => etTime(v),
+    ratio: (v) => ratioText(v), n: (v) => fmt(v), raw: (v) => String(v), pt: (v) => Math.abs(v).toFixed(1), lead: (v) => (v >= 0 ? 'D+' : 'R+') + Math.abs(v).toFixed(1), toward: (v) => `${Math.abs(v).toFixed(1)} points toward ${v >= 0 ? 'Democrats' : 'Republicans'}`, swing: (v) => `${Math.abs(v).toFixed(1)} points toward the ${v >= 0 ? 'Democrat' : 'Republican'}`, x: (v) => v.toFixed(1) + '×', x2: (v) => v.toFixed(2) + '×', pct: (v) => v.toFixed(1) + '%', usd: (v) => Mn.usd(v), usdw: (v) => Mn.usdWords(v), pct2: (v) => v.toFixed(2) + '%', et: (v) => etTime(v),
     last: (v) => String(v).split(' ').pop(), states: (v) => list(v.map(stName)),
     perstate: (v) => list(Object.entries(v).sort((a, b) => b[1] - a[1]).map(([st, n]) => `${fmt(n)} in ${stName(st)}`)),
   };

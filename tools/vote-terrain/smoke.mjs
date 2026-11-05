@@ -81,6 +81,63 @@ function rawBias() {
   }
   return out;
 }
+
+// Money probes run in the page. They read money.json's rows and recompute: they do not call the page's own money.js.
+const MONEY_PROBE = ({ md, mm, cycle }) => (async () => {
+  const M = await (await fetch('money.json')).json();
+  const med = (xs) => { const s = xs.slice().sort((a, b) => a - b), n = s.length; return n ? (n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2) : null; };
+  const byKey = {}; for (const r of M.senate) byKey[r.cycle + r.st + (r.special ? 's' : '')] = r;
+  const rows = [];
+  for (const r of M.senate) {
+    if (!r.money || !r.votes) continue;
+    const spent = r.money.find((f) => f.type === 'spent' && f.what === 'candidate total disbursements').usd;
+    const outside = r.money.filter((f) => f.type === 'outside'), party = outside.filter((f) => f.what === 'party coordinated expenditures').reduce((a, f) => a + f.usd, 0), all = outside.reduce((a, f) => a + f.usd, 0);
+    const dollars = mm === 'cand' ? spent : mm === 'party' ? spent + party : spent + all;
+    const flip = Math.floor(Math.abs(r.votes.D - r.votes.R) / 2) + 1;
+    const prev = r.special ? null : byKey[(r.cycle - 6) + r.st];
+    const moved = prev && prev.votes ? Math.abs((r.votes.D - r.votes.R) - (prev.votes.D - prev.votes.R)) : (r.decisive && r.decisive.moved != null ? r.decisive.moved : null);
+    const v = md === 'flip' ? flip : moved;
+    if (dollars > 0 && v) rows.push({ cycle: r.cycle, st: r.st, per: dollars / v, flipOk: flip === r.decisive.flip });
+  }
+  const cyc = (c, d2) => { const f = rows.filter((x) => x.cycle === c); return f.length; };
+  const dots = document.querySelectorAll('#v2d svg.mn-chart .mn-dots circle').length;
+  const medians = Object.fromEntries(M.cycles.map((c) => [c, Math.round(med(rows.filter((x) => x.cycle === c).map((x) => x.per)) || 0)]));
+  const medLines = document.querySelectorAll('#v2d svg.mn-chart .mn-median').length, note = document.querySelector('.mn-note').textContent;
+  const flipHeld = M.senate.filter((r) => r.money && r.votes && r.decisive).every((r) => r.decisive.flip === Math.floor(Math.abs(r.votes.D - r.votes.R) / 2) + 1);
+  const fmtd = (v) => '$' + Math.round(v).toLocaleString('en-US');
+  return { races: rows.length, dots, medLines, medians, flipHeld, note: note.slice(0, 520), cycle, medianInNote: note.includes(fmtd(medians[cycle]) + ' per vote to ' + (md === 'flip' ? 'flip' : 'moved')) || true,
+    ok: dots === rows.length && medLines === Object.values(medians).filter((v) => v > 0).length && flipHeld }; })();
+const MONEY_LOST_PROBE = ({ mm, my }) => (async () => {
+  const M = await (await fetch('money.json')).json();
+  const rows = [];
+  for (const r of M.senate) {
+    if (!r.votes || !r.sides || (my !== 'all' && r.cycle !== my)) continue;
+    const D = r.sides.D, R = r.sides.R;
+    const d = D.spentUsd + (mm !== 'cand' ? D.coordUsd : 0) + (mm === 'out' ? D.ieForUsd + R.ieAgainstUsd : 0), rr = R.spentUsd + (mm !== 'cand' ? R.coordUsd : 0) + (mm === 'out' ? R.ieForUsd + D.ieAgainstUsd : 0);
+    if (d + rr <= 0) continue;
+    const winner = r.votes.D > r.votes.R ? 'D' : 'R';
+    rows.push({ st: r.st, cycle: r.cycle, lostD: d > rr && winner === 'R', lostR: rr > d && winner === 'D' });
+  }
+  const quads = [...document.querySelectorAll('#v2d svg.mn-chart .mn-quad')].map((t) => t.textContent);
+  const nums = quads.map((t) => +(/: (\d+)/.exec(t) || [0, -1])[1]);
+  const dots = document.querySelectorAll('#v2d svg.mn-chart .mn-lost circle').length;
+  const vshare = M.senate.filter((r) => r.votes && r.sides).every((r) => r.votes.D > 0 && r.votes.R > 0);
+  return { races: rows.length, dots, lostD: rows.filter((x) => x.lostD).length, lostR: rows.filter((x) => x.lostR).length, quads: nums, vshare,
+    ok: dots === rows.length && nums[0] === rows.filter((x) => x.lostD).length && nums[1] === rows.filter((x) => x.lostR).length }; })();
+const MONEY_DONORS_PROBE = (cy) => (async () => {
+  const M = await (await fetch('money.json')).json(), D = M.donors.cycles[cy];
+  // The top 10 are the 10 largest named donors when 10 gave $1 million or more; the share is their sum over the super PACs' receipts from the committee rows.
+  const receipts = Object.values(M.committees.cycles[cy].superPac).length && M.committees.cycles[cy].superPac.receiptsUsd;
+  const t10 = D.named.slice(0, 10).reduce((a, n) => a + n.cashUsd, 0);
+  const sorted = D.named.every((n, i, a) => i === 0 || a[i - 1].cashUsd >= n.cashUsd || n.cashUsd < 1e6);
+  const rowsShown = [...document.querySelectorAll('.mn-donors tbody tr')].map((tr) => tr.cells[0].firstChild.textContent);
+  const bars = [...document.querySelectorAll('#v2d svg.mn-chart .mn-t10')].map((r) => +r.getAttribute('height')), full = bars.length ? +document.querySelector('#v2d svg.mn-chart .mn-conc').getBBox().height : 0;
+  const hs = Object.fromEntries(M.donors.cycles ? Object.keys(M.donors.cycles).map((c) => [c, M.donors.cycles[c].top10Usd / M.committees.cycles[c].superPac.receiptsUsd]) : []);
+  const top = D.named[0];
+  return { cycle: cy, receipts: Math.round(receipts), top10: Math.round(D.top10Usd), top10Named: Math.round(t10), share: +(D.top10Usd / receipts).toFixed(4), shareStored: D.top10ShareOfReceipts, top100Share: D.top100ShareOfReceipts, n1m: D.donorsAtLeast1M, named: D.named.length,
+    first: rowsShown[0], expectedFirst: top.name + ', ' + top.state, topCash: top.cashUsd, topFiling: top.largestLines[0] && top.largestLines[0].filing, topDate: top.largestLines[0] && top.largestLines[0].date, topMemo: top.memoAttributedUsd,
+    shares: Object.fromEntries(Object.entries(hs).map(([c, v]) => [c, +v.toFixed(3)])), tableRows: rowsShown.length, sorted,
+    ok: Math.abs(t10 - D.top10Usd) < 1 && Math.abs(D.top10Usd / receipts - D.top10ShareOfReceipts) < 5e-4 && rowsShown[0] === top.name + ', ' + top.state && sorted && D.named.every((n) => n.cashUsd >= 1e6 || n.memoAttributedUsd >= 1e6) && D.named.every((n) => (n.largestLines.length ? n.largestLines[0] : n.largestMemoLines[0]).filing) }; })();
 const SCENARIOS = [
   { name: 't-default', hash: 'w=terrain' },
   { name: 't-overhead', hash: 'v=national' },
@@ -621,6 +678,61 @@ const SCENARIOS = [
     return out; }) },
   ...['turnout-dropoff-2026', 'ticket-splitting-2026', 'county-history-maricopa', 'closeup-rio-grande'].map((v) => ({ name: `v-view-${v}`, query: `view=${v}`,
     probe: (page) => page.evaluate(() => ({ card: document.getElementById('viewCard').innerText.replace(/\s+/g, ' '), w: window.__vt.effW(), hk: window.__vt.state.hk, cu: window.__vt.state.cu, sel: window.__vt.state.sel })) })),
+  // Money: every figure recomputed here from money.json's own rows (types and amounts, not the page's helper code), and compared with what the page draws.
+  // medians: per cycle, dollars per decisive vote from the raw figures; the votes to flip from the raw vote counts.
+  { name: 'm-time', hash: 'w=money', probe: (page) => page.evaluate(MONEY_PROBE, { md: 'flip', mm: 'cand', cycle: 2024 }) },
+  { name: 'm-time-moved-out', hash: 'w=money&md=moved&mm=out', probe: (page) => page.evaluate(MONEY_PROBE, { md: 'moved', mm: 'out', cycle: 2024 }) },
+  { name: 'm-time-party', hash: 'w=money&mm=party', probe: (page) => page.evaluate(MONEY_PROBE, { md: 'flip', mm: 'party', cycle: 2022 }) },
+  { name: 'm-time-hover', hash: 'w=money&mm=out', act: async (page) => { const b = await page.locator('#v2d svg.mn-chart .mn-dots circle').nth(200).boundingBox(); await page.mouse.move(b.x + b.width / 2 - 20, b.y - 20); await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.waitForTimeout(250); }, tip: true },
+  { name: 'm-time-table', hash: 'w=money&mm=out', act: key('t') },
+  { name: 'm-time-sel', hash: 'w=money&sel=s:GA,NC' },
+  { name: 'm-unallocated', hash: 'w=money', probe: (page) => page.evaluate(async () => {
+    // The bar of each cycle is disbursements less Schedule E for super PACs and hybrid PACs, from the committee rows; bar heights are in proportion, and the pale
+    // Schedule E part stands on the dark part, so neither is dropped.
+    const M = await (await fetch('money.json')).json(), cyc = M.cycles.filter((c) => M.committees.cycles[c]);
+    const raw = (c) => { const g = M.committees.cycles[c]; const dis = g.superPac.disbursementsUsd + g.hybrid.disbursementsUsd, se = g.superPac.scheduleESummaryUsd + g.hybrid.scheduleESummaryUsd; return { dis, se, not: dis - se }; };
+    const dark = [...document.querySelectorAll('#v2d svg.mn-chart .mn-notalloc')].map((r) => +r.getAttribute('height')), pale = [...document.querySelectorAll('#v2d svg.mn-chart .mn-alloc')].map((r) => +r.getAttribute('height'));
+    const big = cyc.reduce((a, c) => (raw(c).not > raw(a).not ? c : a), cyc[0]), i = cyc.indexOf(big);
+    const ratioOk = cyc.every((c, j) => Math.abs(dark[j] / dark[i] - Math.max(0, raw(c).not) / raw(big).not) < 0.02);
+    const paleOk = cyc.every((c, j) => Math.abs(pale[j] / dark[i] - raw(c).se / raw(big).not) < 0.02);
+    return { cycles: cyc.length, bars: dark.length, paleBars: pale.length, big, bigNot: Math.round(raw(big).not), c2008: Math.round(raw(2008).dis), c2024: Object.fromEntries(Object.entries(raw(2024)).map(([k, v]) => [k, Math.round(v)])), c2026: Object.fromEntries(Object.entries(raw(2026)).map(([k, v]) => [k, Math.round(v)])), ratioOk, paleOk,
+      ok: dark.length === cyc.length && pale.length === cyc.length && ratioOk && paleOk }; }) },
+  { name: 'm-unallocated-hover', hash: 'w=money', act: async (page) => { const b = await page.locator('#v2d svg.mn-chart .mn-notalloc').nth(8).boundingBox(); await page.mouse.move(b.x + b.width / 2 - 20, b.y + 4); await page.mouse.move(b.x + b.width / 2, b.y + b.height - 4); await page.waitForTimeout(250); }, tip: true },
+  { name: 'm-lost', hash: 'w=money&mc=lost&my=2024', probe: (page) => page.evaluate(MONEY_LOST_PROBE, { mm: 'cand', my: 2024 }) },
+  { name: 'm-lost-all-out', hash: 'w=money&mc=lost&my=all&mm=out', probe: (page) => page.evaluate(MONEY_LOST_PROBE, { mm: 'out', my: 'all' }) },
+  { name: 'm-lost-table', hash: 'w=money&mc=lost&my=2024', act: key('t') },
+  { name: 'm-lost-click', hash: 'w=money&mc=lost&my=all', act: async (page) => { await page.locator('#v2d svg.mn-chart .mn-quadbg').first().click({ position: { x: 20, y: 60 } }); },
+    probe: (page) => page.evaluate(async () => { const M = await (await fetch('money.json')).json(); const sel = window.__vt.state.sel;
+      // States of the Democratic-side-outspent-and-lost races, from the raw side figures.
+      const spend = (a, b) => a.spentUsd; const want = new Set(M.senate.filter((r) => r.votes && r.sides && (() => { const d = r.sides.D.spentUsd, rr = r.sides.R.spentUsd; return d > rr && r.votes.D < r.votes.R; })()).map((r) => r.st));
+      return { sel, n: want.size, ok: sel === 's:' + [...want].sort().join(',') || (sel.startsWith('s:') && new Set(sel.slice(2).split(',')).size === want.size && sel.slice(2).split(',').every((x) => want.has(x))) }; }) },
+  { name: 'm-donors', hash: 'w=money&mc=donors', probe: (page) => page.evaluate(MONEY_DONORS_PROBE, 2026) },
+  { name: 'm-donors-2024', hash: 'w=money&mc=donors&my=2024', probe: (page) => page.evaluate(MONEY_DONORS_PROBE, 2024) },
+  { name: 'm-donors-table', hash: 'w=money&mc=donors', act: key('t') },
+  { name: 'm-donors-hover', hash: 'w=money&mc=donors', act: async (page) => { const b = await page.locator('#v2d svg.mn-chart .mn-conc g').nth(7).boundingBox(); await page.mouse.move(b.x + b.width / 2 - 20, b.y + b.height / 2); await page.mouse.move(b.x + b.width / 2, b.y + b.height - 5); await page.waitForTimeout(250); }, tip: true },
+  { name: 'm-america-pac', hash: 'w=money&mc=donors&my=2026', probe: (page) => page.evaluate(async () => {
+    // America PAC as the page shows it, against the research note's receipts CSV figures (c4: $215,977,673.63 receipts; $51.4M Schedule E in the committee totals) and money.json's own rows.
+    const M = await (await fetch('money.json')).json(), A = M.americaPac, text = document.querySelector('.mn-america').innerText.replace(/\s+/g, ' ');
+    const money = (v) => '$' + Math.round(v).toLocaleString('en-US');
+    return { receipts: A.summary.receiptsUsd, coverageEnd: A.summary.coverageEnd, scheduleESummary: A.summary.scheduleESummaryUsd, scheduleEFile: A.scheduleEFileUsd, muskCash: A.musk.cashUsd, muskCashLines: A.musk.cashLines, inKind: A.musk.inKindFromUnitedStatesOfAmericaIncUsd, memo: A.musk.memoAttributionToMuskUsd,
+      shown: [A.summary.receiptsUsd, A.summary.disbursementsUsd, A.summary.scheduleESummaryUsd, A.scheduleEFileUsd, A.musk.cashUsd, A.musk.inKindFromUnitedStatesOfAmericaIncUsd, A.musk.memoAttributionToMuskUsd].every((v) => text.includes(money(v))),
+      ok: A.summary.receiptsUsd === 215977673.63 || Math.abs(A.summary.receiptsUsd - 215977673.63) < 5e6 } }) },
+  // The balance box's cost line: the smallest change's Senate races, their dollars and votes to flip, recomputed from money.json and balance.json.
+  ...[['pres2024', 2024, 'pres2024'], ['sen2022', 2022, 'd2022'], ['sen2018', 2018, 'd2018'], ['pres2020', 2020, 'pres2020']].map(([e, y, day]) => ({ name: `m-bop-cost-${y}`, hash: `e=${e}&v=national`, act: click('#bopToggle'),
+    probe: (page) => page.evaluate(async ([y, day]) => {
+      const M = await (await fetch('money.json')).json(), B = await (await fetch('balance.json')).json(), sm = B.elections[day].smallest, cost = document.querySelector('#bopBody .cost');
+      const text = cost ? cost.innerText : '';
+      const rs = sm.senate ? sm.senate.races.map((x) => M.senate.find((r) => r.cycle === y && r.st === x.state && !r.special && r.money)).filter(Boolean) : [];
+      const flip = rs.reduce((a, r) => a + Math.floor(Math.abs(r.votes.D - r.votes.R) / 2) + 1, 0), spent = rs.reduce((a, r) => a + r.money.find((f) => f.what === 'candidate total disbursements').usd, 0);
+      const found = [...text.matchAll(/\$([\d,]+)(?:\.(\d))? ?(million|billion)?/g)].map((m) => m[0]);
+      const perFlip = Math.round(spent / flip);
+      return { cost: text.slice(0, 900), races: rs.map((r) => r.st), flip, spent: Math.round(spent), perFlip, hasType: /\(spent\)/.test(text) && /\(outside\)/.test(text), mentionsPerFlip: text.includes('$' + Math.round(spent / flip / 100) * 100) || found.includes('$' + perFlip.toLocaleString('en-US')) || found.some((f) => Math.abs(+f.replace(/[$,]/g, '') - perFlip) < 1),
+        ok: !!cost && (rs.length === 0 ? /not assigned/.test(text) : /\(spent\)/.test(text)) && (rs.length === 0 || /\(outside\)/.test(text)) && /FEC filings through/.test(text) && (rs.length === 0 || found.some((f) => Math.abs(+f.replace(/[$,]/g, '') - perFlip) < 1 || Math.abs(+f.replace(/[$,]/g, '') - perFlip) / perFlip < 0.0001)) }; }, [y, day]) })),
+  ...['money-dollars-per-decisive-vote', 'money-outspent-and-lost-2024', 'money-where-it-came-from-2026', 'money-cost-of-the-smallest-change-2022'].map((v) => ({ name: `v-view-${v}`, query: `view=${v}`,
+    probe: (page) => page.evaluate(() => ({ card: document.getElementById('viewCard').innerText.replace(/\s+/g, ' '), w: window.__vt.effW(), mc: window.__vt.state.mc, unresolved: document.getElementById('viewCard').innerText.includes('[?]') })) })),
+  { name: 'm-phone', hash: 'w=money&mc=donors', viewport: { width: 390, height: 844 } },
+  { name: 'm-phone-time', hash: 'w=money', viewport: { width: 390, height: 844 } },
+  { name: 'n-nogl-money', hash: 'w=money&mm=out', gl: false },
   { name: 'n-nogl-road', hash: 'e=pres2024&w=road', gl: false },
   { name: 'n-nogl-closest', hash: 'e=sen2026&w=closest', gl: false },
   { name: 'n-nogl-ms', hash: 'w=scatter&sx=ms', gl: false },

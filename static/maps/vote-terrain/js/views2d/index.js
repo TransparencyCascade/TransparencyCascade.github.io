@@ -20,6 +20,7 @@ import { roadView } from './road.js';
 import { closestView } from './closest.js';
 import { dropoffView } from './dropoff.js';
 import { splitView } from './split.js';
+import { moneyView } from './money.js';
 
 export function createViews2d(ctx) {
   const { el, geo, meta } = ctx;
@@ -94,7 +95,7 @@ export function createViews2d(ctx) {
 
   const env = { ctx, meta, DUR, head, body, foot, place, inSel, shiftOf, longPress, dragGuard, nearest, hitLayer,
     countyPath, centroid, bboxOf, statePath, W0, statesOf, rows: () => ctx.rows() };
-  const views = { dots: dotsView(env), arrows: arrowsView(env), scatter: scatterView(env), circles: circlesView(env), strips: stripsView(env), seats: seatsView(env), history: historyView(env), sim: simView(env), power: powerView(env), road: roadView(env), closest: closestView(env), dropoff: dropoffView(env), split: splitView(env) };
+  const views = { dots: dotsView(env), arrows: arrowsView(env), scatter: scatterView(env), circles: circlesView(env), strips: stripsView(env), seats: seatsView(env), history: historyView(env), sim: simView(env), power: powerView(env), road: roadView(env), closest: closestView(env), dropoff: dropoffView(env), split: splitView(env), money: moneyView(env) };
   let current = null;
   return {
     show(name) {

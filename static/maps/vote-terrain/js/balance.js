@@ -3,8 +3,9 @@
 import { SAPPHIRE, GARNET } from './colour.js';
 import { fmt, list, $ } from './util.js';
 import { dataUrl } from './data.js';
+import * as Mn from './money.js';
 
-export function createBalance({ el, bal, state, house, selection, onResize }) {
+export function createBalance({ el, bal, money, state, house, selection, onResize }) {
   const { elections } = el;
   const D_COL = d3.rgb(SAPPHIRE) + '', R_COL = d3.rgb(GARNET) + '';
   const pct = (n, total) => (n / total * 100).toFixed(2) + '%';
@@ -74,6 +75,7 @@ export function createBalance({ el, bal, state, house, selection, onResize }) {
         h += `<p>${flip(sm.senate.races.map((r) => r.state), `${fmt(sm.senate.votes)} in ${list(where)}${runoff} would have given ${other} the Senate.`)}</p>`;
       }
       if (sm.house) h += `<p>${flip([...new Set(sm.house.districts.map((d) => d.district.split('-')[0]))], `${fmt(sm.house.votes)} in ${list(sm.house.districts.map((d) => d.district))} would have given Democrats the House.`)}</p>`;
+      if (money) h += costParagraphs(Mn.costLine(money, elections[state.e].year, sm), money, elections[state.e].year);
       h += `<p class="muted">Voters moving from winner to runner-up: half the margin plus one, closest races first.${sm.president ? ' 270 needed; Maine and Nebraska district electors held as cast.' : ''} Click a line to select its states.</p></div>`;
     }
     const S = bal.sources;
@@ -85,6 +87,22 @@ export function createBalance({ el, bal, state, house, selection, onResize }) {
     body.innerHTML = h;
     fit();
   }
+  // The smallest change's cost line: the money in those decisive races per decisive vote, each figure with its type and the date of the filings behind it.
+  const costParagraphs = (c, M, year) => {
+    const cov = M.coverage[year], partial = cov && cov.partial ? ' (2026 is partial)' : '';
+    let h = '';
+    if (c.senate) {
+      const s = c.senate, w = s.races.map(stName);
+      if (!w.length) return `<p class="cost">Dollars are not assigned to ${list(s.missing.map(stName))}: two Senate seats were on the ballot in the state and the FEC files do not name the seat, so no cost line is computed. FEC filings through ${cov ? cov.candidateSummariesThrough : ''}.</p>`;
+      h += `<p class="cost">The money in ${w.length === 1 ? 'that race' : 'those races'} (${list(w)}): candidates spent ${Mn.usdWords(s.spent)}, ${Mn.usdWords(s.spent / s.flip)} per vote to flip (spent); counting also party coordinated and independent expenditures that name the candidates (outside), ${Mn.usdWords(s.out)} in all, ${Mn.usdWords(s.out / s.flip)} per vote to flip. ` +
+        `Shown beside the votes, not as their cause.${s.missing.length ? ` Dollars are not assigned in ${list(s.missing.map(stName))} (two Senate seats in the state; the FEC files do not name the seat), so it is left out of both sides.` : ''} FEC filings through ${cov ? cov.candidateSummariesThrough : ''}${partial}.</p>`;
+    }
+    if (c.president) {
+      const p = c.president;
+      h += `<p class="cost">National candidate spending was ${Mn.usdWords(p.spent)} (spent) and outside money naming the candidates ${Mn.usdWords(p.outside)} (outside): ${Mn.usdWords(p.spent / p.votes)} and ${Mn.usdWords((p.spent + p.outside) / p.votes)} per vote of the smallest change. National dollars over those states' votes; the FEC files carry no presidential dollars by state. FEC filings through ${cov ? cov.candidateSummariesThrough : ''}.</p>`;
+    }
+    return h;
+  };
   // One line per office for the collapsed box: the same figures as the full box.
   function compact(b) {
     const last = (n) => n.replace(/,? Jr\.$/, '').split(' ').pop();

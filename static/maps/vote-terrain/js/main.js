@@ -45,7 +45,8 @@ import * as ms from './swingview.js';
 // Without WebGL the 3D views cannot draw: the page falls back to a flat view (see noGL) and keeps everything else.
 const hasGL = (() => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return false; } })();
 const terrainModule = hasGL ? import('./terrain.js') : null;   // three.js loads alongside the data
-const [geoHead, geoBytes, el, bal, eff, houseData, histData, ovData, regionData] = await Promise.all([getJSON('geometry.json'), getBin('geometry.bin', Uint8Array), ...['elections.json', 'balance.json', 'effective.json', 'house.json', 'history.json', 'overlays.json', 'regions.json'].map(getJSON)]);
+const [geoHead, geoBytes, el, bal, eff, houseData, histData, ovData, regionData, moneyData] = await Promise.all([getJSON('geometry.json'), getBin('geometry.bin', Uint8Array), ...['elections.json', 'balance.json', 'effective.json', 'house.json', 'history.json', 'overlays.json', 'regions.json'].map(getJSON),
+  getJSON('money.json').catch(() => null)]);   // a snapshot made before the Money tab has no money.json: the tab and the cost line say so
 const geo = decodeGeometry(geoHead, geoBytes);
 // ?view= or ?tour=: the registry of saved views, loaded only when one is asked for.
 const ASK = askedFor();
@@ -126,7 +127,8 @@ const terrainState = () => {
 };
 // Why a tab cannot be used for the election in view ('' when it can).
 const HOUSE_TABS = ['strips', 'seats'];
-const tabWhy = (w) => (w === 'history' || w === 'sim' || w === 'road' || w === 'closest' ? ''
+const tabWhy = (w) => (w === 'money' ? (moneyData ? '' : 'needs money.json, which this snapshot does not have')
+  : w === 'history' || w === 'sim' || w === 'road' || w === 'closest' ? ''
   : isHouse() && !HOUSE_TABS.includes(w) ? 'needs county results, and House results are by district'
   : !isHouse() && HOUSE_TABS.includes(w) ? 'draws the House by district: choose House above the timeline'
   : w === 'dropoff' && !turnout.DROP[elections[state.e].year] ? 'compares a midterm year with the presidential year before it: choose 2022 or 2026 in the timeline'
@@ -232,7 +234,7 @@ offices.addEventListener('click', (ev) => {
 const stop = () => { clearInterval(timer); timer = null; $('play').textContent = '▶'; };
 
 // ---------- balance of power ----------
-const balance = createBalance({ el, bal, state, house, selection: () => sel, onResize: () => { if (views && ready && effW() !== 'terrain') views.redraw(false); } });
+const balance = createBalance({ el, bal, money: moneyData, state, house, selection: () => sel, onResize: () => { if (views && ready && effW() !== 'terrain') views.redraw(false); } });
 const stName = balance.stName;
 
 // ---------- selection: one set of counties shared by every view, kept across elections and tabs ----------
@@ -378,6 +380,10 @@ views = createViews2d({
   fill: (f) => `rgb(${model.colourRaw(f).join(',')})`,
   house: () => house.now(),
   history: () => histData,
+  // Money (views2d/money.js, money.js): the file, the reader's settings (state.mc, md, mm, my) and the switches that change them.
+  money: () => moneyData,
+  moneyState: () => ({ mc: state.mc, md: state.md, mm: state.mm, my: state.my || (state.mc === 'donors' ? '2026' : 'all') }),
+  setMoney: (patch) => { Object.assign(state, patch); render({ animate: false }); },
   // Which History chart is drawn (state.hc), and the switch that changes it.
   historyChart: () => state.hc,
   setHistoryChart: (k) => { state.hc = k; render({ animate: false }); },
@@ -429,7 +435,7 @@ document.querySelectorAll('[data-preset]').forEach((b) => { const r = regionData
 
 // ---------- find, table, read-once text ----------
 const find = createFind({ geo, el, ALL_ST: codec.ALL_ST, stName, choose: (spec) => setSelection(spec, { frame: true }) });
-const table = createTable({ geo, el, state, model, house, history: histData, turnout, places, regions: regionData, areaOf: () => (drawers ? drawers.areaOf() : null), splitSel: () => (effW() === 'split' ? turnout.split() : null), selection: () => sel, effW, pctCh: codec.pctCh, OFFICE_NAME, stName, simCtx: () => simCtx(), power, roadCtx: () => roadCtx(), closestCtx: () => closestCtx(),
+const table = createTable({ geo, el, state, model, house, history: histData, money: moneyData, turnout, places, regions: regionData, areaOf: () => (drawers ? drawers.areaOf() : null), splitSel: () => (effW() === 'split' ? turnout.split() : null), selection: () => sel, effW, pctCh: codec.pctCh, OFFICE_NAME, stName, simCtx: () => simCtx(), power, roadCtx: () => roadCtx(), closestCtx: () => closestCtx(),
   overlays, ovSet, ovSummary: () => $('ovText').textContent });
 const about = createAbout({ el, eff, state, tip, selection: () => sel, select: setSelection, stName, house });
 // The comparison's method, one click away: the matching, then the unmatched medians for reference.
@@ -515,7 +521,7 @@ function render(opts = {}) {
   document.querySelectorAll('[data-wh]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.wh === state.h));
   const per = state.n === 'county' ? 'per county' : 'per sq mi', vw = effW();
   if (vw === 'sim' || vw === 'road' || vw === 'closest') ensureSim();
-  $('keyHeight').textContent = vw === 'power' ? { rank: 'Bars: three parts on a doubling scale; black tick: their product', tiles: 'Square area: share of ' + { votes: 'votes cast', ev: 'electoral votes', sen: 'Senate seats' }[state.pm], conc: 'Lines: each party\'s votes, biggest counties first' }[state.pc] : vw === 'sim' ? 'Tiles: margin after the swing; outlined: flipped; dashed: locked' : vw === 'road' ? ((r0) => (r0 && r0.body === 'sen' ? 'Segment width: one seat per race; the wide blocks are seats not on the ballot' : 'Segment width: electoral votes'))(roadCtx()) : vw === 'closest' ? 'Rows: races; click a heading to sort' : vw === 'dropoff' ? 'Circle area: votes in the midterm race; band: the 2022 pattern' : vw === 'split' ? 'Tick: one county; dark bar: the state\'s median' : vw === 'history' ? { seats: 'Dots: each state; line: the national average', small: 'Dots: each election, on a log scale', weight: 'Lines: largest against smallest, as a ratio', bias: 'Bars: the tipping state\'s margin minus the nation\'s, in points' }[state.hc] : vw === 'strips' ? 'Tick: one district; shading: at risk and contestable' : vw === 'seats' ? 'Point area: districts in the state' : vw === 'dots' ? 'Dot area: votes' : vw === 'scatter' ? 'Circle area: votes' : vw === 'arrows' ? 'Arrow length: swing'
+  $('keyHeight').textContent = vw === 'money' ? { time: 'Dots: one Senate race; bars: the median; money and votes side by side', lost: 'Dots: one Senate race; shaded: the bigger spender lost', donors: 'Bars: share of super PAC receipts' }[state.mc] : vw === 'power' ? { rank: 'Bars: three parts on a doubling scale; black tick: their product', tiles: 'Square area: share of ' + { votes: 'votes cast', ev: 'electoral votes', sen: 'Senate seats' }[state.pm], conc: 'Lines: each party\'s votes, biggest counties first' }[state.pc] : vw === 'sim' ? 'Tiles: margin after the swing; outlined: flipped; dashed: locked' : vw === 'road' ? ((r0) => (r0 && r0.body === 'sen' ? 'Segment width: one seat per race; the wide blocks are seats not on the ballot' : 'Segment width: electoral votes'))(roadCtx()) : vw === 'closest' ? 'Rows: races; click a heading to sort' : vw === 'dropoff' ? 'Circle area: votes in the midterm race; band: the 2022 pattern' : vw === 'split' ? 'Tick: one county; dark bar: the state\'s median' : vw === 'history' ? { seats: 'Dots: each state; line: the national average', small: 'Dots: each election, on a log scale', weight: 'Lines: largest against smallest, as a ratio', bias: 'Bars: the tipping state\'s margin minus the nation\'s, in points' }[state.hc] : vw === 'strips' ? 'Tick: one district; shading: at risk and contestable' : vw === 'seats' ? 'Point area: districts in the state' : vw === 'dots' ? 'Dot area: votes' : vw === 'scatter' ? 'Circle area: votes' : vw === 'arrows' ? 'Arrow length: swing'
     : vw === 'circles' ? (state.h === 'pop' ? 'Area: represented people' : 'Circle area: votes')
     : state.d === '2d' ? 'Flat map: colour only' : state.h === 'pop' ? 'Height: represented people'
     : state.h === 'net' ? `Height: net margin ${per}` : state.h === 'ev' || state.h === 'sen' ? `Height: votes × ${state.h === 'ev' ? 'electoral' : 'Senate'} weight`
@@ -571,6 +577,11 @@ function render(opts = {}) {
     $('keyTitle').textContent = state.hc === 'seats' ? 'Residents per House seat' : 'Weight per vote';
     $('ramp').innerHTML = ''; $('rampLabels').innerHTML = '';
   }
+  if (vw === 'money' && state.mc !== 'donors') {   // dots: the winner's party
+    $('keyTitle').textContent = 'Dots: the winner\'s party';
+    $('ramp').innerHTML = `<i style="background:${toward(-40, MARGIN_MAX)}"></i><i style="background:${toward(40, MARGIN_MAX)}"></i>`;
+    $('rampLabels').innerHTML = '<span>Republican</span><span>Democratic</span>';
+  } else if (vw === 'money') { $('keyTitle').textContent = 'Dollars from individual donors'; $('ramp').innerHTML = ''; $('rampLabels').innerHTML = ''; }
   if (vw === 'power' && state.pc === 'conc') {   // the two lines are the two parties
     $('keyTitle').textContent = 'Lines: each party';
     $('ramp').innerHTML = `<i style="background:${toward(-40, MARGIN_MAX)}"></i><i style="background:${toward(40, MARGIN_MAX)}"></i>`;
@@ -586,7 +597,7 @@ function render(opts = {}) {
     $('ramp').innerHTML = d3.range(-SPLIT_MAX, SPLIT_MAX + 0.001, SPLIT_MAX / 6).map((x) => `<i style="background:${toward(x, SPLIT_MAX)}"></i>`).join('');
     $('rampLabels').innerHTML = `<span>${SPLIT_MAX} R</span><span>agree</span><span>${SPLIT_MAX} D</span>`;
   }
-  $('ramp').hidden = $('rampLabels').hidden = (vw === 'history' && state.hc !== 'small' && state.hc !== 'bias') || (vw === 'power' && state.pc === 'rank');
+  $('ramp').hidden = $('rampLabels').hidden = (vw === 'money' && state.mc === 'donors') || (vw === 'history' && state.hc !== 'small' && state.hc !== 'bias') || (vw === 'power' && state.pc === 'rank');
   $('rankBtn').hidden = !effShown() || !eff.elections[state.e];
   if (about.isRankOpen()) about.renderRank();
 
@@ -606,7 +617,7 @@ function render(opts = {}) {
   nt.textContent = 'This browser is not drawing 3D (WebGL is off or unavailable), so the map is shown as Circles. Everything else works.';
   tourBtn.disabled = vw !== 'terrain';
   $('flat').disabled = vw !== 'terrain';
-  $('reset').disabled = vw === 'dropoff' || vw === 'split' || vw === 'dots' || vw === 'scatter' || vw === 'road' || vw === 'closest' || vw === 'history' || vw === 'sim' || vw === 'power' || HOUSE_TABS.includes(vw);
+  $('reset').disabled = vw === 'dropoff' || vw === 'split' || vw === 'dots' || vw === 'scatter' || vw === 'road' || vw === 'closest' || vw === 'history' || vw === 'money' || vw === 'sim' || vw === 'power' || HOUSE_TABS.includes(vw);
   if (sel) $('selText').textContent = codec.summary(sel);
   if (drawers) drawers.render();
   showView();
@@ -730,7 +741,7 @@ const followHash = (forceCamera = false) => {
 };
 window.addEventListener('hashchange', () => followHash());
 // Saved views and tours: the card with the caption; a tour step sets the whole state, as a link would.
-const savedViews = registry ? createSavedViews({ registry, bal, eff, houseData, histData, simData, elections, stName, power, overlays, flips, meta, ms, sameOffice, turnout, places, regionData,
+const savedViews = registry ? createSavedViews({ registry, bal, eff, houseData, histData, moneyData, simData, elections, stName, power, overlays, flips, meta, ms, sameOffice, turnout, places, regionData,
   apply: (st) => { if (terrain) terrain.stopMotion(); history.replaceState(null, '', location.search + '#' + hashFor(st)); followHash(true); if (st.sel && sel) applySelection({ frame: true, fit: 1.15 }); } }) : null;
 if (savedViews) {
   savedViews.setOnResize(() => { if (views && effW() !== 'terrain') views.redraw(false); });
