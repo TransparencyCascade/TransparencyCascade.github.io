@@ -1,10 +1,11 @@
 /* Table: the numbers behind the view in use, as in the tooltip. On the House track: one row per district
    (Districts) or per state (Seats and votes). History: one row per census, then one per presidential election.
    Simulator: one row per place on the election day (each state for president, each Senate race, each House district),
-   with the swing at which it changes hands and its winner at the swing in force. */
+   with the swing at which it changes hands and its winner at the swing in force. Power: the chart in view (weight per
+   vote by state; votes, electoral votes and Senate seats by state; or each party's concentration at fixed shares). */
 import { fmt, esc, countyLabelOf, $ } from './util.js';
 
-export function createTable({ geo, el, state, model, house, history, selection, effW, pctCh, OFFICE_NAME, stName, simCtx }) {
+export function createTable({ geo, el, state, model, house, history, selection, effW, pctCh, OFFICE_NAME, stName, simCtx, power }) {
   const { meta } = geo, { elections } = el;
   const wrap = $('tableWrap'), table = $('table');
   let sort = { k: 2, dir: -1 };
@@ -81,7 +82,39 @@ export function createTable({ geo, el, state, model, house, history, selection, 
     table.innerHTML = '<thead><tr>' + cols.map((c, i) => `<th data-k="${i}"${i === sort.k ? ` aria-sort="${sort.dir > 0 ? 'ascending' : 'descending'}"` : ''}>${c[0]}</th>`).join('') + '</tr></thead><tbody>' +
       rs.map((r) => '<tr>' + cols.map((c) => `<td>${esc(c[2](c[1](r)))}</td>`).join('') + '</tr>').join('') + '</tbody>';
   };
+  // Power: the chart in view, as rows.
+  const renderPower = () => {
+    const e = state.e, L = elections[e].label, sel = selection();
+    const sts = sel ? new Set(sel.states || [...sel.counties].map((f) => meta[f].st)) : null;
+    const x2 = (v) => (v == null ? '' : v.toFixed(2) + '×'), p2 = (v) => (v * 100).toFixed(2) + '%';
+    let cols, rs;
+    if (state.pc === 'conc') {
+      const qs = [10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, +state.pq].filter((q, i, a) => a.indexOf(q) === i).sort((a, b) => a - b);
+      rs = qs.map((q) => ({ q, d: power.reach(e, 'd', q), r: power.reach(e, 'r', q) }));
+      cols = [['Share of the party\'s votes', (r) => r.q, (q) => q + '%'], ['Democratic: counties', (r) => r.d && r.d.n, fmt], ['Democratic: share of land', (r) => r.d && r.d.land, p2],
+        ['Republican: counties', (r) => r.r && r.r.n, fmt], ['Republican: share of land', (r) => r.r && r.r.land, p2]];
+      $('tableTitle').textContent = `Concentration, ${L}: the counties holding each share of a party's votes, biggest first`;
+      $('tableNote').textContent = `Counties with results only. The marker stands at ${state.pq}%.`;
+    } else if (state.pc === 'tiles') {
+      rs = power.states(e).rows.slice(); if (sts) rs = rs.filter((r) => sts.has(r.st));
+      cols = [['State', (r) => stName(r.st), String], ['Votes cast', (r) => r.votes, fmt], ['Share of votes', (r) => r.share.votes, p2], ['Electoral votes', (r) => r.ev, fmt],
+        ['Share of electoral votes', (r) => r.share.ev, p2], ['Senate seats', (r) => r.sen, fmt], ['Electoral weight per vote', (r) => r.evPerVote, x2], ['Senate weight per vote', (r) => (r.sen ? r.senPerVote : null), x2]];
+      $('tableTitle').textContent = `Votes cast, electoral votes and Senate seats by state, ${L}`;
+      $('tableNote').textContent = `${fmt(rs.length)} states with results (Alaska left out: no county votes in the page). Weight per vote: the state's share of electoral votes (or Senate seats) over its share of votes cast. Click a heading to sort.`;
+    } else {
+      rs = (power.rank(e) || []).slice(); if (sts) rs = rs.filter((r) => sts.has(r.st));
+      cols = [['State', (r) => stName(r.st), String], ['Weight per vote', (r) => r.r, x2], ['State electoral votes per resident', (r) => r.B, x2], ['Residents per eligible citizen', (r) => r.N, x2], ['Eligible citizens per vote cast', (r) => r.T, x2]];
+      $('tableTitle').textContent = `Weight per vote by state, ${L}`;
+      $('tableNote').textContent = rs.length ? 'National average = 1. The three parts multiply back to the weight. Click a heading to sort.' : 'No census and citizen counts for this election in the page.';
+    }
+    if (sort.k >= cols.length) sort = { k: state.pc === 'conc' ? 0 : 1, dir: state.pc === 'conc' ? 1 : -1 };
+    const get = cols[sort.k][1];
+    rs.sort((x, y) => { const a = get(x), c = get(y); if (a == null) return 1; if (c == null) return -1; return (typeof a === 'string' ? a.localeCompare(c) : a - c) * sort.dir; });
+    table.innerHTML = '<thead><tr>' + cols.map((c, i) => `<th data-k="${i}"${i === sort.k ? ` aria-sort="${sort.dir > 0 ? 'ascending' : 'descending'}"` : ''}>${c[0]}</th>`).join('') + '</tr></thead><tbody>' +
+      rs.map((r) => '<tr>' + cols.map((c) => { const v = c[1](r); return `<td>${esc(v == null ? '' : c[2](v))}</td>`; }).join('') + '</tr>').join('') + '</tbody>';
+  };
   const render = () => {
+    if (effW() === 'power') return renderPower();
     if (effW() === 'sim') return renderSim();
     if (effW() === 'history') return renderHistory();
     if (house.isHouse()) return renderHouse();

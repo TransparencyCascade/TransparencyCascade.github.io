@@ -166,6 +166,46 @@
         "sm": "house",
         "sw": "-ps"
       }
+    },
+    {
+      "slug": "power-weight-2024",
+      "title": "The weight of a vote, by state, 2024",
+      "file": "Electoral weight of one vote, by state, in three parts; President 2024",
+      "caption": "In 2024 each vote cast in {calc.power.pres2024.rank.hiName} carried {calc.power.pres2024.rank.hi.r|x2} the national average electoral weight, and each vote cast in {calc.power.pres2024.rank.loName} {calc.power.pres2024.rank.lo.r|x2}. In {calc.power.pres2024.rank.hiName} the state's electoral votes per resident account for {calc.power.pres2024.rank.hi.B|x2}, residents per eligible citizen for {calc.power.pres2024.rank.hi.N|x2} and eligible citizens per vote cast for {calc.power.pres2024.rank.hi.T|x2}; the three multiply to the state's weight.",
+      "sources": "2020 Census population and apportionment; ACS 2019-2023 citizen voting-age population special tabulation; {elections.pres2024.source}",
+      "state": {
+        "e": "pres2024",
+        "w": "power",
+        "pc": "rank"
+      }
+    },
+    {
+      "slug": "power-cartogram-2024",
+      "title": "Votes and electoral votes, by state, 2024",
+      "file": "Each state's share of the electoral votes; President 2024",
+      "caption": "Each square is the state's share of the electoral votes in 2024. {calc.power.pres2024.tiles.hi.name} cast {calc.power.pres2024.tiles.hi.votes|pct2} of the votes counted here and holds {calc.power.pres2024.tiles.hi.ev|pct2} of the electoral votes; {calc.power.pres2024.tiles.lo.name} cast {calc.power.pres2024.tiles.lo.votes|pct2} and holds {calc.power.pres2024.tiles.lo.ev|pct2}.",
+      "sources": "{elections.pres2024.source} Electoral votes: National Archives, 2020 apportionment. Alaska is left out: the page has no county votes for it.",
+      "state": {
+        "e": "pres2024",
+        "w": "power",
+        "pc": "tiles",
+        "pm": "ev"
+      }
+    },
+    {
+      "slug": "power-concentration-2024",
+      "title": "Where each party's votes live, 2024",
+      "file": "Each party's votes, biggest counties first, against the land they cover; President 2024",
+      "caption": "In 2024, {calc.power.pres2024.conc.q|raw}% of Democratic votes came from {calc.power.pres2024.conc.d.n|n} of {calc.power.pres2024.conc.d.of|n} counties, holding {calc.power.pres2024.conc.d.land|pct} of the land in counties with results. The same share of Republican votes came from {calc.power.pres2024.conc.r.n|n} counties, holding {calc.power.pres2024.conc.r.land|pct}.",
+      "sources": "{elections.pres2024.source} Land: Census Bureau county areas.",
+      "state": {
+        "e": "pres2024",
+        "w": "power",
+        "pc": "conc",
+        "pk": "d",
+        "pa": "land",
+        "pq": "50"
+      }
     }
   ],
   "tours": [

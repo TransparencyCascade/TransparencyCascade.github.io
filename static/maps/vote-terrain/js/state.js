@@ -6,13 +6,15 @@
    default). hc: which History chart (seats: residents per House seat; small: the smallest change; weight: weight
    per vote over time). Simulator: sw the swing (points of margin, positive toward Democrats;
    empty for none; ps or -ps: the plausible swing in force, toward Democrats or Republicans), swr the rule
-   (u uniform, p proportional), lock the states held at their actual result (CA,PA), sm which body its map shows. */
+   (u uniform, p proportional), lock the states held at their actual result (CA,PA), sm which body its map shows.
+   Power: pc the chart (rank, tiles, conc), pm what the cartogram's squares are sized by (votes, ev, sen), pk the
+   party the concentration marker follows (d, r), pa its horizontal axis (land, counties), pq the marker (1-99). */
 import { parsePs } from './house.js';
-export const state = { e: 'pres2024', h: 'total', c: 'margin', s: 'terrain', m: '1', v: 'west', d: '3d', u: 'd', n: 'area', l: 'votes', g: '0', w: 'terrain', sel: '', ps: '', hc: 'seats', sw: '', swr: 'u', lock: '', sm: '' };
+export const state = { e: 'pres2024', h: 'total', c: 'margin', s: 'terrain', m: '1', v: 'west', d: '3d', u: 'd', n: 'area', l: 'votes', g: '0', w: 'terrain', sel: '', ps: '', hc: 'seats', sw: '', swr: 'u', lock: '', sm: '', pc: 'rank', pm: 'votes', pk: 'd', pa: 'land', pq: '50' };
 // Districts and Seats and votes draw the House track (results by district); History draws the long view on any track;
 // the others need county results.
-export const TABS = ['terrain', 'circles', 'arrows', 'dots', 'scatter', 'strips', 'seats', 'history', 'sim'];
-export const TAB_NAME = { terrain: 'Terrain', circles: 'Circles', arrows: 'Arrows', dots: 'Dots', scatter: 'Scatter', strips: 'Districts', seats: 'Seats and votes', history: 'History', sim: 'Simulator' };
+export const TABS = ['terrain', 'circles', 'arrows', 'dots', 'scatter', 'strips', 'seats', 'history', 'sim', 'power'];
+export const TAB_NAME = { terrain: 'Terrain', circles: 'Circles', arrows: 'Arrows', dots: 'Dots', scatter: 'Scatter', strips: 'Districts', seats: 'Seats and votes', history: 'History', sim: 'Simulator', power: 'Power' };
 // Lenses: one question each, setting several controls at once. Changing any control in Adjust makes the view "custom".
 export const LENSES = {
   votes: { set: { n: 'area', h: 'total', c: 'margin', g: '0', d: '3d' }, v: 'national',
@@ -45,5 +47,10 @@ export const fromHash = (order) => {
   if (!['u', 'p'].includes(state.swr)) state.swr = 'u';
   state.lock = (q.get('lock') || '').split(',').filter((x) => /^[A-Z]{2}$/.test(x)).join(',');
   if (!['', 'pres', 'sen', 'house'].includes(state.sm)) state.sm = '';
+  if (!['rank', 'tiles', 'conc'].includes(state.pc)) state.pc = 'rank';
+  if (!['votes', 'ev', 'sen'].includes(state.pm)) state.pm = 'votes';
+  if (!['d', 'r'].includes(state.pk)) state.pk = 'd';
+  if (!['land', 'counties'].includes(state.pa)) state.pa = 'land';
+  state.pq = String(Math.max(1, Math.min(99, Math.round(+state.pq) || 50)));
 };
 export const toHash = () => history.replaceState(null, '', '#' + new URLSearchParams(state).toString());

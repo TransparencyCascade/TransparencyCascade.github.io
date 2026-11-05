@@ -1,9 +1,9 @@
 /* The reader's selection: one set of counties shared by every view, kept across elections and tabs.
    { states: [..] | null, counties: Set, rule }. A drag is kept in the link as its rule, re-read against the
-   election in the link. */
+   election in the link (k: the Power tab's concentration marker). */
 import { fmt, list, countyLabelOf } from './util.js';
 
-export function createSelectionCodec({ geo, el, state, model, stName, house }) {
+export function createSelectionCodec({ geo, el, state, model, stName, house, power }) {
   const { meta } = geo, { elections } = el;
   const ALL_ST = new Set(Object.values(meta).map((m) => m.st));
   const countiesOf = (states) => { const S = new Set(states); return Object.keys(meta).filter((f) => S.has(meta[f].st)); };
@@ -11,6 +11,8 @@ export function createSelectionCodec({ geo, el, state, model, stName, house }) {
   const QUAD = { ne: (x, y) => x > 0 && y > 0, sw: (x, y) => x < 0 && y < 0, nw: (x, y) => x <= 0 && y > 0, se: (x, y) => x > 0 && y <= 0 };
   const changeRows = () => model.rowsNow().filter((r) => r.v && r.b && r.b[1] > 0 && r.b[2] > 0);
   const RULES = {
+    // k:<d|r>:<q>: the counties holding q percent of one party's votes, biggest first (the Power tab's marker).
+    k: ([pk, q]) => { const r = power && (pk === 'd' || pk === 'r') && elections[state.e] && !elections[state.e].house ? power.reach(state.e, pk, Math.max(1, Math.min(99, +q || 50))) : null; return r ? r.list.map((f) => ({ f })) : []; },
     r: ([k, lo, hi]) => model.rowsNow().filter((r) => { const x = k === 's' ? r.s : r.m; return r.v && x != null && x >= +lo && x <= +hi; }),
     q: ([k]) => (QUAD[k] ? changeRows().filter((r) => QUAD[k](pctCh(r.v[1], r.b[1]), pctCh(r.v[2], r.b[2]))) : []),
     b: ([box]) => { const [x0, x1, y0, y1] = (box || '').split(',').map(Number);

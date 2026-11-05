@@ -6,7 +6,7 @@
 
    Captions hold no typed numbers. Every figure is a token resolved from the page's data:
      {path.into.data|filter}   roots: bal (balance.json), eff (effective.json), house (house.json), hist (history.json), elections (the page's elections), calc (below)
-     filters: n (1,234), raw (as written: years), x (4.2×), pct (12.3%), et (time, Eastern), last (last word), states (names joined),
+     filters: n (1,234), raw (as written: years), x (4.2×), x2 (0.95×), pct (12.3%), pct2 (0.18%), et (time, Eastern), last (last word), states (names joined),
               perstate ({ST: votes} as "60,134 in Pennsylvania, ...")
    calc.eff.<election>: hi, lo (state codes), hiName, loName, ratio (weight per vote, highest over lowest state)
    calc.hist: first, last (census rows), capYear, lastHiName/lastHiV, lastLoName/lastLoV (most and fewest residents per seat,
@@ -15,6 +15,8 @@
      calc.sim.y<year>.swing: { ps, toR, toD, edgeR, edgeD } (House: seats that change hands at the plausible swing and at
      the slider's limit, each { n, captured, atRisk, contestable }); calc.sim.range: the slider's limit in points.
      filter pt: a swing as unsigned points (1.8).
+   calc.power.<election>: rank { hi, lo ({ st, r, B, N, T }), hiName, loName, n }; tiles { hi, lo ({ st, name, votes, ev, sen
+     (shares, percent), evPerVote }), n }; conc { q (50), d, r ({ n, of, land, counties: percent }) } (power.js).
    calc.house.<year>: ps, captured, contestable, atRisk, apart, capv, capvShare, st.<ST>.{captured, contestable, atRisk}
      (bands at the default plausible swing). An unknown token stops the caption and logs an error, so a broken
      caption cannot reach a card unnoticed. */
@@ -22,7 +24,7 @@ import { fmt, esc, list, $ } from './util.js';
 import { createHouse } from './house.js';
 import { createSim, RANGE } from './sim.js';
 
-export function createSavedViews({ registry, bal, eff, houseData, histData, simData, elections, stName, apply }) {
+export function createSavedViews({ registry, bal, eff, houseData, histData, simData, elections, stName, power, apply }) {
   const etTime = (iso) => new Date(iso).toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', month: 'short', day: 'numeric', year: 'numeric' }) + ' ET';
   // Derived figures, computed once from the data files (the House bands with their own state, at the default plausible swing).
   const calc = { eff: {}, house: {} };
@@ -81,9 +83,21 @@ export function createSavedViews({ registry, bal, eff, houseData, histData, simD
       calc.sim['y' + y] = c;
     }
   }
+  // The Power tab (power.js), per election with county results: the highest and lowest weight per vote with their
+  // parts; the states whose share of electoral votes most exceeds, and most falls short of, their share of votes
+  // cast; and each party's concentration at half its votes.
+  calc.power = new Proxy({}, { get: (o, e) => {
+    if (typeof e !== 'string' || !power || !elections[e] || elections[e].house) return undefined;
+    if (o[e]) return o[e];
+    const R = power.rank(e), T = power.states(e).rows.slice().sort((a, b) => b.evPerVote - a.evPerVote);
+    const tile = (x) => ({ st: x.st, name: stName(x.st), votes: x.share.votes * 100, ev: x.share.ev * 100, sen: x.share.sen * 100, evPerVote: x.evPerVote });
+    const conc = (pk) => { const r = power.reach(e, pk, 50); return r && { n: r.n, of: r.of, land: r.land * 100, counties: r.counties * 100 }; };
+    return (o[e] = { rank: R && { hi: R[0], lo: R[R.length - 1], hiName: stName(R[0].st), loName: stName(R[R.length - 1].st), n: R.length },
+      tiles: { hi: tile(T[0]), lo: tile(T[T.length - 1]), n: T.length }, conc: { q: 50, d: conc('d'), r: conc('r') } });
+  } });
   const roots = { bal, eff, house: houseData, hist: histData, elections, calc, sim: simData };
   const FILTERS = {
-    n: (v) => fmt(v), raw: (v) => String(v), pt: (v) => Math.abs(v).toFixed(1), x: (v) => v.toFixed(1) + '×', pct: (v) => v.toFixed(1) + '%', et: (v) => etTime(v),
+    n: (v) => fmt(v), raw: (v) => String(v), pt: (v) => Math.abs(v).toFixed(1), x: (v) => v.toFixed(1) + '×', x2: (v) => v.toFixed(2) + '×', pct: (v) => v.toFixed(1) + '%', pct2: (v) => v.toFixed(2) + '%', et: (v) => etTime(v),
     last: (v) => String(v).split(' ').pop(), states: (v) => list(v.map(stName)),
     perstate: (v) => list(Object.entries(v).sort((a, b) => b[1] - a[1]).map(([st, n]) => `${fmt(n)} in ${stName(st)}`)),
   };

@@ -7,6 +7,7 @@
    Data from build_data.mjs and the other tools/vote-terrain builders; see tools/vote-terrain/README.md.
 
    The swing simulator (views2d/sim.js, sim.js, simulator.json): one swing for every race on the election day in view.
+   Power (views2d/power.js, power.js): weight per vote ranked, the votes/electoral votes/Senate cartogram, concentration.
 
    Saved views and tours (views.js, views.json): ?view=<slug> and ?tour=<slug> open a named screen with its caption;
    ?export=1 hides the page's controls for tools/vote-terrain/export.mjs.
@@ -29,6 +30,7 @@ import { createViews2d } from './views2d/index.js';
 import { createHouse, PS_MIN, PS_MAX } from './house.js';
 import { createSavedViews, askedFor } from './views.js';
 import { createSim } from './sim.js';
+import { createPower } from './power.js';
 
 // Without WebGL the 3D views cannot draw: the page falls back to a flat view (see noGL) and keeps everything else.
 const hasGL = (() => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return false; } })();
@@ -69,6 +71,7 @@ let sel = null, selVersion = 0;
 const model = createModel({ geo, el, bal, eff, state, selection: () => sel });
 const { officeOf, baselineOf, baselineLabel, isWeight, isMargin, weighted, weightsFor, effOf, multFor, effShown } = model;
 const tip = createTooltip({ geo, el, bal, state, model });
+const power = createPower({ meta, elections, eff, bal });
 const { OFFICE_NAME } = tip;
 
 // ---------- camera views shared by both 3D shapes ----------
@@ -212,7 +215,7 @@ const balance = createBalance({ el, bal, state, house, selection: () => sel, onR
 const stName = balance.stName;
 
 // ---------- selection: one set of counties shared by every view, kept across elections and tabs ----------
-const codec = createSelectionCodec({ geo, el, state, model, stName, house });
+const codec = createSelectionCodec({ geo, el, state, model, stName, house, power });
 // spec: { states } or { counties, rule }; opts.add merges, opts.toggle lets a second click clear it, opts.frame moves the camera to it.
 const setSelection = (spec, opts = {}) => {
   sel = codec.next(sel, spec, opts); selVersion++;
@@ -340,6 +343,11 @@ views = createViews2d({
   selectedStates: () => (!sel ? null : new Set(sel.states || [...sel.counties].map((f) => meta[f].st))),
   infoButton: (b, text) => about.infoButton(b, text),
   sim: () => simCtx(), simRules: () => simData.rules, setSim, toggleLock,
+  // Power: the chart and its settings (state.pc, pm, pk, pa, pq) with the arithmetic in power.js.
+  election: () => state.e, source: () => elections[state.e].source,
+  effSource: () => `Census Bureau decennial counts and the ACS citizen voting-age population tabulation (${eff.elections[state.e] ? eff.elections[state.e].cvap : 'ACS'}); electoral votes: National Archives. Votes: ${elections[state.e].source}`,
+  power: () => ({ pc: state.pc, pm: state.pm, pk: state.pk, pa: state.pa, pq: state.pq, calc: power }),
+  setPower: (patch) => { Object.assign(state, patch); render({ animate: false }); },
 });
 window.addEventListener('resize', () => { if (effW() !== 'terrain') views.redraw(false); });
 $('tabs').addEventListener('click', (ev) => {
@@ -355,7 +363,7 @@ const switchTab = (w) => {
 
 // ---------- find, table, read-once text ----------
 const find = createFind({ geo, el, ALL_ST: codec.ALL_ST, stName, choose: (spec) => setSelection(spec, { frame: true }) });
-const table = createTable({ geo, el, state, model, house, history: histData, selection: () => sel, effW, pctCh: codec.pctCh, OFFICE_NAME, stName, simCtx: () => simCtx() });
+const table = createTable({ geo, el, state, model, house, history: histData, selection: () => sel, effW, pctCh: codec.pctCh, OFFICE_NAME, stName, simCtx: () => simCtx(), power });
 const about = createAbout({ el, eff, state, tip, selection: () => sel, select: setSelection, stName, house });
 
 function render(opts = {}) {
@@ -404,7 +412,7 @@ function render(opts = {}) {
   document.querySelectorAll('[data-wh]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.wh === state.h));
   const per = state.n === 'county' ? 'per county' : 'per sq mi', vw = effW();
   if (vw === 'sim') ensureSim();
-  $('keyHeight').textContent = vw === 'sim' ? 'Tiles: margin after the swing; outlined: flipped; dashed: locked' : vw === 'history' ? { seats: 'Dots: each state; line: the national average', small: 'Dots: each election, on a log scale', weight: 'Lines: largest against smallest, as a ratio' }[state.hc] : vw === 'strips' ? 'Tick: one district; shading: at risk and contestable' : vw === 'seats' ? 'Point area: districts in the state' : vw === 'dots' ? 'Dot area: votes' : vw === 'scatter' ? 'Circle area: votes' : vw === 'arrows' ? 'Arrow length: swing'
+  $('keyHeight').textContent = vw === 'power' ? { rank: 'Bars: three parts on a doubling scale; black tick: their product', tiles: 'Square area: share of ' + { votes: 'votes cast', ev: 'electoral votes', sen: 'Senate seats' }[state.pm], conc: 'Lines: each party\'s votes, biggest counties first' }[state.pc] : vw === 'sim' ? 'Tiles: margin after the swing; outlined: flipped; dashed: locked' : vw === 'history' ? { seats: 'Dots: each state; line: the national average', small: 'Dots: each election, on a log scale', weight: 'Lines: largest against smallest, as a ratio' }[state.hc] : vw === 'strips' ? 'Tick: one district; shading: at risk and contestable' : vw === 'seats' ? 'Point area: districts in the state' : vw === 'dots' ? 'Dot area: votes' : vw === 'scatter' ? 'Circle area: votes' : vw === 'arrows' ? 'Arrow length: swing'
     : vw === 'circles' ? (state.h === 'pop' ? 'Area: represented people' : 'Circle area: votes')
     : state.d === '2d' ? 'Flat map: colour only' : state.h === 'pop' ? 'Height: represented people'
     : state.h === 'net' ? `Height: net margin ${per}` : state.h === 'ev' || state.h === 'sen' ? `Height: votes × ${state.h === 'ev' ? 'electoral' : 'Senate'} weight`
@@ -442,7 +450,7 @@ function render(opts = {}) {
 
   // Key: it follows the view drawn. Dots and Arrows colour by swing when there is a baseline, Scatter by margin.
   const panelColour = vw === 'terrain' || vw === 'circles', wt = panelColour && isWeight();
-  const m = panelColour ? isMargin() : vw === 'scatter' || vw === 'sim' || !baselineOf(), max = m ? MARGIN_MAX : SWING_MAX;
+  const m = panelColour ? isMargin() : vw === 'scatter' || vw === 'sim' || vw === 'power' || !baselineOf(), max = m ? MARGIN_MAX : SWING_MAX;
   $('keyTitle').textContent = wt ? 'Weight per vote' : m ? `Margin, ${elections[state.e].label}` : `Swing since ${baselineLabel()}`;
   $('ramp').innerHTML = wt ? d3.range(-WEIGHT_MAX, WEIGHT_MAX + 0.001, WEIGHT_MAX / 6).map((x) => `<i style="background:${towardW(x, WEIGHT_MAX)}"></i>`).join('')
     : d3.range(-max, max + 0.001, max / 6).map((x) => `<i style="background:${toward(x, max)}"></i>`).join('');
@@ -458,7 +466,12 @@ function render(opts = {}) {
     $('keyTitle').textContent = state.hc === 'seats' ? 'Residents per House seat' : 'Weight per vote';
     $('ramp').innerHTML = ''; $('rampLabels').innerHTML = '';
   }
-  $('ramp').hidden = $('rampLabels').hidden = vw === 'history' && state.hc !== 'small';
+  if (vw === 'power' && state.pc === 'conc') {   // the two lines are the two parties
+    $('keyTitle').textContent = 'Lines: each party';
+    $('ramp').innerHTML = `<i style="background:${toward(-40, MARGIN_MAX)}"></i><i style="background:${toward(40, MARGIN_MAX)}"></i>`;
+    $('rampLabels').innerHTML = '<span>Republican</span><span>Democratic</span>';
+  } else if (vw === 'power' && state.pc === 'rank') { $('keyTitle').textContent = 'Weight per vote'; $('ramp').innerHTML = ''; $('rampLabels').innerHTML = ''; }
+  $('ramp').hidden = $('rampLabels').hidden = (vw === 'history' && state.hc !== 'small') || (vw === 'power' && state.pc === 'rank');
   $('rankBtn').hidden = !effShown() || !eff.elections[state.e];
   if (about.isRankOpen()) about.renderRank();
 
@@ -478,7 +491,7 @@ function render(opts = {}) {
   nt.textContent = 'This browser is not drawing 3D (WebGL is off or unavailable), so the map is shown as Circles. Everything else works.';
   tourBtn.disabled = vw !== 'terrain';
   $('flat').disabled = vw !== 'terrain';
-  $('reset').disabled = vw === 'dots' || vw === 'scatter' || vw === 'history' || vw === 'sim' || HOUSE_TABS.includes(vw);
+  $('reset').disabled = vw === 'dots' || vw === 'scatter' || vw === 'history' || vw === 'sim' || vw === 'power' || HOUSE_TABS.includes(vw);
   if (sel) $('selText').textContent = codec.summary(sel);
   showView();
   if (vw === 'terrain') {
@@ -569,7 +582,7 @@ const followHash = (forceCamera = false) => {
 };
 window.addEventListener('hashchange', () => followHash());
 // Saved views and tours: the card with the caption; a tour step sets the whole state, as a link would.
-const savedViews = registry ? createSavedViews({ registry, bal, eff, houseData, histData, simData, elections, stName,
+const savedViews = registry ? createSavedViews({ registry, bal, eff, houseData, histData, simData, elections, stName, power,
   apply: (st) => { if (terrain) terrain.stopMotion(); history.replaceState(null, '', location.search + '#' + hashFor(st)); followHash(true); if (st.sel && sel) applySelection({ frame: true, fit: 1.15 }); } }) : null;
 if (savedViews) {
   savedViews.setOnResize(() => { if (views && effW() !== 'terrain') views.redraw(false); });
@@ -583,7 +596,7 @@ const fitHeights = () => {
   if (f < 1) kh.textContent += `; heights drawn at ${Math.round(f * 100)}% to fit the card`;
   return f;
 };
-window.__vt = { state, elections, sim: () => simCtx(), fitHeights, saved: () => savedViews, meta, house: () => house.now(), terrain: () => terrain, blocks: () => blocks, views: () => views, sel: () => sel, setSelection, effW, tipHtml: tip.countyHtml,
+window.__vt = { state, elections, power, sim: () => simCtx(), fitHeights, saved: () => savedViews, meta, house: () => house.now(), terrain: () => terrain, blocks: () => blocks, views: () => views, sel: () => sel, setSelection, effW, tipHtml: tip.countyHtml,
   colours: { GARNET: GARNET + '', SAPPHIRE: SAPPHIRE + '', NEUTRAL: NEUTRAL + '' } };
 sel = codec.decode(state.sel); state.sel = codec.encode(sel);
 ready = true;

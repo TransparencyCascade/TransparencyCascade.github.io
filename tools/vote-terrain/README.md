@@ -20,7 +20,8 @@ checks it; Hugo does not publish `tools/`.
 | `tooltip.js`, `balance.js`, `selection.js`, `find.js`, `table.js`, `about.js` | The tip, balance of power, selection codec, find box, table, read-once drawers |
 | `terrain.js` | Smooth terrain (three.js), loaded only with WebGL |
 | `blocks.js` | Exact counties (three.js), loaded the first time it is shown |
-| `views2d/` | Circles, Arrows, Dots, Scatter, for the House track Districts (`strips.js`) and Seats and votes (`seats.js`), History (`history.js`, any track) and the Simulator (`sim.js`, any track) (d3 + SVG), and what they share |
+| `views2d/` | Circles, Arrows, Dots, Scatter, for the House track Districts (`strips.js`) and Seats and votes (`seats.js`), History (`history.js`, any track), the Simulator (`sim.js`, any track) and Power (`power.js`, county tracks: weight per vote ranked, the cartogram, concentration) (d3 + SVG), and what they share (`style.js`: ink, rules, the state tile grid) |
+| `power.js` | The Power tab's arithmetic (pure): weight per vote by state with its three parts, each state's share of votes, electoral votes and Senate seats, each party's concentration curve and the counties that reach a share of its votes (also the selection rule `k:`) |
 | `sim.js` | The swing simulator's arithmetic (pure): each place's flip point under uniform or proportional swing, seats and control at a swing, where control changes |
 | `views.js` | Saved views and tours (`views.json`): `?view=`, `?tour=`, the card with the caption, caption tokens resolved from the data |
 

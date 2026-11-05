@@ -184,7 +184,7 @@
   body.export .v2d-head .v2d-seg, body.export .v2d-head .lens-i, body.export .v2d-sort, body.export .v2d-showall, body.export .v2d-foot { display:none !important; }
   /* Simulator */
   .sim-top { flex:none; }
-  #v2d .v2d-root[data-view=sim] .v2d-body { overflow-y:auto; overflow-x:hidden; display:block; }
+  #v2d .v2d-root[data-view=sim] .v2d-body, #v2d .v2d-root[data-view=power] .v2d-body { overflow-y:auto; overflow-x:hidden; display:block; }
   #v2d .v2d-root[data-view=sim] .v2d-foot { max-height:4.5em; overflow-y:auto; overflow-wrap:anywhere; }
   .sim-readout-row { display:flex; flex-wrap:wrap; gap:4px 16px; align-items:baseline; }
   .sim-readout { font:700 15px 'Courier Prime', monospace; color:var(--ink); }
@@ -204,7 +204,12 @@
   .sim-row.faint { opacity:.55; }
   .sim-lock { font:inherit; font-size:11px; color:var(--ink); background:transparent; border:1px solid var(--rule); padding:1px 6px; cursor:pointer; }
   .sim-lock[aria-pressed=true] { background:var(--ink); color:var(--paper); }
-  body.export .sim-lock, body.export .sim-range { display:none !important; }
+  body.export .sim-lock, body.export .sim-range, body.export .pw-ctl { display:none !important; }
+  /* Power: the cartogram's scrubber and the concentration marker */
+  .v2d-head .pw-ctl { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .v2d-head .pw-morph { width:140px; accent-color:var(--ink); }
+  .v2d-body .pw-sentence { font-size:12.5px; }
+  .v2d-body .pw-row:hover rect:first-child { fill:rgba(35,48,107,.05); }
   .v2d-head .v2d-showall { font:inherit; font-size:12px; color:var(--ink); background:var(--paper); border:1px solid var(--rule); padding:4px 10px; cursor:pointer; }
   .sel-chip { display:flex; flex-wrap:wrap; gap:6px; align-items:center; border:1px solid var(--ink); background:rgba(35,48,107,.06); padding:6px 8px; margin:0 0 12px; font-size:12.5px; }
   .sel-chip span { flex:1 1 100%; }
@@ -255,8 +260,8 @@
     .find { top:52px; }
     .table-wrap { inset:52px 10px 90px; }
     .panel { left:10px; right:10px; width:auto; top:auto; bottom:110px; max-height:34%; padding:10px 12px; }
-    body[data-w=dots] .panel, body[data-w=arrows] .panel, body[data-w=scatter] .panel, body[data-w=strips] .panel, body[data-w=seats] .panel, body[data-w=history] .panel, body[data-w=sim] .panel { max-height:24%; }
-    body[data-w=dots] .key, body[data-w=arrows] .key, body[data-w=scatter] .key, body[data-w=strips] .key, body[data-w=seats] .key, body[data-w=history] .key, body[data-w=sim] .key { width:150px; padding:8px 10px; }
+    body[data-w=dots] .panel, body[data-w=arrows] .panel, body[data-w=scatter] .panel, body[data-w=strips] .panel, body[data-w=seats] .panel, body[data-w=history] .panel, body[data-w=sim] .panel, body[data-w=power] .panel { max-height:24%; }
+    body[data-w=dots] .key, body[data-w=arrows] .key, body[data-w=scatter] .key, body[data-w=strips] .key, body[data-w=seats] .key, body[data-w=history] .key, body[data-w=sim] .key, body[data-w=power] .key { width:150px; padding:8px 10px; }
     #locator { display:none !important; }
     h1 { font-size:24px; }
     .about, .rank { left:10px; right:10px; top:10px; width:auto; max-height:calc(100% - 20px); }
@@ -276,7 +281,7 @@
 <div id="v2d"></div>
 <div id="grain" aria-hidden="true"></div>
 <nav class="tabs" id="tabs" aria-label="View">
-  <button data-w="terrain">Terrain</button><button data-w="circles">Circles</button><button data-w="arrows">Arrows</button><button data-w="dots">Dots</button><button data-w="scatter">Scatter</button><button data-w="strips">Districts</button><button data-w="seats">Seats and votes</button><button data-w="history">History</button><button data-w="sim">Simulator</button>
+  <button data-w="terrain">Terrain</button><button data-w="circles">Circles</button><button data-w="arrows">Arrows</button><button data-w="dots">Dots</button><button data-w="scatter">Scatter</button><button data-w="strips">Districts</button><button data-w="seats">Seats and votes</button><button data-w="history">History</button><button data-w="sim">Simulator</button><button data-w="power">Power</button>
 </nav>
 <p class="tab-why" id="tabWhy" hidden></p>
 <aside class="view-card" id="viewCard" hidden aria-live="polite" aria-label="Saved view"></aside>
@@ -414,6 +419,6 @@
 <div class="offices" id="offices" role="group" aria-label="Office"></div>
 <nav class="timeline" id="timeline" aria-label="Election"></nav>
 <canvas id="locator" aria-label="Locator: the whole country from above, with the part in view marked. Click to move the view there." role="button" tabindex="0"></canvas>
-<script type="module" src="js/main.js?v=85"></script>
+<script type="module" src="js/main.js?v=86"></script>
 </body>
 </html>

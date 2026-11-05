@@ -3,7 +3,7 @@
 
    Serves the page from disk, opens it in headless Chromium (playwright-core) with WebGL (SwiftShader)
    and again with WebGL off, walks a list of scenarios (tabs, lenses, offices, elections, shapes,
-   selections, table, find, keys, phone width, saved views and tours, one card export) and records for each: the hash, the text of the key,
+   selections, table, find, keys, phone width, saved views and tours, one card export, the Power tab) and records for each: the hash, the text of the key,
    balance box, notes and panels, which buttons are pressed, a hash of every flat-view SVG, and a
    screenshot. Reduced motion is on, so every transition lands in one frame.
 
@@ -270,6 +270,49 @@ const SCENARIOS = [
     return { senOk, presOk, seats, ok: senOk && presOk && seats }; }) },
   ...['simulator-2024-president', 'simulator-2026-house'].map((v) => ({ name: `v-view-${v}`, query: `view=${v}`,
     probe: (page) => page.evaluate(() => ({ card: document.getElementById('viewCard').innerText.replace(/\s+/g, ' '), w: window.__vt.effW(), s: window.__vt.sim() && window.__vt.sim().s })) })),
+  // Power: weight per vote ranked with its three parts; the cartogram (votes, electoral votes, Senate seats); each
+  // party's concentration with its marker and the selection rule k:. Numbers against effective.json and the county data.
+  { name: 'p-power-rank', hash: 'w=power' },
+  { name: 'p-power-rank-sel', hash: 'w=power&sel=s:WY,MI' },
+  { name: 'p-power-rank-sen2026', hash: 'e=sen2026&w=power' },
+  { name: 'p-power-rank-hover', hash: 'w=power', act: async (page) => { const b = await page.locator('#v2d .pw-row[data-st=WY] rect').first().boundingBox(); await page.mouse.move(b.x + 200, b.y + b.height / 2); await page.waitForTimeout(250); }, tip: true },
+  { name: 'p-power-tiles', hash: 'w=power&pc=tiles' },
+  { name: 'p-power-tiles-ev', hash: 'w=power&pc=tiles&pm=ev' },
+  { name: 'p-power-tiles-sen', hash: 'w=power&pc=tiles&pm=sen&sel=s:CA,WY' },
+  { name: 'p-power-tiles-click', hash: 'w=power&pc=tiles', act: click('.pw-stops [data-pm=sen]'),
+    probe: (page) => page.evaluate(() => ({ pm: window.__vt.state.pm, hash: /(^|&)pm=sen/.test(location.hash), sides: [...document.querySelectorAll('#v2d .pw-tile[data-st=WY] rect, #v2d .pw-tile[data-st=CA] rect')].map((r) => +(+r.getAttribute('width')).toFixed(1)) })) },
+  { name: 'p-power-tiles-hover', hash: 'w=power&pc=tiles&pm=ev', act: async (page) => { const b = await page.locator('#v2d .pw-tile[data-st=WY] rect').last().boundingBox(); await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.waitForTimeout(250); }, tip: true },
+  { name: 'p-power-conc', hash: 'w=power&pc=conc' },
+  { name: 'p-power-conc-r', hash: 'w=power&pc=conc&pk=r&pa=counties&pq=75' },
+  { name: 'p-power-conc-drag', hash: 'w=power&pc=conc', act: async (page) => {
+    const b = await page.locator('#v2d .pw-handle path').boundingBox(); await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.down();
+    await page.mouse.move(b.x + b.width / 2, b.y - 120, { steps: 8 }); await page.mouse.up(); },
+    probe: (page) => page.evaluate(() => { const v = window.__vt, r = v.power.reach(v.state.e, v.state.pk, +v.state.pq);
+      return { pq: v.state.pq, sel: v.state.sel, n: v.sel() && v.sel().counties.size, ok: +v.state.pq > 50 && v.state.sel === `k:d:${v.state.pq}` && v.sel().counties.size === r.n }; }) },
+  { name: 'p-power-rule', hash: 'w=power&pc=conc&pk=r&sel=k:r:50', probe: (page) => page.evaluate(() => { const v = window.__vt, r = v.power.reach('pres2024', 'r', 50);
+    return { n: v.sel().counties.size, ok: v.sel().counties.size === r.n && r.list.every((f) => v.sel().counties.has(f)) }; }) },
+  { name: 'p-power-data', hash: 'w=power', probe: (page) => page.evaluate(async () => {
+    const v = window.__vt, P = v.power, eff = await (await fetch('effective.json')).json(), el = v.elections;
+    const R = P.rank('pres2024'), sorted = R.every((x, i) => !i || R[i - 1].r >= x.r), parts = R.every((x) => Math.abs(x.B * x.N * x.T - x.r) / x.r < 1e-3);
+    const sameAsEff = R.every((x) => eff.elections.pres2024.states[x.st][0] === x.r);
+    const T = P.states('pres2024'), sum = (k) => T.rows.reduce((a, x) => a + x.share[k], 0);
+    const ev = T.rows.reduce((a, x) => a + x.ev, 0), sen = T.rows.reduce((a, x) => a + x.sen, 0);
+    // Concentration against a direct count: counties by Democratic votes, most first, until half the party's votes.
+    const d = el.pres2024.data, fs = Object.keys(d).filter((f) => d[f][0] > 0 && v.meta[f]).sort((a, b) => d[b][2] - d[a][2]);
+    const tot = fs.reduce((a, f) => a + d[f][2], 0); let c = 0, n = 0; for (const f of fs) { c += d[f][2]; n++; if (c >= tot / 2) break; }
+    const C = P.curve('pres2024', 'd'), half = P.reach('pres2024', 'd', 50);
+    return { states: R.length, top: [R[0].st, R[0].r], bottom: [R[R.length - 1].st, R[R.length - 1].r], ev, sen, half: half.n, direct: n,
+      ok: sorted && parts && sameAsEff && Math.abs(sum('votes') - 1) < 1e-9 && Math.abs(sum('ev') - 1) < 1e-9 && Math.abs(sum('sen') - 1) < 1e-9 && ev === 535 && sen === 98 &&
+        Math.abs(C[C.length - 1].cv - 1) < 1e-9 && Math.abs(C[C.length - 1].ca - 1) < 1e-9 && half.n === n }; }) },
+  { name: 'p-power-table-rank', hash: 'w=power', act: key('t') },
+  { name: 'p-power-table-tiles', hash: 'w=power&pc=tiles', act: key('t') },
+  { name: 'p-power-table-conc', hash: 'w=power&pc=conc', act: key('t') },
+  { name: 'p-power-phone', hash: 'w=power&pc=tiles', viewport: { width: 390, height: 844 } },
+  { name: 'p-power-house', hash: 'e=house2026&w=power' },
+  ...['power-weight-2024', 'power-cartogram-2024', 'power-concentration-2024'].map((v) => ({ name: `v-view-${v}`, query: `view=${v}`,
+    probe: (page) => page.evaluate(() => ({ card: document.getElementById('viewCard').innerText.replace(/\s+/g, ' '), w: window.__vt.effW(), pc: window.__vt.state.pc,
+      charts: document.querySelectorAll('#v2d svg.pw-chart').length })) })),
+  { name: 'n-nogl-power', hash: 'w=power&pc=conc', gl: false },
   { name: 'n-nogl-sim', hash: 'e=pres2024&w=sim&sw=1.8', gl: false },
   { name: 'n-nogl-house', hash: 'e=house2026&w=seats', gl: false },
   { name: 'n-nogl', hash: 'w=terrain', gl: false },
