@@ -11,13 +11,14 @@
    party the concentration marker follows (d, r), pa its horizontal axis (land, counties), pq the marker (1-99).
    ov: the overlay from our research marked on the county views (monitors, detention; empty for none; overlays.js).
    sx: Scatter's chart (empty: change in votes; ms: margin against swing). rb: which Road to 270 bar (pres, sen; empty for
-   the office in view). ro: Closest races' office filter (pres, sen, house, gov; empty for all). */
+   the office in view). ro: Closest races' office filter (pres, sen, house, gov; empty for all). hk: the county whose History card is pinned to the
+   panel (five-digit code; empty for none). cu: the regional close-up drawer ('sel': the selection; a preset's id from regions.json; empty for none). */
 import { parsePs } from './house.js';
-export const state = { e: 'pres2024', h: 'total', c: 'margin', s: 'terrain', m: '1', v: 'west', d: '3d', u: 'd', n: 'area', l: 'votes', g: '0', w: 'terrain', sel: '', ps: '', hc: 'seats', sw: '', swr: 'u', lock: '', sm: '', pc: 'rank', pm: 'votes', pk: 'd', pa: 'land', pq: '50', ov: '', sx: '', rb: '', ro: '' };
+export const state = { e: 'pres2024', h: 'total', c: 'margin', s: 'terrain', m: '1', v: 'west', d: '3d', u: 'd', n: 'area', l: 'votes', g: '0', w: 'terrain', sel: '', ps: '', hc: 'seats', sw: '', swr: 'u', lock: '', sm: '', pc: 'rank', pm: 'votes', pk: 'd', pa: 'land', pq: '50', ov: '', sx: '', rb: '', ro: '', hk: '', cu: '' };
 // Districts and Seats and votes draw the House track (results by district); History draws the long view on any track;
 // the others need county results.
-export const TABS = ['terrain', 'circles', 'arrows', 'dots', 'scatter', 'strips', 'seats', 'history', 'sim', 'power', 'road', 'closest'];
-export const TAB_NAME = { terrain: 'Terrain', circles: 'Circles', arrows: 'Arrows', dots: 'Dots', scatter: 'Scatter', strips: 'Districts', seats: 'Seats and votes', history: 'History', sim: 'Simulator', power: 'Power', road: 'Road to 270', closest: 'Closest races' };
+export const TABS = ['terrain', 'circles', 'arrows', 'dots', 'scatter', 'strips', 'seats', 'history', 'sim', 'power', 'road', 'closest', 'dropoff', 'split'];
+export const TAB_NAME = { terrain: 'Terrain', circles: 'Circles', arrows: 'Arrows', dots: 'Dots', scatter: 'Scatter', strips: 'Districts', seats: 'Seats and votes', history: 'History', sim: 'Simulator', power: 'Power', road: 'Road to 270', closest: 'Closest races', dropoff: 'Turnout drop-off', split: 'Ticket splitting' };
 // Lenses: one question each, setting several controls at once. Changing any control in Adjust makes the view "custom".
 export const LENSES = {
   votes: { set: { n: 'area', h: 'total', c: 'margin', g: '0', d: '3d' }, v: 'national',
@@ -41,7 +42,7 @@ export const fromHash = (order) => {
   // Phones open on Circles: the flat view that reads at that width.
   if (!q.get('w') && window.innerWidth <= 640) state.w = 'circles';
   if (!TABS.includes(state.w)) state.w = 'terrain';
-  if (!['margin', 'swing', 'weight'].includes(state.c)) state.c = 'margin';
+  if (!['margin', 'swing', 'weight', 'drop'].includes(state.c)) state.c = 'margin';
   state.sel = q.get('sel') || '';
   state.ps = parsePs(q.get('ps') || '');
   if (!['seats', 'small', 'weight'].includes(state.hc)) state.hc = 'seats';
@@ -58,6 +59,8 @@ export const fromHash = (order) => {
   state.sx = q.get('sx') === 'ms' ? 'ms' : '';
   state.rb = ['pres', 'sen'].includes(q.get('rb')) ? q.get('rb') : '';
   state.ro = ['pres', 'sen', 'house', 'gov'].includes(q.get('ro')) ? q.get('ro') : '';
+  state.hk = /^\d{5}$/.test(q.get('hk') || '') ? q.get('hk') : '';
+  state.cu = /^(sel|[a-z][a-z0-9-]{0,30})$/.test(q.get('cu') || '') ? q.get('cu') : '';
   state.ov = ['monitors', 'detention'].includes(q.get('ov')) ? q.get('ov') : '';
 };
 export const toHash = () => history.replaceState(null, '', '#' + new URLSearchParams(state).toString());

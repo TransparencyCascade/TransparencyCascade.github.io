@@ -51,6 +51,11 @@ const key = (k) => async (page) => { await page.keyboard.press(k); };
 const click = (sel) => async (page) => { await page.click(sel); };
 const seq = (...fs2) => async (page) => { for (const f of fs2) { await f(page); await settle(page); } };
 const hover = (x, y) => async (page) => { await page.mouse.move(x - 40, y - 40); await page.mouse.move(x, y); await page.waitForTimeout(250); };
+// Hover the circle of one county (a datum that is the county code, or has .f) in the selector's elements.
+const hoverAt = (selector, f) => async (page) => {
+  const b = await page.evaluate(([q, f]) => { const c = [...document.querySelectorAll(q)].find((n) => { const d = n.__data__; return d === f || (d && d.f === f); }).getBoundingClientRect(); return { x: c.x + c.width / 2, y: c.y + c.height / 2 }; }, [selector, f]);
+  await page.mouse.move(b.x - 30, b.y - 30); await page.mouse.move(b.x, b.y); await page.waitForTimeout(250);
+};
 const SCENARIOS = [
   { name: 't-default', hash: 'w=terrain' },
   { name: 't-overhead', hash: 'v=national' },
@@ -465,6 +470,110 @@ const SCENARIOS = [
     return out; }) },
   ...['road-to-270-2024', 'closest-races-2024', 'flips-2020-2024', 'margin-against-swing-2024'].map((v) => ({ name: `v-view-${v}`, query: `view=${v}`,
     probe: (page) => page.evaluate(() => ({ card: document.getElementById('viewCard').innerText.replace(/\s+/g, ' '), w: window.__vt.effW(), sel: window.__vt.state.sel, n: window.__vt.sel() && window.__vt.sel().counties.size })) })),
+  // Turnout drop-off, Ticket splitting, the County history card and Regional close-ups (turnout.js, places.js, drawers.js, regions.json).
+  { name: 'u-dropoff-2026', hash: 'e=sen2026&w=dropoff' },
+  { name: 'u-dropoff-2022', hash: 'e=sen2022&w=dropoff' },
+  { name: 'u-dropoff-gov2026', hash: 'e=gov2026&w=dropoff' },
+  { name: 'u-dropoff-sel', hash: 'e=sen2026&w=dropoff&sel=s:TX' },
+  { name: 'u-dropoff-hover', hash: 'e=sen2026&w=dropoff', act: hoverAt('#v2d svg.v2d-scatter circle', '48201'), tip: true },
+  { name: 'u-dropoff-table', hash: 'e=sen2026&w=dropoff&sel=s:ME', act: key('t') },
+  { name: 'u-dropoff-unavailable', hash: 'e=pres2024&w=dropoff' },
+  { name: 'u-dropoff-phone', hash: 'e=sen2026&w=dropoff', viewport: { width: 390, height: 844 } },
+  { name: 'u-colour-terrain', hash: 'e=sen2026&c=drop&v=national&l=custom' },
+  { name: 'u-colour-circles', hash: 'e=sen2026&w=circles&c=drop&l=custom' },
+  { name: 'u-colour-circles-gov', hash: 'e=gov2026&w=circles&c=drop&l=custom' },
+  { name: 'u-colour-circles-2022', hash: 'e=sen2022&w=circles&c=drop&l=custom' },
+  { name: 'u-colour-button', hash: 'e=sen2026&w=dropoff', act: click('[data-do=circles]'),
+    probe: (page) => page.evaluate(() => ({ w: window.__vt.effW(), c: window.__vt.state.c, key: document.getElementById('keyTitle').textContent, labels: document.getElementById('rampLabels').textContent })) },
+  { name: 'u-colour-menu', hash: 'e=sen2026&w=circles', act: seq(click('#adjust summary'), click('[data-c=drop]')), probe: (page) => page.evaluate(() => ({ c: window.__vt.state.c, l: window.__vt.state.l, how: document.getElementById('dropHow').textContent })) },
+  { name: 'u-colour-hover', hash: 'e=sen2026&w=circles&c=drop&l=custom', act: hover(640, 400), tip: true },
+  { name: 'u-colour-blocks', hash: 'e=sen2026&s=blocks&c=drop&v=national&l=custom' },
+  // The drop-off from the files by a second route: the race per state, the counties, the all-county share, the 2022 band's bins.
+  { name: 'u-dropoff-data', hash: 'e=sen2026&w=dropoff', probe: (page) => page.evaluate(async () => {
+    const E = (await (await fetch('elections.json')).json()).elections, v = window.__vt, out = {};
+    for (const [y, base, sen, gov] of [[2026, 'pres2024', 'sen2026', 'gov2026'], [2022, 'pres2020', 'sen2022', 'gov2022']]) {
+      const st = (e) => new Set(Object.keys(E[e].data).map((f) => v.meta[f].st)), S = st(sen), G = st(gov);
+      let sv = 0, sb = 0, n = 0; const used = {}, shares = [];
+      for (const f of Object.keys(v.meta)) {
+        const s = v.meta[f].st, e = S.has(s) ? sen : G.has(s) ? gov : null; if (!e) continue;
+        const a = E[e].data[f], b = E[base].data[f]; if (!a || !b || !(a[0] > 0) || !(b[0] > 0)) continue;
+        sv += a[0]; sb += b[0]; n++; used[s] = e; shares.push(a[0] / b[0]);
+      }
+      const D = v.turnout.drop(y), none = Object.keys(E.sen2026.data).length && [...new Set(Object.values(v.meta).map((m) => m.st))].filter((s) => !S.has(s) && !G.has(s)).sort();
+      out['y' + y] = { n, nTurn: D.rows.length, all: +(sv / sb).toFixed(5), allTurn: +D.all.toFixed(5), sen: Object.values(used).filter((e) => e === sen).length, gov: Object.values(used).filter((e) => e === gov).length,
+        nSen: D.nSen, nGov: D.nGov, noRace: none.join(), noRaceTurn: D.noRace.join(), maxShare: +Math.max(...shares).toFixed(3), minShare: +Math.min(...shares).toFixed(3),
+        ok: n === D.rows.length && Math.abs(sv / sb - D.all) < 1e-12 && none.join() === D.noRace.join() && Object.values(used).filter((e) => e === sen).length === D.nSen };
+    }
+    const b = v.turnout.band(2022);
+    out.band = { bins: b.length, ordered: b.every((x, i) => !i || b[i - 1].x < x.x), lohi: b.every((x) => x.lo <= x.med && x.med <= x.hi), min: Math.min(...b.map((x) => x.n)), points: document.querySelectorAll('#v2d svg.v2d-scatter circle').length };
+    out.ok = out.y2026.ok && out.y2022.ok && out.band.ordered && out.band.lohi && out.band.points === out.y2026.nTurn;
+    return out; }) },
+  { name: 'k2-split', hash: 'e=sen2026&w=split' },
+  { name: 'k2-split-state', hash: 'e=sen2026&w=split&sel=s:TX' },
+  { name: 'k2-split-hover', hash: 'e=sen2026&w=split', act: async (page) => { const b = await page.evaluate(() => { const r = [...document.querySelectorAll('#v2d .sp-map path')].find((p, i) => i === Object.keys(window.__vt.views().shapes().countyPath).indexOf('48201')).getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
+    await page.mouse.move(b.x - 30, b.y - 30); await page.mouse.move(b.x, b.y); await page.waitForTimeout(250); }, tip: true },
+  { name: 'k2-split-click', hash: 'e=sen2026&w=split', act: async (page) => { await page.locator('#v2d .sp-rows g.row .hit').nth(2).click({ position: { x: 20, y: 8 } }); },
+    probe: (page) => page.evaluate(() => ({ sel: window.__vt.state.sel, drawer: document.getElementById('drawer').innerText.replace(/\s+/g, ' ').slice(0, 260) })) },
+  { name: 'k2-split-close', hash: 'e=sen2026&w=split&sel=s:GA', act: click('.dr-close'), probe: (page) => page.evaluate(() => ({ hidden: document.getElementById('drawer').hidden, sel: window.__vt.state.sel })) },
+  { name: 'k2-split-table', hash: 'e=sen2026&w=split&sel=s:ME', act: key('t') },
+  { name: 'k2-split-unavailable', hash: 'e=sen2024&w=split' },
+  { name: 'k2-split-phone', hash: 'e=sen2026&w=split', viewport: { width: 390, height: 844 } },
+  { name: 'k2-split-data', hash: 'e=sen2026&w=split', probe: (page) => page.evaluate(async () => {
+    const E = (await (await fetch('elections.json')).json()).elections, v = window.__vt, T = v.turnout.split();
+    const mg = (x) => (x[2] - x[1]) / x[0] * 100, both = Object.keys(v.meta).filter((f) => E.sen2026.data[f] && E.gov2026.data[f] && E.sen2026.data[f][0] > 0 && E.gov2026.data[f][0] > 0);
+    const worst = Math.max(...both.map((f) => Math.abs((mg(E.sen2026.data[f]) - mg(E.gov2026.data[f])) - T.byF[f].d)));
+    const sts = [...new Set(both.map((f) => v.meta[f].st))].sort();
+    const st = (e) => new Set(Object.keys(E[e].data).map((f) => v.meta[f].st));
+    const inter = [...st('sen2026')].filter((s) => st('gov2026').has(s)).sort();
+    return { n: both.length, nSplit: T.rows.length, states: sts.join(), inter: inter.join(), worst, ticks: document.querySelectorAll('#v2d .sp-rows line.t').length,
+      ok: both.length === T.rows.length && worst < 1e-9 && sts.join() === T.states.join() && sts.join() === inter.join() && document.querySelectorAll('#v2d .sp-rows line.t').length === T.rows.length }; }) },
+  // The County history card: opened by a double-click, the tooltip's History, or hk= in the link; follows the timeline year.
+  { name: 'h2-card', hash: 'e=gov2026&w=circles&hk=04013' },
+  { name: 'h2-card-terrain', hash: 'e=pres2024&v=national&hk=48201' },
+  { name: 'h2-card-phone', hash: 'e=gov2026&w=circles&hk=04013', viewport: { width: 390, height: 844 } },
+  { name: 'h2-dblclick', hash: 'e=gov2026&w=circles', act: async (page) => { const b = await page.evaluate(() => { const c = d3.selectAll('#v2d circle').filter((f) => f === '04013').node().getBoundingClientRect(); return { x: c.x + c.width / 2, y: c.y + c.height / 2 }; });
+    await page.mouse.move(b.x - 20, b.y - 20); await page.mouse.move(b.x, b.y); await page.waitForTimeout(150); await page.mouse.dblclick(b.x, b.y); }, probe: (page) => page.evaluate(() => ({ hk: window.__vt.state.hk, card: document.getElementById('histCard').hidden })) },
+  { name: 'h2-tip-link', hash: 'e=gov2026&w=circles', act: async (page) => { const b = await page.evaluate(() => { const c = d3.selectAll('#v2d circle').filter((f) => f === '04013').node().getBoundingClientRect(); return { x: c.x + c.width / 2, y: c.y + c.height / 2 }; });
+    await page.mouse.move(b.x - 20, b.y - 20); await page.mouse.move(b.x, b.y); await page.waitForTimeout(150);
+    const l = await page.locator('.vt-tip .tip-hist').boundingBox(); await page.mouse.move(l.x + 4, l.y + 4, { steps: 4 }); await page.waitForTimeout(400); await page.mouse.click(l.x + 4, l.y + 4); },
+    probe: (page) => page.evaluate(() => ({ hk: window.__vt.state.hk, card: document.getElementById('histCard').hidden })) },
+  { name: 'h2-key', hash: 'e=gov2026&w=circles&sel=c:04013', act: key('h'), probe: (page) => page.evaluate(() => ({ hk: window.__vt.state.hk })) },
+  { name: 'h2-close', hash: 'e=gov2026&w=circles&hk=04013', act: click('.hc-close'), probe: (page) => page.evaluate(() => ({ hk: window.__vt.state.hk, hidden: document.getElementById('histCard').hidden })) },
+  { name: 'h2-follows', hash: 'e=gov2026&w=circles&hk=04013', probe: async (page) => {
+    const now = () => page.evaluate(() => ({ e: window.__vt.state.e, x: +document.querySelector('#histCard .hc-now').getAttribute('x1'), rings: document.querySelectorAll('#histCard path[stroke-width="1.8"]').length }));
+    const a = await now(); await page.keyboard.press('ArrowLeft'); await settle(page); const b = await now(); await page.keyboard.press('ArrowLeft'); await settle(page); const c = await now();
+    return { a, b, c, ok: a.x > b.x && b.x > c.x && a.rings > 0 }; } },
+  { name: 'h2-data', hash: 'e=pres2024&w=circles&hk=04013', probe: (page) => page.evaluate(async () => {
+    const E = (await (await fetch('elections.json')).json()).elections, v = window.__vt, f = '04013', C = v.places.countyOf(f), S = v.places.stateOf('AZ');
+    const mg = (x) => (x[2] - x[1]) / x[0] * 100, ids = v.places.list.map((x) => x.e);
+    const cOk = C.every((x) => (E[x.e].data[f] ? Math.abs(mg(E[x.e].data[f]) - x.m) < 1e-9 : x.m == null));
+    const sOk = S.every((x) => { let d = 0, r = 0, t = 0; for (const g of Object.keys(v.meta)) { if (v.meta[g].st !== 'AZ' || !E[x.e].data[g]) continue; const q = E[x.e].data[g]; t += q[0]; d += q[2]; r += q[1]; } return t === 0 ? x.m == null : Math.abs((d - r) / t * 100 - x.m) < 1e-9; });
+    return { ids: ids.join(), n: C.length, cOk, sOk, charts: document.querySelectorAll('#histCard .hc-charts svg').length, kinds: [...new Set(C.map((x) => x.kind))].join(), ok: cOk && sOk && ids.length === 11 && !ids.includes('senprior') && document.querySelectorAll('#histCard .hc-charts svg').length === 2 }; }) },
+  // Regional close-ups: any selection, or a preset region defined in regions.json with its county codes and definition.
+  { name: 'q-closeup-sel', hash: 'e=pres2024&w=circles&sel=s:ME&cu=sel' },
+  { name: 'q-closeup-chip', hash: 'e=pres2024&w=circles&sel=s:RI', act: click('#selCloseup'), probe: (page) => page.evaluate(() => ({ cu: window.__vt.state.cu, open: !document.getElementById('drawer').hidden })) },
+  { name: 'q-closeup-preset', hash: 'e=pres2024&w=circles', act: seq(click('#regionsBox summary'), click('[data-preset=rio-grande]')),
+    probe: (page) => page.evaluate(() => ({ cu: window.__vt.state.cu, sel: window.__vt.state.sel, n: window.__vt.sel().counties.size, title: document.querySelector('#drawer header b').textContent })) },
+  { name: 'q-closeup-black-belt', hash: 'e=pres2024&w=terrain&v=national&sel=p:black-belt&cu=black-belt' },
+  { name: 'q-closeup-filter', hash: 'e=pres2024&w=circles&sel=p:maine&cu=maine', act: click('#drawer [data-k=sen]') },
+  { name: 'q-closeup-hover', hash: 'e=pres2024&w=circles&sel=p:maine&cu=maine', act: async (page) => { const b = await page.locator('#drawer .dr-map path').first().boundingBox(); await page.mouse.move(b.x + b.width / 2 - 5, b.y + b.height / 2 - 5); await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.waitForTimeout(250); }, tip: true,
+    probe: (page) => page.evaluate(() => ({ hl: document.querySelectorAll('#drawer .hl').length })) },
+  { name: 'q-closeup-line-click', hash: 'e=pres2024&w=circles&sel=p:maine&cu=maine', act: async (page) => { const b = await page.locator('#drawer .dr-chart svg rect').boundingBox(); await page.mouse.move(b.x + b.width * 0.5, b.y + b.height * 0.5); await page.mouse.move(b.x + b.width * 0.5 + 2, b.y + b.height * 0.5 + 2); await page.waitForTimeout(250); await page.mouse.click(b.x + b.width * 0.5 + 2, b.y + b.height * 0.5 + 2); },
+    probe: (page) => page.evaluate(() => ({ sel: window.__vt.state.sel, cu: window.__vt.state.cu, n: window.__vt.sel() && window.__vt.sel().counties.size })) },
+  { name: 'q-closeup-close', hash: 'e=pres2024&w=circles&sel=p:maine&cu=maine', act: click('.dr-close'), probe: (page) => page.evaluate(() => ({ cu: window.__vt.state.cu, hidden: document.getElementById('drawer').hidden, sel: window.__vt.state.sel })) },
+  { name: 'q-closeup-clear', hash: 'e=pres2024&w=circles&sel=s:ME&cu=sel', act: key('Escape'), probe: (page) => page.evaluate(() => ({ cu: window.__vt.state.cu, hidden: document.getElementById('drawer').hidden })) },
+  { name: 'q-closeup-phone', hash: 'e=pres2024&w=circles&sel=p:maine&cu=maine', viewport: { width: 390, height: 844 } },
+  { name: 'q-closeup-data', hash: 'e=pres2024&w=circles&sel=p:rio-grande&cu=rio-grande', probe: (page) => page.evaluate(async () => {
+    const R = (await (await fetch('regions.json')).json()).regions, E = (await (await fetch('elections.json')).json()).elections, v = window.__vt, out = {};
+    for (const r of R) {
+      const A = v.places.areaOf(r.counties), a = A.find((x) => x.e === 'pres2024'); let t = 0, d = 0, q = 0; for (const f of r.counties) { const c = E.pres2024.data[f]; if (c) { t += c[0]; d += c[2]; q += c[1]; } }
+      out[r.id] = { n: r.counties.length, found: r.counties.every((f) => v.meta[f]), states: [...new Set(r.counties.map((f) => v.meta[f].st))].join(), votes: t, area: a.votes, margin: +((d - q) / t * 100).toFixed(3), hasDef: r.definition.length > 40 && r.source.length > 20, ok: r.counties.every((f) => v.meta[f]) && a.votes === t && Math.abs(a.m - (d - q) / t * 100) < 1e-9 };
+    }
+    out.rowsInDrawer = document.querySelectorAll('#drawer .dr-t tbody tr').length;
+    out.ok = Object.values(out).every((x) => typeof x !== 'object' || x.ok) && out['rio-grande'].n === 13 && out.maine.n === 16 && out['black-belt'].n === 18 && out.rowsInDrawer === 11;
+    return out; }) },
+  ...['turnout-dropoff-2026', 'ticket-splitting-2026', 'county-history-maricopa', 'closeup-rio-grande'].map((v) => ({ name: `v-view-${v}`, query: `view=${v}`,
+    probe: (page) => page.evaluate(() => ({ card: document.getElementById('viewCard').innerText.replace(/\s+/g, ' '), w: window.__vt.effW(), hk: window.__vt.state.hk, cu: window.__vt.state.cu, sel: window.__vt.state.sel })) })),
   { name: 'n-nogl-road', hash: 'e=pres2024&w=road', gl: false },
   { name: 'n-nogl-closest', hash: 'e=sen2026&w=closest', gl: false },
   { name: 'n-nogl-ms', hash: 'w=scatter&sx=ms', gl: false },
@@ -488,7 +597,7 @@ const fingerprint = (page, withTip) => page.evaluate(async (withTip) => {
     disabled: [...document.querySelectorAll('button:disabled')].map((b) => b.id || b.textContent.trim()).join(' | '),
     text: Object.fromEntries(['#keyTitle', '#rampLabels', '#keyHeight', '#keyWeight', '#bopTitle', '#bopLines', '#bopBody', '#notes', '#source', '#selChip',
       '#tabWhy', '#notice', '#viewNote', '#weightHow', '#swingHow', '#scaleHow', '#lensHow', '#lensState', '#swingBtn', '.v2d-head', '.v2d-foot', '#tableWrap',
-      '#findList', '#about', '#rank', '.tour-caption', '#ovCard', '#keyOv'].map((q) => [q, txt(q)])),
+      '#findList', '#about', '#rank', '.tour-caption', '#ovCard', '#keyOv', '#histCard', '#drawer', '#dropHow'].map((q) => [q, txt(q)])),
     ramp: document.getElementById('ramp').innerHTML,
     svg: await Promise.all(svgs.map((s) => sha(s.outerHTML))),
     svgCounts: svgs.map((s) => s.querySelectorAll('circle, path, line').length).join(','),

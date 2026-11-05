@@ -18,6 +18,8 @@ import { simView } from './sim.js';
 import { powerView } from './power.js';
 import { roadView } from './road.js';
 import { closestView } from './closest.js';
+import { dropoffView } from './dropoff.js';
+import { splitView } from './split.js';
 
 export function createViews2d(ctx) {
   const { el, geo, meta } = ctx;
@@ -92,7 +94,7 @@ export function createViews2d(ctx) {
 
   const env = { ctx, meta, DUR, head, body, foot, place, inSel, shiftOf, longPress, dragGuard, nearest, hitLayer,
     countyPath, centroid, bboxOf, statePath, W0, statesOf, rows: () => ctx.rows() };
-  const views = { dots: dotsView(env), arrows: arrowsView(env), scatter: scatterView(env), circles: circlesView(env), strips: stripsView(env), seats: seatsView(env), history: historyView(env), sim: simView(env), power: powerView(env), road: roadView(env), closest: closestView(env) };
+  const views = { dots: dotsView(env), arrows: arrowsView(env), scatter: scatterView(env), circles: circlesView(env), strips: stripsView(env), seats: seatsView(env), history: historyView(env), sim: simView(env), power: powerView(env), road: roadView(env), closest: closestView(env), dropoff: dropoffView(env), split: splitView(env) };
   let current = null;
   return {
     show(name) {
@@ -103,13 +105,16 @@ export function createViews2d(ctx) {
     redraw(animate = true) { if (current) views[current].draw(animate); },
     // The bottom of what the view drew, in page pixels (export.mjs crops a card's image to it).
     contentBottom() {
+      if (document.body.dataset.card) return ctx.extraBottom ? ctx.extraBottom() : 0;   // an export of a card or drawer: the view behind is hidden
       let b = 0;
       for (const n of root.querySelectorAll('.v2d-head, .v2d-body > *, .v2d-foot')) {
         if (n.hidden || !n.getClientRects().length || getComputedStyle(n).display === 'none') continue;
         b = Math.max(b, n.getBoundingClientRect().bottom);
       }
-      return Math.ceil(b);
+      return Math.max(Math.ceil(b), ctx.extraBottom ? ctx.extraBottom() : 0);
     },
+    // The county outlines and boxes, for the drawers' small map.
+    shapes: () => ({ countyPath, bboxOf, statePath }),
     frame(counties) {                          // zoom the arrows or circles to a set of counties (others: no camera)
       if (current === 'circles') { if (counties && counties.length) views.circles.zoomTo(counties); else views.circles.reset(); return; }
       if (current !== 'arrows') return;

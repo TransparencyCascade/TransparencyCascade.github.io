@@ -24,15 +24,21 @@
      first, second, third (the races with the fewest votes to flip: place, office, votes, points, flip, win) }; calc.flips.<from>-<to> (election ids):
      { n, both, dToR, rToD, votes }; calc.bell: { n, of, k (presidential elections) }; calc.ms.<election>: { n, medAll, medR, medD, nR, nD, toR, toD, window }
      (margin against swing, swingview.js; medians are signed, positive toward Democrats; filter swing words one).
+   calc.dropoff.y<2022|2026>: { year, base (the presidential year), n (counties), states, nSen, nGov, all (percent: the midterm votes of all counties shown over their
+     presidential votes), noRace (state codes; filter states), cmp, below, above, within (counties against the 2022 band for counties of their margin, turnout.js),
+     belowPct, abovePct }; calc.split: { n, states, differ, differPct (counties where different parties led the two races), big10 (counties 10 or more points apart),
+     med (the median difference, signed; filter toward), top { st, name, med } (the state with the largest median difference) };
+     calc.county.<code>: { name, st, m.<election>, votes.<election> } (margin in points, signed; filter lead); calc.region.<id>: { name, n, m.<election>, votes.<election> }
+     (the preset's counties together, regions.json).
    calc.house.<year>: ps, captured, contestable, atRisk, apart, capv, capvShare, st.<ST>.{captured, contestable, atRisk}
      (bands at the default plausible swing). An unknown token stops the caption and logs an error, so a broken
      caption cannot reach a card unnoticed. */
-import { fmt, esc, list, $ } from './util.js';
+import { fmt, esc, list, countyLabelOf, $ } from './util.js';
 import { createHouse } from './house.js';
 import { createSim, RANGE } from './sim.js';
 import { createRaces, OFFICES } from './races.js';
 
-export function createSavedViews({ registry, bal, eff, houseData, histData, simData, elections, stName, power, overlays, flips, meta, ms, sameOffice, apply }) {
+export function createSavedViews({ registry, bal, eff, houseData, histData, simData, elections, stName, power, overlays, flips, meta, ms, sameOffice, turnout, places, regionData, apply }) {
   const etTime = (iso) => new Date(iso).toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', month: 'short', day: 'numeric', year: 'numeric' }) + ' ET';
   // Derived figures, computed once from the data files (the House bands with their own state, at the default plausible swing).
   const calc = { eff: {}, house: {} };
@@ -143,9 +149,36 @@ export function createSavedViews({ registry, bal, eff, houseData, histData, simD
     const rows = Object.keys(meta).map((f) => { const v = now[f] || null, b = base[f] || null, m1 = mg(v), m0 = mg(b); return { f, v, b, s: m1 == null || m0 == null ? null : m1 - m0 }; });
     return (o[e] = ms.summarize(ms.msRows(rows, mg)));
   } });
+  // Turnout drop-off, ticket splitting, one county's history and a preset region (turnout.js, places.js).
+  calc.dropoff = new Proxy({}, { get: (o, k) => {
+    const y = typeof k === 'string' && /^y(2022|2026)$/.test(k) ? +k.slice(1) : null; if (!y || !turnout) return undefined;
+    if (o[k]) return o[k];
+    const D = turnout.drop(y), c = turnout.compare(y, 2022);
+    return (o[k] = { year: y, base: elections[D.base].year, n: D.rows.length, states: D.per.length, nSen: D.nSen, nGov: D.nGov, all: D.all * 100, noRace: D.noRace, noRaceN: D.noRace.length, cmp: c.n, below: c.below, above: c.above, within: c.within,
+      belowPct: c.below / c.n * 100, abovePct: c.above / c.n * 100 });
+  } });
+  if (turnout) {
+    const T = turnout.split(), ds = T.rows.map((r) => r.d).sort((a, b) => a - b), n = ds.length, top = T.per.slice().sort((a, b) => Math.abs(b.med) - Math.abs(a.med))[0];
+    const differ = T.rows.filter((r) => Math.sign(r.ms) !== Math.sign(r.mg)).length;
+    calc.split = { n, states: T.states.length, differ, differPct: differ / n * 100, big10: T.rows.filter((r) => Math.abs(r.d) >= 10).length,
+      med: n % 2 ? ds[(n - 1) / 2] : (ds[n / 2 - 1] + ds[n / 2]) / 2, top: { st: top.st, name: stName(top.st), med: top.med } };
+  }
+  const byElection = (rows, g) => Object.fromEntries(rows.map((x) => [x.e, g(x)]));
+  calc.county = new Proxy({}, { get: (o, f) => {
+    if (typeof f !== 'string' || !meta[f] || !places) return undefined;
+    if (o[f]) return o[f];
+    const C = places.countyOf(f);
+    return (o[f] = { name: countyLabelOf(meta, f), st: stName(meta[f].st), m: byElection(C, (x) => x.m), votes: byElection(C, (x) => (x.v ? x.v[0] : null)) });
+  } });
+  calc.region = new Proxy({}, { get: (o, id) => {
+    const r = typeof id === 'string' && regionData && regionData.regions.find((x) => x.id === id); if (!r) return undefined;
+    if (o[id]) return o[id];
+    const A = places.areaOf(r.counties);
+    return (o[id] = { name: r.name, n: r.counties.length, m: byElection(A, (x) => x.m), votes: byElection(A, (x) => x.votes) });
+  } });
   const roots = { bal, eff, house: houseData, hist: histData, elections, calc, sim: simData, ov: overlays && { layers: Object.fromEntries(Object.keys(overlays.sets).map((k) => [k, overlays.layer(k)])) } };
   const FILTERS = {
-    n: (v) => fmt(v), raw: (v) => String(v), pt: (v) => Math.abs(v).toFixed(1), toward: (v) => `${Math.abs(v).toFixed(1)} points toward ${v >= 0 ? 'Democrats' : 'Republicans'}`, swing: (v) => `${Math.abs(v).toFixed(1)} points toward the ${v >= 0 ? 'Democrat' : 'Republican'}`, x: (v) => v.toFixed(1) + '×', x2: (v) => v.toFixed(2) + '×', pct: (v) => v.toFixed(1) + '%', pct2: (v) => v.toFixed(2) + '%', et: (v) => etTime(v),
+    n: (v) => fmt(v), raw: (v) => String(v), pt: (v) => Math.abs(v).toFixed(1), lead: (v) => (v >= 0 ? 'D+' : 'R+') + Math.abs(v).toFixed(1), toward: (v) => `${Math.abs(v).toFixed(1)} points toward ${v >= 0 ? 'Democrats' : 'Republicans'}`, swing: (v) => `${Math.abs(v).toFixed(1)} points toward the ${v >= 0 ? 'Democrat' : 'Republican'}`, x: (v) => v.toFixed(1) + '×', x2: (v) => v.toFixed(2) + '×', pct: (v) => v.toFixed(1) + '%', pct2: (v) => v.toFixed(2) + '%', et: (v) => etTime(v),
     last: (v) => String(v).split(' ').pop(), states: (v) => list(v.map(stName)),
     perstate: (v) => list(Object.entries(v).sort((a, b) => b[1] - a[1]).map(([st, n]) => `${fmt(n)} in ${stName(st)}`)),
   };

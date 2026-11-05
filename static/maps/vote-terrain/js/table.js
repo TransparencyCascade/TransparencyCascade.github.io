@@ -5,7 +5,7 @@
    vote by state; votes, electoral votes and Senate seats by state; or each party's concentration at fixed shares). */
 import { fmt, esc, countyLabelOf, $ } from './util.js';
 
-export function createTable({ geo, el, state, model, house, history, selection, effW, pctCh, OFFICE_NAME, stName, simCtx, power, roadCtx, closestCtx, overlays, ovSet, ovSummary }) {
+export function createTable({ geo, el, state, model, house, history, selection, effW, pctCh, OFFICE_NAME, stName, simCtx, power, roadCtx, closestCtx, overlays, ovSet, ovSummary, turnout }) {
   const { meta } = geo, { elections } = el;
   const wrap = $('tableWrap'), table = $('table');
   let sort = { k: 2, dir: -1 };
@@ -147,7 +147,38 @@ export function createTable({ geo, el, state, model, house, history, selection, 
     $('tableNote').textContent = `${fmt(rs.length)} races. Votes to flip: half the margin plus one. Changed hands: the winner against the previous race for the same office and seat in the data. ${C.unofficial} Click a heading to sort.`;
     table.innerHTML = head(cols, sClosest) + '<tbody>' + rs.map((x) => '<tr>' + cols.map((c) => { const v = c[1](x); return `<td>${esc(v == null ? '' : c[2](v))}</td>`; }).join('') + '</tr>').join('') + '</tbody>';
   };
+  // Turnout drop-off: every county with both results, the race used and the share.
+  const renderDropoff = () => {
+    const y = turnout.yearOf(state.e), D = turnout.drop(y), sel = selection(), by = elections[D.base].year;
+    let rs = D.rows.slice(); if (sel) rs = rs.filter((r) => sel.counties.has(r.f));
+    const cols = [['County', (r) => countyLabelOf(meta, r.f).replace(/, \w\w$/, ''), String], ['State', (r) => r.st, String], ['Race used', (r) => (r.race === 'sen' ? 'Senate' : 'Governor'), String],
+      [`${y} votes`, (r) => r.v[0], fmt], [`President ${by} votes`, (r) => r.b[0], fmt], ['Share', (r) => r.r * 100, (x) => x.toFixed(1) + '%'], ['Margin', (r) => r.m, lead]];
+    if (sort.k >= cols.length) sort = { k: 5, dir: 1 };
+    const get = cols[sort.k][1];
+    rs.sort((x, z) => { const a = get(x), c = get(z); if (a == null) return 1; if (c == null) return -1; return (typeof a === 'string' ? a.localeCompare(c) : a - c) * sort.dir; });
+    $('tableTitle').textContent = `Turnout drop-off, ${y} against ${by}${sel ? ': selected counties' : ''}`;
+    $('tableNote').textContent = `${fmt(rs.length)} counties. Share: the county's votes in the top race on its state's ballot (Senate, else governor) over its President ${by} votes. All counties shown together: ${(D.all * 100).toFixed(1)}%. Race used: Senate in ${D.nSen} states, governor in ${D.nGov}; left out (no race with county results): ${D.noRace.join(', ')}. ${y === 2026 ? 'Unofficial. ' : ''}Click a heading to sort.`;
+    table.innerHTML = '<thead><tr>' + cols.map((c, i) => `<th data-k="${i}"${i === sort.k ? ` aria-sort="${sort.dir > 0 ? 'ascending' : 'descending'}"` : ''}>${esc(c[0])}</th>`).join('') + '</tr></thead><tbody>' +
+      rs.map((r) => '<tr>' + cols.map((c) => `<td>${esc(c[2](c[1](r)))}</td>`).join('') + '</tr>').join('') + '</tbody>';
+  };
+  // Ticket splitting: both races' county results and their difference.
+  const renderSplit = () => {
+    const T = turnout.split(), sel = selection();
+    let rs = T.rows.slice(); if (sel) rs = rs.filter((r) => sel.counties.has(r.f));
+    const cols = [['County', (r) => countyLabelOf(meta, r.f).replace(/, \w\w$/, ''), String], ['State', (r) => r.st, String],
+      ['Senate Dem.', (r) => r.sen[2], fmt], ['Senate Rep.', (r) => r.sen[1], fmt], ['Governor Dem.', (r) => r.gov[2], fmt], ['Governor Rep.', (r) => r.gov[1], fmt],
+      ['Senate margin', (r) => r.ms, lead], ['Governor margin', (r) => r.mg, lead], ['Difference', (r) => r.d, (x) => `${Math.abs(x).toFixed(1)} to ${x >= 0 ? 'D' : 'R'}`]];
+    if (sort.k >= cols.length) sort = { k: 8, dir: -1 };
+    const get = cols[sort.k][1];
+    rs.sort((x, z) => { let a = get(x), c = get(z); if (sort.k === 8) { a = a == null ? null : Math.abs(a); c = c == null ? null : Math.abs(c); } if (a == null) return 1; if (c == null) return -1; return (typeof a === 'string' ? a.localeCompare(c) : a - c) * sort.dir; });
+    $('tableTitle').textContent = `Ticket splitting, 2026 (unofficial)${sel ? ': selected counties' : ''}`;
+    $('tableNote').textContent = `${fmt(rs.length)} counties in the ${T.states.length} states with both races. Difference: Senate margin minus governor margin, in points, toward the party whose Senate margin was higher; margins are Democratic minus Republican over the race's votes. Click a heading to sort.`;
+    table.innerHTML = '<thead><tr>' + cols.map((c, i) => `<th data-k="${i}"${i === sort.k ? ` aria-sort="${sort.dir > 0 ? 'ascending' : 'descending'}"` : ''}>${esc(c[0])}</th>`).join('') + '</tr></thead><tbody>' +
+      rs.map((r) => '<tr>' + cols.map((c) => `<td>${esc(c[2](c[1](r)))}</td>`).join('') + '</tr>').join('') + '</tbody>';
+  };
   const render = () => {
+    if (effW() === 'dropoff') return renderDropoff();
+    if (effW() === 'split') return renderSplit();
     if (effW() === 'road') return renderRoad();
     if (effW() === 'closest') return renderClosest();
     if (effW() === 'power') return renderPower();

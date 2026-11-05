@@ -282,6 +282,53 @@
         "w": "scatter",
         "sx": "ms"
       }
+    },
+    {
+      "slug": "turnout-dropoff-2026",
+      "title": "Turnout drop-off, 2026 against 2024",
+      "file": "County votes in the top 2026 race as a share of President 2024, with the 2022 pattern",
+      "caption": "In {calc.dropoff.y2026.states|n} states with a statewide Senate or governor race, {calc.dropoff.y2026.n|n} counties cast {calc.dropoff.y2026.all|pct} as many votes in the top race in 2026 (unofficial counts) as for President in {calc.dropoff.y2026.base|raw}; in 2022 the share against {calc.dropoff.y2022.base|raw} was {calc.dropoff.y2022.all|pct}. Against the 2022 band for counties of the same margin, {calc.dropoff.y2026.below|n} of {calc.dropoff.y2026.cmp|n} counties lie below it and {calc.dropoff.y2026.above|n} above.",
+      "sources": "{elections.sen2026.source} {elections.gov2026.source} {elections.pres2024.source} The Senate race is used where a state has one, otherwise the governor's.",
+      "state": {
+        "e": "sen2026",
+        "w": "dropoff"
+      }
+    },
+    {
+      "slug": "ticket-splitting-2026",
+      "title": "Ticket splitting, 2026 (unofficial)",
+      "file": "Senate margin minus governor margin by county, 2026, unofficial",
+      "caption": "In the {calc.split.states|n} states with both races on the 2026 ballot (unofficial), different parties led the Senate and governor races in {calc.split.differ|n} of {calc.split.n|n} counties, and the margins were 10 or more points apart in {calc.split.big10|n}. Median county, Senate margin minus governor margin: {calc.split.med|toward}; largest state median: {calc.split.top.name}, {calc.split.top.med|toward}.",
+      "sources": "{elections.sen2026.source} {elections.gov2026.source} The two files were fetched at different times.",
+      "state": {
+        "e": "sen2026",
+        "w": "split"
+      }
+    },
+    {
+      "slug": "county-history-maricopa",
+      "title": "County history: Maricopa County, Arizona",
+      "file": "Margin and votes by election, {calc.county.04013.name}",
+      "caption": "{calc.county.04013.name}, margin by election: President {calc.county.04013.m.pres2016|lead} (2016), {calc.county.04013.m.pres2020|lead} (2020), {calc.county.04013.m.pres2024|lead} (2024); Senate {calc.county.04013.m.sen2018|lead} (2018), {calc.county.04013.m.sen2022|lead} (2022), {calc.county.04013.m.sen2024|lead} (2024); governor {calc.county.04013.m.gov2018|lead} (2018), {calc.county.04013.m.gov2022|lead} (2022), {calc.county.04013.m.gov2026|lead} (2026, unofficial). Votes for President: {calc.county.04013.votes.pres2016|n} in 2016, {calc.county.04013.votes.pres2024|n} in 2024. The faint line is {calc.county.04013.st}.",
+      "sources": "{elections.pres2024.source} {elections.sen2024.source} {elections.gov2026.source}",
+      "state": {
+        "e": "gov2026",
+        "w": "circles",
+        "hk": "04013"
+      }
+    },
+    {
+      "slug": "closeup-rio-grande",
+      "title": "Close-up: the Rio Grande border counties",
+      "file": "{calc.region.rio-grande.name}: margin by election",
+      "caption": "{calc.region.rio-grande.name}: {calc.region.rio-grande.n|n} Texas counties, {calc.region.rio-grande.votes.pres2016|n} votes for President in 2016 and {calc.region.rio-grande.votes.pres2024|n} in 2024. Their margin was {calc.region.rio-grande.m.pres2016|lead} in 2016, {calc.region.rio-grande.m.pres2020|lead} in 2020 and {calc.region.rio-grande.m.pres2024|lead} in 2024. One thin line per county across every election; the bold line is the area together.",
+      "sources": "{elections.pres2024.source} Counties: Texas counties on the Rio Grande, El Paso to Cameron, a rule set in regions.json (no Census Bureau or USDA list under this name).",
+      "state": {
+        "e": "pres2024",
+        "w": "circles",
+        "sel": "p:rio-grande",
+        "cu": "rio-grande"
+      }
     }
   ],
   "tours": [

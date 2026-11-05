@@ -21,10 +21,12 @@ checks it; Hugo does not publish `tools/`.
 | `terrain.js` | Smooth terrain (three.js), loaded only with WebGL |
 | `blocks.js` | Exact counties (three.js), loaded the first time it is shown |
 | `views2d/` | Circles, Arrows, Dots, Scatter, for the House track Districts (`strips.js`) and Seats and votes (`seats.js`), History (`history.js`, any track), Road to 270 (`road.js`) and Closest races (`closest.js`, any track; `rb=`, `ro=` in the link), Scatter's second chart (`sx=ms`), the Simulator (`sim.js`, any track) and Power (`power.js`, county tracks: weight per vote ranked, the cartogram, concentration) (d3 + SVG), and what they share (`style.js`: ink, rules, the state tile grid) |
+| `views2d/dropoff.js`, `views2d/split.js` | Turnout drop-off (county votes in the top midterm race as a share of the presidential year before, against margin, with 2022's band behind 2026; `c=drop` colours Terrain and Circles by it) and Ticket splitting (Senate margin minus governor margin on a flat map and as a strip per state) |
 | `power.js` | The Power tab's arithmetic (pure): weight per vote by state with its three parts, each state's share of votes, electoral votes and Senate seats, each party's concentration curve and the counties that reach a share of its votes (also the selection rule `k:`) |
 | `sim.js` | The swing simulator's arithmetic (pure): each place's flip point under uniform or proportional swing, seats and control at a swing, where control changes |
 | `races.js` | Road to 270 (and 51) and Closest races (pure): the bar's segments, line and tipping point, every race on an election day with margin, votes to flip (half the margin plus one, as `balance.json`) and whether it changed hands; reads `simulator.json`, `house.json` and the county results |
 | `flips.js`, `swingview.js` | Flips and bellwethers (rules `f:<from>:<to>` and `w`, narrowed to a selection with `/<selection>`); margin against swing and its running median (rules `g:` box, `n:` quadrant) |
+| `turnout.js`, `places.js`, `drawers.js` | Turnout drop-off and ticket splitting (pure: the race used per state, shares, the 2022 band, Senate against governor margins); a place's history across every election (one county, its state, an area); the pinned County history card (`hk=`, opened by "History" in a tooltip, a double-click or the H key) and the side drawer (regional close-up `cu=`, the state's two races in Ticket splitting) |
 | `views.js` | Saved views and tours (`views.json`): `?view=`, `?tour=`, the card with the caption, caption tokens resolved from the data |
 | `overlays.js` | Overlays from our research (`overlays.json`, `ov=` in the link): each layer's counties, and their swing against matched unmarked counties (same state, lean band and size band; also the selection rule `o:`). Marks are drawn by `terrain.js` (`marks()`), `views2d/circles.js`, `dots.js` and `arrows.js` |
 
@@ -76,6 +78,11 @@ Run from the repository root, in this order (each step reads what the one before
    year's pledged result and the Senate is the chamber after each election; seats not up plus races make 100.
    The House comes from `house.json` at run time. Gap: the MIT 2024 Senate state file has no row for Nebraska's
    special election, so that seat is counted with the seats not up and does not move.
+
+11. `python3 -I tools/vote-terrain/build_regions.py static/maps/vote-terrain`
+   `regions.json`: the close-up's preset regions (`sel=p:<id>&cu=<id>`), each with its county codes (resolved from names in
+   `geometry.json`, checked) and a cited definition. No USDA or Census Bureau list was found for "Rio Grande border counties" or
+   "the Black Belt", so each states the rule used; the Black Belt preset is the Alabama list only (see its definition).
 
 `geometry_codec.mjs` packs the geometry (lossless; it checks the round trip). To convert a geometry.json in
 the old shape: `node tools/vote-terrain/geometry_codec.mjs <old geometry.json> static/maps/vote-terrain`.

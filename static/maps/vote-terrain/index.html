@@ -193,6 +193,33 @@
   body.export .panel, body.export .tabs, body.export .tab-why, body.export .bop, body.export .offices, body.export .timeline,
   body.export #locator, body.export .view-card, body.export .tour-caption, body.export #grain, body.export .key .lens-i, body.export #rankBtn,
   body.export .v2d-head .v2d-seg, body.export .v2d-head .lens-i, body.export .v2d-sort, body.export .v2d-showall, body.export .v2d-foot { display:none !important; }
+
+  /* County history card (pinned in the panel), the side drawer (close-up; the state's two races in Ticket splitting), Turnout drop-off and Ticket splitting */
+  .vt-tip .tip-hist { pointer-events:auto; font:inherit; font-size:12px; color:var(--ink); background:transparent; border:1px solid var(--rule); padding:2px 8px; margin-top:6px; cursor:pointer; }
+  .vt-tip:has(.tip-hist) { pointer-events:auto; }
+  .hist-card { margin:0 0 10px; border:1px solid var(--rule); padding:6px 8px 8px; background:var(--ground); }
+  .hist-card header, .drawer header { display:flex; justify-content:space-between; align-items:center; gap:6px; }
+  .hist-card header b { font-family:'Archivo Narrow', sans-serif; font-size:16px; line-height:1.15; }
+  .hc-close, .dr-close { font:inherit; font-size:15px; line-height:1; color:var(--ink); background:transparent; border:1px solid var(--rule); padding:2px 7px; cursor:pointer; }
+  .hc-title { font-size:10px; fill:var(--ink); font-weight:700; } .hc-tick { font-size:9.5px; fill:var(--graphite); }
+  .hist-card text, .drawer text { font-family:'Courier Prime', monospace; }
+  .hc-charts.wide { display:flex; gap:12px; } .hc-charts svg { display:block; }
+  .hc-legend { display:flex; flex-wrap:wrap; gap:2px 10px; margin:4px 0 0; font-size:11px; color:var(--graphite); } .hc-legend svg { vertical-align:-2px; margin-right:3px; }
+  .hc-faint { display:inline-block; width:16px; height:0; border-top:3px solid rgba(91,97,104,.38); vertical-align:middle; margin-right:4px; }
+  .hc-table { margin-top:6px; font-size:11px; } .hc-table summary { cursor:pointer; color:var(--ink); } .hc-table table, .drawer table { border-collapse:collapse; width:100%; font-size:11px; }
+  .hc-table td, .hc-table th, .drawer td, .drawer th { text-align:right; padding:2px 4px; border-top:1px solid rgba(35,48,107,.1); } .hc-table td:first-child, .hc-table th:first-child, .drawer td:first-child, .drawer th:first-child { text-align:left; }
+  .drawer { left:auto; right:206px; width:360px; } body[data-drawer=split] .drawer { width:470px; } .drawer .note { margin:4px 0 8px; }
+  .drawer .dr-top.wide { display:flex; gap:14px; } .dr-seg { margin-bottom:4px; } .dr-seg button { flex:1; font:inherit; font-size:11.5px; padding:4px 2px; }
+  .drawer path.hl, .drawer tr.hl { stroke:var(--ink); stroke-width:2.2; background:rgba(35,48,107,.1); } .drawer path.cl.hl { opacity:1; stroke-width:2.4; }
+  .drawer .dr-c { display:block; overflow-x:auto; font-size:10px; white-space:nowrap; } .drawer .sp td { font-size:10.5px; white-space:nowrap; } .drawer .sp td:first-child { white-space:normal; }
+  body.export .hist-card, body.export .drawer { position:fixed; z-index:2; background:var(--paper); width:auto; max-height:none; overflow:visible; padding:10px 14px; }
+  body.export .hc-close, body.export .dr-close, body.export .dr-seg, body.export .hc-table { display:none !important; }
+  body.export[data-card] #v2d { visibility:hidden; } body.export[data-card=hist] .key { visibility:hidden; } body.export .dr-tbl, body.export .dr-lines .note { display:none; }
+  body.export .hist-card text, body.export .drawer text { font-size:11px; } body.export .hist-card .hc-tick, body.export .drawer .hc-tick { font-size:10.5px; }
+  .v2d-body .halo { paint-order:stroke; stroke:var(--ground); stroke-width:4px; }
+  .do-note, .sp-note { color:var(--graphite); max-width:100%; line-height:1.3; }
+  .sp-wrap { display:flex; gap:12px; min-height:0; } .sp-rows { border-top:1px solid var(--rule); } .sp-svg { display:block; }
+  .sel-chip #selCloseup { font:inherit; font-size:12px; }
   /* Simulator */
   .sim-top { flex:none; }
   #v2d .v2d-root[data-view=sim] .v2d-body, #v2d .v2d-root[data-view=power] .v2d-body { overflow-y:auto; overflow-x:hidden; display:block; }
@@ -314,7 +341,7 @@
 <div id="v2d"></div>
 <div id="grain" aria-hidden="true"></div>
 <nav class="tabs" id="tabs" aria-label="View">
-  <button data-w="terrain">Terrain</button><button data-w="circles">Circles</button><button data-w="arrows">Arrows</button><button data-w="dots">Dots</button><button data-w="scatter">Scatter</button><button data-w="strips">Districts</button><button data-w="seats">Seats and votes</button><button data-w="history">History</button><button data-w="sim">Simulator</button><button data-w="power">Power</button><button data-w="road">Road to 270</button><button data-w="closest">Closest</button>
+  <button data-w="terrain">Terrain</button><button data-w="circles">Circles</button><button data-w="arrows">Arrows</button><button data-w="dots">Dots</button><button data-w="scatter">Scatter</button><button data-w="strips">Districts</button><button data-w="seats">Seats and votes</button><button data-w="history">History</button><button data-w="sim">Simulator</button><button data-w="power">Power</button><button data-w="road">Road to 270</button><button data-w="closest">Closest</button><button data-w="dropoff">Turnout drop-off</button><button data-w="split">Ticket splitting</button>
 </nav>
 <p class="tab-why" id="tabWhy" hidden></p>
 <aside class="view-card" id="viewCard" hidden aria-live="polite" aria-label="Saved view"></aside>
@@ -342,8 +369,9 @@
   </div>
   <p class="notice" id="notice" hidden></p>
   <p class="lens-how" id="lensHow" hidden><span id="lensHowText"></span><button id="lensHowClose" aria-label="Dismiss">×</button></p>
-  <div class="sel-chip" id="selChip" hidden><span id="selText"></span><button id="selFrame">Frame</button><button id="selClose" aria-label="Clear the selection">×</button></div>
+  <div class="sel-chip" id="selChip" hidden><span id="selText"></span><button id="selFrame">Frame</button><button id="selCloseup">Open close-up</button><button id="selClose" aria-label="Clear the selection">×</button></div>
   <p class="how" id="viewNote" hidden style="margin:0 0 10px"></p>
+  <section class="hist-card county-only" id="histCard" hidden aria-label="County history"></section>
   <div class="ov-card county-only" id="ovCard" hidden aria-live="polite">
     <p class="ov-head"><span class="ov-sym" aria-hidden="true"></span><b id="ovTitle"></b><button class="lens-i" id="ovInfo" aria-label="How the comparison is made">i</button><button id="ovOff" aria-label="Turn the overlay off">×</button></p>
     <p id="ovText"></p>
@@ -405,8 +433,9 @@
       <button data-c="margin">Margin</button><button data-c="swing" id="swingBtn">Swing</button>
     </div>
     <div class="seg seg2" role="group" aria-label="Colour by weight per vote">
-      <button data-c="weight">Weight per vote</button>
+      <button data-c="weight">Weight per vote</button><button data-c="drop">Turnout drop-off</button>
     </div>
+    <p class="how" id="dropHow" hidden></p>
     <p class="how" id="swingHow"></p>
   </div>
   <div class="group county-only">
@@ -416,6 +445,14 @@
       <button id="flat" aria-pressed="false">Flat map</button><button id="ghost" aria-pressed="false">Show previous election</button>
     </div>
   </div>
+  </details>
+  <details class="adjust county-only" id="regionsBox">
+    <summary>Regional close-ups</summary>
+    <div class="group">
+      <span class="name">Preset regions</span>
+      <div class="tools"><button data-preset="rio-grande">Rio Grande border counties</button><button data-preset="black-belt">Alabama Black Belt</button><button data-preset="maine">Maine</button></div>
+      <p class="how">Each preset selects its counties and opens a close-up: a map, a line per county across every election, and the area's votes and margin by year. Hover a button for the definition. Any selection can open one from its chip.</p>
+    </div>
   </details>
   <details class="adjust county-only" id="flipsBox">
     <summary>Flips and bellwethers</summary>
@@ -456,7 +493,7 @@
   <div class="src" id="source"></div>
 </aside>
 
-<div class="key" aria-live="polite">
+<div class="key" id="keyBox" aria-live="polite">
   <div class="title"><span id="keyTitle">Swing</span><button class="lens-i" id="keyInfo" aria-label="More about the key">i</button></div>
   <div class="ramp" id="ramp"></div>
   <div class="ramp-labels" id="rampLabels"></div>
@@ -473,6 +510,8 @@
   <div id="rankBody"></div>
 </aside>
 
+<aside class="about drawer" id="drawer" hidden role="complementary" aria-label="Close-up"></aside>
+
 <section class="bop" id="bop" aria-labelledby="bopTitle">
   <header><b id="bopTitle">Balance of power</b><button id="bopToggle" aria-expanded="false" aria-controls="bopBody">More</button></header>
   <div id="bopLines"></div>
@@ -482,6 +521,6 @@
 <div class="offices" id="offices" role="group" aria-label="Office"></div>
 <nav class="timeline" id="timeline" aria-label="Election"></nav>
 <canvas id="locator" aria-label="Locator: the whole country from above, with the part in view marked. Click to move the view there." role="button" tabindex="0"></canvas>
-<script type="module" src="js/main.js?v=88"></script>
+<script type="module" src="js/main.js?v=89"></script>
 </body>
 </html>

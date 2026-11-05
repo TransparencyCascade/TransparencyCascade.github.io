@@ -1,22 +1,30 @@
 /* The hover tip shared by every view, and the county numbers it shows. */
 import { fmt, clamp, lead, countyLabelOf, $ } from './util.js';
 
-export function createTooltip({ geo, el, bal, state, model }) {
+export function createTooltip({ geo, el, bal, state, model, turnout }) {
   const { meta } = geo, { elections, notes } = el;
   const OFFICE_NAME = { president: 'President', senate: 'Senate', governor: 'Governor', house: 'House' };
   const tip = document.createElement('div');
   tip.className = 'vt-tip'; tip.hidden = true; document.body.appendChild(tip);
   const place = (html, x, y) => {
+    clearTimeout(hideTimer); hideTimer = null;
     tip.innerHTML = html;
     tip.hidden = false;
     const w = tip.offsetWidth, h = tip.offsetHeight;
     // Below-right of the pointer, flipping above or left when it would run off screen or over the timeline.
     const tl = $('timeline').getBoundingClientRect();
     const floor = Math.min(window.innerHeight, tl.top) - 8;
-    tip.style.left = (x + 14 + w > window.innerWidth - 8 ? Math.max(8, x - 14 - w) : x + 14) + 'px';
-    tip.style.top = (y + 14 + h > floor ? Math.max(8, y - 14 - h) : y + 14) + 'px';
+    // A tip with a History button sits close to the pointer, so a small move onto it reaches the button.
+    const off = tip.querySelector('.tip-hist') ? 6 : 14;
+    tip.style.left = (x + off + w > window.innerWidth - 8 ? Math.max(8, x - off - w) : x + off) + 'px';
+    tip.style.top = (y + off + h > floor ? Math.max(8, y - off - h) : y + off) + 'px';
   };
-  const hide = () => { tip.hidden = true; };
+  // A hide that waits a moment when the tip holds a History button, so the pointer can travel onto it.
+  let hideTimer = null, lastF = null;
+  const hide = () => { clearTimeout(hideTimer); hideTimer = null; tip.hidden = true; };
+  const hideSoon = () => { clearTimeout(hideTimer); hideTimer = setTimeout(() => { tip.hidden = true; lastF = null; }, tip.querySelector('.tip-hist') ? 260 : 0); };
+  tip.addEventListener('mouseenter', () => { clearTimeout(hideTimer); hideTimer = null; });
+  tip.addEventListener('mouseleave', () => { hide(); });
 
   // Effective vote: residents per vote, the weight ratio and its three parts as a bar on a doubling scale
   // (parts above 1 stack right of the centre line, parts below 1 stack left; the black tick is their
@@ -40,6 +48,15 @@ export function createTooltip({ geo, el, bal, state, model }) {
       `<br>Electoral weight per vote: ${x.r.toFixed(2)}× the national average${partsBar(x)}${partsLegend(x)}`;
   };
 
+  // Turnout drop-off (colour mode state.c = drop): the county's midterm votes against the presidential year before.
+  const dropExtra = (f) => {
+    if (state.c !== 'drop' || !turnout) return '';
+    const y = turnout.yearOf(state.e), D = turnout.drop(y), r = D && D.byF[f];
+    return r ? `<br>Turnout drop-off: ${y} ${r.race === 'sen' ? 'Senate' : 'governor'} votes were ${(r.r * 100).toFixed(0)}% of President ${D.base.slice(4)}'s (all counties shown: ${(D.all * 100).toFixed(0)}%)`
+      : `<br>Turnout drop-off: no ${y} statewide Senate or governor race with county results in ${meta[f].st}`;
+  };
+  // "History" opens the county's history card (main.js listens for the click on .tip-hist).
+  const histLink = (f) => `<br><button class="tip-hist" data-f="${f}">History</button>`;
   // A line the page adds for an overlay in force (main.js, overlays.js): the layer's places in this county.
   let extra = () => '';
   // A county's numbers in the election in view.
@@ -49,7 +66,7 @@ export function createTooltip({ geo, el, bal, state, model }) {
     if (!v) {
       const why = m.st === 'AK' ? notes.AK : office === 'president' ? 'No result in the source for this county.'
         : `No Democrat-vs-Republican ${OFFICE_NAME[office].toLowerCase()} race with county results here in ${e.year} (see the notes in the panel).`;
-      return head + why + extra(f);
+      return head + why + dropExtra(f) + extra(f) + histLink(f);
     }
     const s = model.swingOf(f), w = model.weighted(), effOn = model.effShown();
     return head + `${e.label}${e.unofficial ? ' (unofficial)' : ''}<br>` +
@@ -58,10 +75,11 @@ export function createTooltip({ geo, el, bal, state, model }) {
       (s != null ? `<br>Swing since ${model.baselineLabel(m.st)}: ${Math.abs(s).toFixed(1)} points toward the ${s >= 0 ? 'Democrat' : 'Republican'}` : '') +
       (w && !effOn ? `<br>${state.h === 'ev' ? 'Electoral' : 'Senate'} weight of a vote in ${bal.stateNames[m.st] || m.st}: ${(w.factor[m.st] || 0).toFixed(2)} times the average` : '') +
       (effOn ? effTip(f) : '') + extra(f) +
-      `<br><span style="color:#5B6168">${e.source}</span>`;
+      dropExtra(f) +
+      `<br><span style="color:#5B6168">${e.source}</span>` + histLink(f);
   };
   // Hover from a view: a county under the pointer, or null to hide.
-  const hoverCounty = (f, x, y) => { if (!f) hide(); else place(countyHtml(f), x, y); };
+  const hoverCounty = (f, x, y) => { if (!f) hideSoon(); else { lastF = f; place(countyHtml(f), x, y); } };
 
-  return { place, hide, hidden: () => tip.hidden, countyHtml, hoverCounty, partsBar, partsLegend, OFFICE_NAME, setExtra: (fn) => { extra = fn; } };
+  return { place, hide, hidden: () => tip.hidden, lastCounty: () => lastF, el: tip, countyHtml, hoverCounty, partsBar, partsLegend, OFFICE_NAME, setExtra: (fn) => { extra = fn; } };
 }

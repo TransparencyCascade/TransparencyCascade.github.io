@@ -2,8 +2,9 @@
    weights, effective vote, heights and the per-county rows the flat views and the table read. Reads the
    shared state; owns no DOM. */
 import { toward, towardW, rgb, NODATA, PAGE, SWING_MAX, MARGIN_MAX, WEIGHT_MAX } from './colour.js';
+import { DROP_MAX } from './turnout.js';
 
-export function createModel({ geo, el, bal, eff, state, selection }) {
+export function createModel({ geo, el, bal, eff, state, selection, turnout }) {
   const { meta } = geo;
   const { order, tracks, sameOffice, k, elections } = el;
   // Office tracks: the timeline shows the elections of the office in view.
@@ -13,6 +14,9 @@ export function createModel({ geo, el, bal, eff, state, selection }) {
   // Senate seat against its own previous race.
   const baselineOf = () => sameOffice[state.e] || null;
   const isWeight = () => state.c === 'weight';
+  // Turnout drop-off (turnout.js): colour by each county's midterm votes as a share of the presidential year before, against the share across all counties.
+  const isDrop = () => state.c === 'drop';
+  const dropYear = () => turnout.yearOf(state.e);
   const isMargin = () => state.c === 'margin' || (state.c === 'swing' && !baselineOf());
   const swingOf = (f) => {
     const b = baselineOf(); if (!b) return null;
@@ -22,6 +26,7 @@ export function createModel({ geo, el, bal, eff, state, selection }) {
   const colourRaw = (f) => {
     const v = elections[state.e].data[f];
     if (!v) return NODATA;
+    if (isDrop()) { const x = turnout.value(f, dropYear()); return x == null ? NODATA : rgb(towardW(x, DROP_MAX)); }
     if (isWeight()) { const x = effOf(f); return x ? rgb(towardW(Math.log2(x.r), WEIGHT_MAX)) : NODATA; }
     if (isMargin()) return rgb(toward(margin(v), MARGIN_MAX));
     const s = swingOf(f); return s == null ? NODATA : rgb(toward(s, SWING_MAX));
@@ -112,6 +117,6 @@ export function createModel({ geo, el, bal, eff, state, selection }) {
     return elections[b].label;
   };
 
-  return { officeOf, margin, baselineOf, baselineLabel, isWeight, isMargin, swingOf, colourRaw, colourOf, weightsFor, weighted,
+  return { officeOf, margin, baselineOf, baselineLabel, isWeight, isDrop, dropYear, isMargin, swingOf, colourRaw, colourOf, weightsFor, weighted,
     V24, repVotesOf, effOf, multFor, effShown, votesOf, kcOf, heightOf, rowsNow };
 }

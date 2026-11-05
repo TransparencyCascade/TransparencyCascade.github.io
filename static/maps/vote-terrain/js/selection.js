@@ -3,7 +3,7 @@
    election in the link (k: the Power tab's concentration marker; o: an overlay's counties). */
 import { fmt, list, countyLabelOf } from './util.js';
 
-export function createSelectionCodec({ geo, el, state, model, stName, house, power, overlays, flips, ms }) {
+export function createSelectionCodec({ geo, el, state, model, stName, house, power, overlays, flips, ms, regions }) {
   const { meta } = geo, { elections } = el;
   const ALL_ST = new Set(Object.values(meta).map((m) => m.st));
   const countiesOf = (states) => { const S = new Set(states); return Object.keys(meta).filter((f) => S.has(meta[f].st)); };
@@ -23,6 +23,8 @@ export function createSelectionCodec({ geo, el, state, model, stName, house, pow
     n: ([k]) => (ms.QUADS[k] ? msNow().filter((r) => ms.QUADS[k](r.x, r.y)) : []),
     // k:<d|r>:<q>: the counties holding q percent of one party's votes, biggest first (the Power tab's marker).
     // o:<layer>: the counties an overlay marks (overlays.js), as the comparison card's "Select these places" makes them.
+    // p:<id>: a preset region's counties (regions.json), as the close-up's list makes them.
+    p: ([id]) => { const r = regions && regions.regions.find((x) => x.id === id); return r ? r.counties.filter((f) => meta[f]).map((f) => ({ f })) : []; },
     o: ([k]) => (overlays && overlays.sets[k] ? [...overlays.sets[k]].map((f) => ({ f })) : []),
     k: ([pk, q]) => { const r = power && (pk === 'd' || pk === 'r') && elections[state.e] && !elections[state.e].house ? power.reach(state.e, pk, Math.max(1, Math.min(99, +q || 50))) : null; return r ? r.list.map((f) => ({ f })) : []; },
     r: ([k, lo, hi]) => model.rowsNow().filter((r) => { const x = k === 's' ? r.s : r.m; return r.v && x != null && x >= +lo && x <= +hi; }),
