@@ -134,6 +134,48 @@ const SCENARIOS = [
     // Fitted means the fresh load's scale; the offset can differ by a few pixels (the head's reference glyph).
     const scale = (t) => +t.match(/scale\(([^)]+)\)/)[1];
     return { back, fresh, fitted: Math.abs(scale(back) - scale(fresh)) < 1e-9 }; } })),
+  // The House track: Districts and Seats and votes, the plausible swing, tables, the balance box, and the
+  // county views standing down.
+  { name: 'h-strips', hash: 'e=house2026&w=strips' },
+  { name: 'h-strips-2022', hash: 'e=house2022&w=strips' },
+  { name: 'h-strips-state', hash: 'e=house2024&w=strips&ps=state' },
+  { name: 'h-strips-sel', hash: 'e=house2026&w=strips&sel=s:TX' },
+  { name: 'h-strips-hover', hash: 'e=house2026&w=strips', act: async (page) => { const b = await page.locator('#v2d .ticks rect').first().boundingBox(); await page.mouse.move(b.x + 1, b.y + 4); await page.waitForTimeout(250); }, tip: true },
+  { name: 'h-strips-click', hash: 'e=house2026&w=strips', act: async (page) => { await page.locator('#v2d g.row .hit').nth(1).click({ position: { x: 20, y: 10 } }); } },
+  { name: 'h-seats', hash: 'e=house2026&w=seats' },
+  { name: 'h-seats-sel', hash: 'e=house2024&w=seats&sel=s:NC' },
+  { name: 'h-seats-hover', hash: 'e=house2024&w=seats', act: async (page) => { const b = await page.locator('#v2d .seats-wrap svg circle').first().boundingBox(); await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.waitForTimeout(250); }, tip: true },
+  { name: 'h-table-strips', hash: 'e=house2026&w=strips&sel=s:OH', act: key('t') },
+  { name: 'h-table-seats', hash: 'e=house2024&w=seats', act: key('t') },
+  { name: 'h-bop', hash: 'e=house2026&w=strips', act: click('#bopToggle') },
+  { name: 'h-office', hash: 'e=pres2024&v=national', act: click('[data-office=house]') },
+  { name: 'h-terrain-asked', hash: 'e=house2026&w=terrain' },
+  { name: 'h-phone', hash: 'e=house2026&w=strips', viewport: { width: 390, height: 844 } },
+  // The plausible swing is the one knob behind the bands: the slider writes ps= and moves the lines and counts.
+  { name: 'h-plausible', hash: 'e=house2026&w=strips', probe: async (page) => {
+    const bands = () => page.evaluate(() => { const h = window.__vt.house(), c = {}; for (const d of h.districts) c[d.band] = (c[d.band] || 0) + 1;
+      return { c, ps: h.plausible.label, tx: h.lines.TX, capv: Object.values(h.states).reduce((a, s) => a + s.capv, 0) }; });
+    const out = { def: await bands() };
+    await page.click('summary');
+    await page.$eval('#psRange', (r) => { r.value = '12'; r.dispatchEvent(new Event('input', { bubbles: true })); }); await settle(page);
+    out.at12 = await bands(); out.hash12 = await page.evaluate(() => location.hash.includes('ps=12'));
+    await page.click('[data-ps=state]'); await settle(page); out.state = await bands();
+    await page.click('[data-ps=default]'); await settle(page); out.back = await bands();
+    out.ok = out.hash12 && out.at12.c['at risk'] > out.def.c['at risk'] && out.at12.tx.captured >= 12 && out.at12.tx.atRisk === 12 && JSON.stringify(out.back) === JSON.stringify(out.def);
+    return out; } },
+  // Numbers against the data: 2022 and 2024 seats equal the House history office's divisions; every district counted.
+  { name: 'h-data', hash: 'e=house2024&w=seats', probe: (page) => page.evaluate(() => {
+    const H = window.__vt.house().data, seat = (y) => ({ D: H.seats[y].D, R: H.seats[y].R });
+    const sums = Object.fromEntries(H.years.map((y) => [y, H.districts.reduce((a, d) => a + d.y[y][2], 0) === Object.values(H.states[y]).reduce((a, s) => a + s.T, 0)]));
+    return { n: H.districts.length, s2022: seat('2022'), s2024: seat('2024'), sums, ok: H.districts.length === 435 && H.seats['2022'].D === 213 && H.seats['2022'].R === 222 && H.seats['2024'].D === 215 && H.seats['2024'].R === 220 }; }) },
+  // Circles and Arrows keep the reader's zoom through a redraw (an election change), the head keeping its height.
+  ...['circles', 'arrows'].map((w) => ({ name: `a-${w}-zoom-kept`, hash: `w=${w}&e=pres2024`, probe: async (page) => {
+    const t = () => page.evaluate(() => [document.querySelector('#v2d svg.v2d-map > g').getAttribute('transform'), document.querySelector('.v2d-head').offsetHeight]);
+    const b = await page.locator('#v2d svg.v2d-map').boundingBox();
+    await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.wheel(0, -600); await page.waitForTimeout(400); await settle(page);
+    const zoomed = await t(); await page.keyboard.press('ArrowLeft'); await settle(page); const after = await t();
+    return { zoomed, after, kept: zoomed[0] === after[0] && zoomed[1] === after[1] }; } })),
+  { name: 'n-nogl-house', hash: 'e=house2026&w=seats', gl: false },
   { name: 'n-nogl', hash: 'w=terrain', gl: false },
   { name: 'n-nogl-blocks', hash: 's=blocks', gl: false },
   { name: 'n-nogl-dots', hash: 'w=dots', gl: false },

@@ -16,10 +16,11 @@ checks it; Hugo does not publish `tools/`.
 | `geometry.js` | Decodes `geometry.json` + `geometry.bin` (the page and the builders share it) |
 | `model.js` | Margins, swing, power weights, effective vote, heights, the per-county rows |
 | `colour.js` | The equal-lightness ramps |
+| `house.js` | The House track: its timeline entries, and the bands (captured, contestable, at risk) recomputed from the plausible swing (`ps=` in the link) |
 | `tooltip.js`, `balance.js`, `selection.js`, `find.js`, `table.js`, `about.js` | The tip, balance of power, selection codec, find box, table, read-once drawers |
 | `terrain.js` | Smooth terrain (three.js), loaded only with WebGL |
 | `blocks.js` | Exact counties (three.js), loaded the first time it is shown |
-| `views2d/` | Circles, Arrows, Dots, Scatter (d3 + SVG) and what they share |
+| `views2d/` | Circles, Arrows, Dots, Scatter, and for the House track Districts (`strips.js`) and Seats and votes (`seats.js`) (d3 + SVG), and what they share |
 
 `window.__vt` exists only for the smoke test and console checks. When you change a module, bump the
 `?v=` on `js/main.js` in `index.html`; the other modules are not versioned, so a browser may need a hard
@@ -38,6 +39,12 @@ Run from the repository root, in this order (each step reads what the one before
 4. `python3 -I tools/vote-terrain/build_balance.py <downloads> <countypres csv> <house district csv> static/maps/vote-terrain/balance.json`
 5. `python3 -I tools/vote-terrain/build_effective.py <downloads> static/maps/vote-terrain/elections.json static/maps/vote-terrain/balance.json static/maps/vote-terrain/effective.json`
 6. `VT_MODULES=<dir with node_modules/d3-force, d3-polygon> node tools/vote-terrain/build_circles.mjs` — `circles-*.json`.
+7. `python3 -I tools/vote-terrain/build_house.py <house district csv> <house state csv> static/maps/vote-terrain/balance.json static/maps/vote-terrain/house.json`
+   The House track from `cascade-research/notes/data/house-2026-vs-2024-vs-2022-by-{district,state}-unofficial-*.csv`:
+   results by district, each district's swing for every pair of elections on the same lines, each state's
+   largest and median observed swing, the plausible-swing default, seats and the efficiency gap. Checks: 2022
+   and 2024 seats equal the House history office's divisions in `balance.json`; district votes sum to the
+   state file in every state and year; margins agree with the CSV. Rules in its docstring.
 
 `geometry_codec.mjs` packs the geometry (lossless; it checks the round trip). To convert a geometry.json in
 the old shape: `node tools/vote-terrain/geometry_codec.mjs <old geometry.json> static/maps/vote-terrain`.
@@ -47,7 +54,7 @@ the old shape: `node tools/vote-terrain/geometry_codec.mjs <old geometry.json> s
     node tools/vote-terrain/smoke.mjs            # compare with the baseline; exit 1 on any difference
     node tools/vote-terrain/smoke.mjs --record   # write the baseline (after a change you meant)
 
-63 scenarios: every tab, lens, office and shape, elections with and without a baseline, selections by state,
+Every tab, lens, office and shape (the House track's two views, the plausible swing and their tables included), elections with and without a baseline, selections by state,
 rule and click, the table, find, keys, play, reset, phone width, and WebGL off. For each it records the key,
 panels, balance box, notes, pressed buttons, a hash of every flat-view SVG and a screenshot (failing above
 0.2% of pixels changed). It needs playwright-core (`VT_PLAYWRIGHT`) and a Chromium (`VT_CHROME`; it uses
@@ -82,6 +89,8 @@ The open task is `cascade-research/notes/vote-terrain-refresh-2026-with-certifie
 3. Fetch the new source files; keep each one dated beside its note in `cascade-research/notes/data/`.
 4. Rerun the builders above from step 1 (or the first step whose inputs changed). Rerun each script's own
    checks: county sums against certified state totals, the effective-vote decomposition, population totals.
+   For the House: rebuild the district CSVs with `build_house_2026_comparison.py` on the certified canvasses,
+   then `build_house.py`; the plausible-swing default moves with the data (and later with 1976–2024 history).
 5. List every figure that changed (old and new value) for Mark before any piece cites a refreshed number.
 6. Take the "unofficial" flag off an election only when its certified source is in place.
 7. Run the smoke test. Expected differences are the changed numbers; re-record once they are checked.
