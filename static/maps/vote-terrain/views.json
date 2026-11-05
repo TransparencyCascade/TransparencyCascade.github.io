@@ -1,0 +1,151 @@
+{
+  "_note": "Saved views and tours for the vote-terrain page; read by js/views.js and tools/vote-terrain/export.mjs. A view's state uses the address-hash keys (see js/state.js); keys left out take the page defaults. Captions carry no typed numbers: every figure is a {token} resolved from the data (see the header of js/views.js). Optional per view: snapshot (a slug in snapshots/), file (the card's typed file line; the title when absent).",
+  "views": [
+    {
+      "slug": "effective-vote-by-state-2024",
+      "title": "What a vote is worth, 2024",
+      "file": "Electoral weight per vote cast, by county; President 2024",
+      "caption": "In 2024 a vote cast in {calc.eff.pres2024.hiName} carried {calc.eff.pres2024.ratio|x} the electoral weight of a vote cast in {calc.eff.pres2024.loName}. Height is votes scaled by each state's electoral votes per vote cast; colour is the weight of one vote against the national average.",
+      "sources": "2020 Census population and apportionment; ACS 2019-2023 citizen voting-age population special tabulation; {elections.pres2024.source}",
+      "state": {
+        "e": "pres2024",
+        "l": "worth",
+        "h": "ev",
+        "c": "weight",
+        "w": "terrain",
+        "v": "national"
+      }
+    },
+    {
+      "slug": "smallest-change-2024",
+      "title": "The smallest change, 2024",
+      "file": "Net margin by county, President 2024; the three states that decided it",
+      "caption": "{bal.elections.pres2024.smallest.president.votes|n} voters switching from {bal.elections.pres2024.president.winner|last} to {bal.elections.pres2024.president.runner|last} would have changed the 2024 presidency: {bal.elections.pres2024.smallest.president.per_state|perstate}.",
+      "sources": "{elections.pres2024.source} Electoral votes: National Archives. Half each state's margin plus one, closest states first.",
+      "state": {
+        "e": "pres2024",
+        "l": "won",
+        "h": "net",
+        "u": "d",
+        "c": "margin",
+        "w": "terrain",
+        "v": "east",
+        "sel": "s:PA,MI,WI"
+      }
+    },
+    {
+      "slug": "senate-2026-from-the-west",
+      "title": "The 2026 Senate races, from the west",
+      "file": "Votes per square mile and swing by county; Senate 2026, unofficial",
+      "caption": "Colour is each county's swing since the previous race for the same Senate seat; the faint grid is that race's land, showing where fewer votes were cast this time.",
+      "sources": "{elections.sen2026.source}",
+      "state": {
+        "e": "sen2026",
+        "l": "changed",
+        "h": "total",
+        "c": "swing",
+        "g": "1",
+        "w": "terrain",
+        "v": "west"
+      }
+    },
+    {
+      "slug": "districts-2026",
+      "title": "Every House district, 2026",
+      "file": "House districts by margin, 2026, unofficial; at the default plausible swing",
+      "caption": "At the default plausible swing of {calc.house.2026.ps} points, {calc.house.2026.captured} seats are captured, {calc.house.2026.contestable} contestable and {calc.house.2026.atRisk} at risk; {calc.house.2026.apart} lack a Democrat and a Republican. Unofficial count as of {house.asof2026|et}.",
+      "sources": "{house.sources.2026}. Plausible swing: {house.plausible.how}.",
+      "state": {
+        "e": "house2026",
+        "w": "strips"
+      }
+    },
+    {
+      "slug": "seats-and-votes-2024",
+      "title": "Seats against votes, House 2024",
+      "file": "Share of the two-party House vote against share of seats, by state; 2024",
+      "caption": "Each state's share of the two-party House vote against its share of seats. Democrats won {house.seats.2024.D} seats and Republicans {house.seats.2024.R}.",
+      "sources": "{house.sources.2024}",
+      "state": {
+        "e": "house2024",
+        "w": "seats"
+      }
+    },
+    {
+      "slug": "texas-districts-2024",
+      "title": "Texas House districts, 2024",
+      "file": "Texas House districts by margin, 2024",
+      "caption": "Republicans won {house.states.2024.TX.seatsR} of Texas's {house.states.2024.TX.districts} House seats in 2024 on the lines then in use. At the default plausible swing, {calc.house.2024.st.TX.captured} of the {house.states.2024.TX.districts} were captured, whichever party won them, and {calc.house.2024.st.TX.atRisk} at risk.",
+      "sources": "{house.sources.2024}",
+      "state": {
+        "e": "house2024",
+        "w": "strips",
+        "sel": "s:TX"
+      }
+    },
+    {
+      "slug": "texas-districts-2026",
+      "title": "Texas House districts, 2026",
+      "file": "Texas House districts by margin, 2026, unofficial",
+      "caption": "Republicans won or led in {house.states.2026.TX.seatsR} of Texas's {house.states.2026.TX.districts} House seats in 2026, on the lines in use that year. At the default plausible swing, {calc.house.2026.st.TX.captured} of the {house.states.2026.TX.districts} are captured, whichever party holds them, and {calc.house.2026.st.TX.atRisk} at risk. Unofficial count as of {house.asof2026|et}.",
+      "sources": "{house.sources.2026}",
+      "state": {
+        "e": "house2026",
+        "w": "strips",
+        "sel": "s:TX"
+      }
+    },
+    {
+      "slug": "captured-votes-2024",
+      "title": "Captured votes, House 2024",
+      "file": "Captured votes and the efficiency gap by state, House 2024; at the default plausible swing",
+      "caption": "At the default plausible swing, {calc.house.2024.capv|n} House votes in 2024 were captured, {calc.house.2024.capvShare|pct} of all votes cast: in each captured seat, the winner's votes beyond the captured line and all of the runner-up's.",
+      "sources": "{house.sources.2024}. Captured votes computed on the page.",
+      "state": {
+        "e": "house2024",
+        "w": "seats"
+      }
+    }
+  ],
+  "tours": [
+    {
+      "slug": "safe-seats",
+      "title": "Captured seats, step by step",
+      "steps": [
+        {
+          "view": "seats-and-votes-2024"
+        },
+        {
+          "view": "captured-votes-2024"
+        },
+        {
+          "view": "texas-districts-2024"
+        },
+        {
+          "view": "texas-districts-2026"
+        },
+        {
+          "view": "districts-2026"
+        }
+      ]
+    },
+    {
+      "slug": "guide-1-4",
+      "title": "The guide's first four chapters, in views",
+      "steps": [
+        {
+          "view": "effective-vote-by-state-2024"
+        },
+        {
+          "view": "smallest-change-2024"
+        },
+        {
+          "view": "seats-and-votes-2024"
+        },
+        {
+          "view": "districts-2026"
+        }
+      ]
+    }
+  ]
+}

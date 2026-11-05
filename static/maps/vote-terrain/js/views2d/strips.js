@@ -15,7 +15,7 @@ export function stripsView({ ctx, DUR, head, body, foot, place, shiftOf }) {
   const { fmt } = ctx;
   let axisSvg, rowsBox, gRows, sortKey = 'seats';
   function build() {
-    head.innerHTML = '<span class="v2d-label">Sort states by</span><div class="seg v2d-seg" role="group" aria-label="Sort states by">' +
+    head.innerHTML = '<span class="v2d-label v2d-sort">Sort states by</span><div class="seg v2d-seg" role="group" aria-label="Sort states by">' +
       [['seats', 'Seats'], ['captured', 'Captured share'], ['name', 'Name']].map(([k, t]) => `<button data-sort="${k}" aria-pressed="${k === sortKey}">${t}</button>`).join('') + '</div>' +
       '<span class="v2d-ref strips-count"></span><button class="lens-i" aria-label="How the bands are set">i</button>';
     head.querySelectorAll('[data-sort]').forEach((b) => b.addEventListener('click', () => { sortKey = b.dataset.sort; head.querySelectorAll('[data-sort]').forEach((x) => x.setAttribute('aria-pressed', x === b)); draw(true); }));

@@ -162,6 +162,23 @@
   .ps-row input { flex:1; accent-color:var(--ink); }
   .ps-row output { font-family:'Courier Prime', monospace; font-size:12px; min-width:4.5em; }
   body.house .county-only { display:none; }
+  body:not(.house) .house-only { display:none; }
+  /* A saved view's card: its title, caption and sources; on a tour, Back, Next and Skip. */
+  .view-card { position:fixed; left:50%; top:58px; transform:translateX(-50%); width:min(560px, calc(100% - 24px)); z-index:4; background:var(--paper); border:1px solid var(--ink); padding:10px 14px 10px; font-size:13px; line-height:1.4; }
+  .view-card header { display:flex; align-items:baseline; gap:10px; }
+  .view-card header b { flex:1; font-family:'Archivo Narrow', sans-serif; font-weight:600; font-size:20px; line-height:1.1; }
+  .view-card .vc-step { font-size:12px; color:var(--graphite); white-space:nowrap; }
+  .view-card .vc-close { font:inherit; font-size:15px; line-height:1; color:var(--ink); background:transparent; border:1px solid var(--rule); padding:2px 7px; cursor:pointer; }
+  .view-card .vc-caption { margin:6px 0 4px; }
+  .view-card .vc-src { margin:0; font-size:11.5px; color:var(--graphite); overflow-wrap:anywhere; }
+  .view-card .vc-nav { display:flex; gap:6px; margin-top:8px; }
+  .view-card .vc-nav button { font:inherit; font-size:13px; color:var(--ink); background:transparent; border:1px solid var(--rule); padding:4px 12px; cursor:pointer; }
+  .view-card .vc-nav .vc-next { background:var(--ink); color:var(--paper); }
+  .view-card .vc-nav button:disabled { color:#A3A9B4; cursor:default; }
+  /* Export (?export=1, tools/vote-terrain/export.mjs): the view and its key, nothing else. */
+  body.export .panel, body.export .tabs, body.export .tab-why, body.export .bop, body.export .offices, body.export .timeline,
+  body.export #locator, body.export .view-card, body.export .tour-caption, body.export #grain, body.export .key .lens-i, body.export #rankBtn,
+  body.export .v2d-head .v2d-seg, body.export .v2d-head .lens-i, body.export .v2d-sort { display:none !important; }
   .sel-chip { display:flex; flex-wrap:wrap; gap:6px; align-items:center; border:1px solid var(--ink); background:rgba(35,48,107,.06); padding:6px 8px; margin:0 0 12px; font-size:12.5px; }
   .sel-chip span { flex:1 1 100%; }
   .sel-chip button { font:inherit; font-size:12px; color:var(--ink); background:var(--paper); border:1px solid var(--rule); padding:3px 8px; cursor:pointer; }
@@ -203,6 +220,7 @@
   @media (max-width: 640px) {
     .tabs { top:10px; left:10px; transform:none; }
     .tab-why { top:44px; left:10px; transform:none; }
+    .view-card { top:50px; left:10px; right:10px; width:auto; transform:none; z-index:6; max-height:40%; overflow:auto; }
     .tabs button { padding:6px 10px; }
     /* Seven tabs do not fit a phone: the ones that cannot draw this election step aside. */
     .tabs { max-width:calc(100vw - 20px); overflow-x:auto; }
@@ -234,6 +252,7 @@
   <button data-w="terrain">Terrain</button><button data-w="circles">Circles</button><button data-w="arrows">Arrows</button><button data-w="dots">Dots</button><button data-w="scatter">Scatter</button><button data-w="strips">Districts</button><button data-w="seats">Seats and votes</button>
 </nav>
 <p class="tab-why" id="tabWhy" hidden></p>
+<aside class="view-card" id="viewCard" hidden aria-live="polite" aria-label="Saved view"></aside>
 <div class="find" id="find" hidden role="dialog" aria-label="Find a county or state">
   <input id="findInput" type="search" placeholder="Find a county or state" autocomplete="off" aria-controls="findList" aria-autocomplete="list">
   <ul id="findList" role="listbox"></ul>
@@ -246,13 +265,14 @@
 <div class="panel">
   <div class="head"><h1>Vote terrain</h1><button class="link" id="aboutBtn" aria-controls="about" aria-expanded="false">About this map</button></div>
   <p class="how" id="snapNote" hidden style="margin:0 0 8px"></p>
-  <div class="lenses" role="group" aria-label="What to look at">
+  <p class="how house-only" style="margin:0 0 10px">The four lenses read county results; the House track is by district, so its views are under the tabs above.</p>
+  <div class="lenses county-only" role="group" aria-label="What to look at">
     <div class="lens"><button data-l="votes">Where the votes are</button><button class="lens-i" data-li="votes" aria-label="What “Where the votes are” shows">i</button></div>
     <div class="lens"><button data-l="won">Who won where</button><button class="lens-i" data-li="won" aria-label="What “Who won where” shows">i</button></div>
     <div class="lens"><button data-l="changed">What changed</button><button class="lens-i" data-li="changed" aria-label="What “What changed” shows">i</button></div>
     <div class="lens"><button data-l="worth">What a vote is worth</button><button class="lens-i" data-li="worth" aria-label="What “What a vote is worth” shows">i</button></div>
   </div>
-  <div class="seg seg2" id="worthRow" role="group" aria-label="Weight by" hidden style="margin-bottom:8px">
+  <div class="seg seg2 county-only" id="worthRow" role="group" aria-label="Weight by" hidden style="margin-bottom:8px">
     <button data-wh="ev">Electoral</button><button data-wh="sen">Senate</button><button data-wh="pop" title="Represented population">People</button>
   </div>
   <p class="notice" id="notice" hidden></p>
@@ -333,6 +353,8 @@
   <p id="aboutWeight"></p>
   <h3 id="aboutEffHead">Effective vote</h3>
   <div id="aboutEff"></div>
+  <h3 id="aboutHouseHead">The House track</h3>
+  <div id="aboutHouse"></div>
   <h3>Moving around</h3>
   <p>Drag to move the map. Shift-drag, or drag with two fingers, to tilt and turn. Scroll or pinch to zoom. Click a county to select it; shift-click or long-press to add. Keys: ← → elections, 1–4 lenses, V next view, Space play, Esc clear, / find, T table.</p>
   <h3>Notes and sources</h3>
@@ -365,6 +387,6 @@
 <div class="offices" id="offices" role="group" aria-label="Office"></div>
 <nav class="timeline" id="timeline" aria-label="Election"></nav>
 <canvas id="locator" aria-label="Locator: the whole country from above, with the part in view marked. Click to move the view there." role="button" tabindex="0"></canvas>
-<script type="module" src="js/main.js?v=79"></script>
+<script type="module" src="js/main.js?v=80"></script>
 </body>
 </html>

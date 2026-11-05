@@ -3,8 +3,9 @@
 import { fmt, esc, $ } from './util.js';
 import { LENSES } from './state.js';
 import { dataUrl } from './data.js';
+import { EG_DEF } from './views2d/seats.js';
 
-export function createAbout({ el, eff, state, tip, selection, select, stName }) {
+export function createAbout({ el, eff, state, tip, selection, select, stName, house }) {
   const { elections } = el;
   // A lens's sentence shows the first time the lens is chosen; the "i" beside it shows it on demand.
   const seenHint = {};
@@ -65,6 +66,19 @@ export function createAbout({ el, eff, state, tip, selection, select, stName }) 
       `<p class="note">${esc(eff.notes.basis)} ${esc(eff.notes.CT)} ${esc(eff.notes.fold)} ${esc(eff.notes.AK)} ${esc(eff.notes.senate_governor)} Citizen counts are survey estimates, so the smallest counties carry wide margins of error.</p>` +
       `<p class="note">Checks: the three parts multiply back to the ratio for every county and state in every election (largest difference ${c.decomposition_max_relative_error.toExponential(0)}). County populations sum to the census national totals: ${fmt(pc['2010_counties_plus_AK'])} in 2010 and ${fmt(pc['2020_counties_plus_AK'])} in 2020, Alaska included as a state total. House seats plus two equal each state's electoral votes for both apportionments.</p>` +
       `<p class="src">Sources: ${eff.sources.map((x) => `<a href="${esc(x.url)}">${esc(x.what)}</a>`).join('; ')}. Every figure: <a href="${dataUrl('effective.json')}">effective.json</a>.</p>`;
+  }
+  // The House track: what its two views show and the one setting behind the bands.
+  {
+    const H = house.data;
+    $('aboutHouse').innerHTML =
+      `<p>House results are by district: ${H.years.join(', ')}, with ${H.years[H.years.length - 1]} unofficial until certified. Choose House above the timeline. Districts places each state's districts by margin; Seats and votes sets each state's share of the two-party House vote against its share of seats. The county views and the four lenses stand down on this track.</p>` +
+      `<dl><dt>Plausible swing</dt><dd>One setting behind the bands, under Adjust, kept in the link. Default: ${esc(H.plausible.how)} (${H.plausible.value} points). "State observed" uses each state's own median; states with fewer than ${H.minSwings} observed swings use the national figures.</dd>` +
+      `<dt>At risk</dt><dd>A held seat whose margin is below the plausible swing.</dd>` +
+      `<dt>Captured</dt><dd>A margin above the state's largest observed swing, or above the plausible swing when that is higher. It describes the result, not anyone's intent.</dd>` +
+      `<dt>Contestable</dt><dd>Between the two.</dd>` +
+      `<dt>Captured votes</dt><dd>In a captured seat, the winner's votes beyond the captured line, plus all of the runner-up's.</dd>` +
+      `<dt>Efficiency gap</dt><dd>${esc(EG_DEF.replace(/^Efficiency gap: /, ''))}</dd></dl>` +
+      `<p class="note">Swings are measured only between elections on unchanged lines. Sources: ${H.years.map((y) => esc(H.sources[y])).join('; ')}.</p>`;
   }
   return { lensHint, infoButton, closeAbout, isAboutOpen: () => !about.hidden, renderRank, isRankOpen: () => !rank.hidden, closeRank: () => { rank.hidden = true; } };
 }

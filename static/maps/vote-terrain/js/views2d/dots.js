@@ -7,7 +7,7 @@ export function dotsView({ ctx, DUR, head, body, place, inSel, shiftOf, dragGuar
   const guard = dragGuard();
   const RADIUS = 9;
   function build() {
-    head.innerHTML = '<span class="v2d-label">Sort states by</span><div class="seg v2d-seg" role="group" aria-label="Sort states by">' +
+    head.innerHTML = '<span class="v2d-label v2d-sort">Sort states by</span><div class="seg v2d-seg" role="group" aria-label="Sort states by">' +
       ['median', 'spread', 'counties', 'biggest'].map((k) => `<button data-sort="${k}" aria-pressed="${k === sortKey}">${{ median: 'Median', spread: 'Spread', counties: 'Counties', biggest: 'Biggest county' }[k]}</button>`).join('') + '</div>';
     head.querySelectorAll('[data-sort]').forEach((b) => b.addEventListener('click', () => { sortKey = b.dataset.sort; head.querySelectorAll('[data-sort]').forEach((x) => x.setAttribute('aria-pressed', x === b)); draw(true); }));
     body.innerHTML = '';

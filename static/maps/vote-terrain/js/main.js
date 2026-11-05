@@ -6,8 +6,11 @@
    The House track (house.js, house.json): results by district, drawn only by Districts and Seats and votes.
    Data from build_data.mjs and the other tools/vote-terrain builders; see tools/vote-terrain/README.md.
 
-   window.__vt exists for the smoke test (tools/vote-terrain/smoke.mjs) and checks in the console only;
-   nothing on the page reads it. */
+   Saved views and tours (views.js, views.json): ?view=<slug> and ?tour=<slug> open a named screen with its caption;
+   ?export=1 hides the page's controls for tools/vote-terrain/export.mjs.
+
+   window.__vt exists for the smoke test (tools/vote-terrain/smoke.mjs), the export tool and checks in the console
+   only; nothing on the page reads it. */
 import { state, TABS, TAB_NAME, LENSES, fromHash, toHash } from './state.js';
 import { toward, towardW, buildRamp, GARNET, SAPPHIRE, NEUTRAL, NODATA, SWING_MAX, MARGIN_MAX, WEIGHT_MAX } from './colour.js';
 import { reduced, fmt, clamp, countyLabelOf, $ } from './util.js';
@@ -22,12 +25,17 @@ import { createTable } from './table.js';
 import { createAbout } from './about.js';
 import { createViews2d } from './views2d/index.js';
 import { createHouse, PS_MIN, PS_MAX } from './house.js';
+import { createSavedViews, askedFor } from './views.js';
 
 // Without WebGL the 3D views cannot draw: the page falls back to a flat view (see noGL) and keeps everything else.
 const hasGL = (() => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return false; } })();
 const terrainModule = hasGL ? import('./terrain.js') : null;   // three.js loads alongside the data
 const [geoHead, geoBytes, el, bal, eff, houseData] = await Promise.all([getJSON('geometry.json'), getBin('geometry.bin', Uint8Array), ...['elections.json', 'balance.json', 'effective.json', 'house.json'].map(getJSON)]);
 const geo = decodeGeometry(geoHead, geoBytes);
+// ?view= or ?tour=: the registry of saved views, loaded only when one is asked for.
+const ASK = askedFor();
+const registry = ASK.view || ASK.tour ? await fetch('views.json').then((r) => r.json()) : null;
+if (ASK.exporting) document.body.classList.add('export');
 // ?snapshot=<slug>: say so, with the date the data was frozen (snapshot.mjs writes the manifest).
 if (SNAPSHOT) getJSON('manifest.json').then((m) => { const n = $('snapNote'); n.textContent = `Frozen data: snapshot ${m.slug}, ${m.created.slice(0, 10)}.`; n.hidden = false; }).catch(() => {});
 const { meta, pieces, presets } = geo;
@@ -38,7 +46,19 @@ Object.assign(elections, house.elections); tracks.house = house.ids; order.push(
 for (const id of house.ids) sameOffice[id] = null;
 const isHouse = house.isHouse;
 
-const firstVisit = !location.hash;                    // a shared link opens still; a first visit spins
+// A shared link, a saved view or a tour opens still; a first visit spins.
+const firstVisit = !location.hash && !ASK.view && !ASK.tour && !ASK.exporting;
+// A saved view's state becomes the address hash (keys it leaves out take the defaults), unless the reader's own
+// hash is already there (a reload after changing something keeps the change).
+const DEFAULTS = { ...state };
+const hashFor = (st) => new URLSearchParams({ ...DEFAULTS, ...st }).toString();
+const askedView = registry && (ASK.view ? registry.views.find((v) => v.slug === ASK.view)
+  : ((t) => t && registry.views.find((v) => v.slug === t.steps[0].view))(registry.tours.find((t) => t.slug === ASK.tour)));
+// A view pinned to a snapshot opens on that snapshot's data.
+if (askedView && askedView.snapshot && SNAPSHOT !== askedView.snapshot) {
+  const q = new URLSearchParams(location.search); q.set('snapshot', askedView.snapshot); location.replace('?' + q + location.hash);
+}
+if (askedView && !location.hash) history.replaceState(null, '', location.search + '#' + hashFor(askedView.state));
 fromHash(order);
 let sel = null, selVersion = 0;
 const model = createModel({ geo, el, bal, eff, state, selection: () => sel });
@@ -49,6 +69,7 @@ const { OFFICE_NAME } = tip;
 // ---------- camera views shared by both 3D shapes ----------
 // The national view is fitted to the space between the panel (left) and the key (right).
 const sideSpace = () => {
+  if (ASK.exporting) return { left: 16, right: window.innerWidth - document.querySelector('.key').getBoundingClientRect().left + 16, fitHeight: true };
   if (window.innerWidth <= 900) return { left: 0, right: 0 };
   const pr = document.querySelector('.panel').getBoundingClientRect(), kr = document.querySelector('.key').getBoundingClientRect();
   return { left: pr.right + 16, right: window.innerWidth - kr.left + 16 };
@@ -229,7 +250,10 @@ const circlesFor = () => {
 };
 const region = () => {
   const W = window.innerWidth, box = (q) => document.querySelector(q).getBoundingClientRect();
-  const tw = $('tabWhy'), top = (tw.hidden ? box('#tabs') : tw.getBoundingClientRect()).bottom + 10;
+  // Export: the controls are hidden, so the view takes the window, beside the key.
+  if (ASK.exporting) return { left: 16, right: box('.key').left - 16, top: 16, bottom: window.innerHeight - 16 };
+  const tw = $('tabWhy'), vc = $('viewCard');
+  const top = Math.max((tw.hidden ? box('#tabs') : tw.getBoundingClientRect()).bottom + 10, vc.hidden ? 0 : vc.getBoundingClientRect().bottom + 10);
   if (W <= 640) return { left: 10, right: W - 10, top: Math.max(top, box('.key').bottom + 8, box('#bop').bottom + 8), bottom: box('.panel').top - 8 };
   const right = Math.min(box('.key').left, box('#bop').left);
   return { left: box('.panel').right + 16, right: right - 16, top, bottom: box('#offices').top - 12 };
@@ -271,11 +295,12 @@ const switchTab = (w) => {
 // ---------- find, table, read-once text ----------
 const find = createFind({ geo, el, ALL_ST: codec.ALL_ST, stName, choose: (spec) => setSelection(spec, { frame: true }) });
 const table = createTable({ geo, el, state, model, house, selection: () => sel, effW, pctCh: codec.pctCh, OFFICE_NAME, stName });
-const about = createAbout({ el, eff, state, tip, selection: () => sel, select: setSelection, stName });
+const about = createAbout({ el, eff, state, tip, selection: () => sel, select: setSelection, stName, house });
 
 function render(opts = {}) {
   buildTimeline();
   document.body.classList.toggle('house', isHouse());
+  if (isHouse()) $('lensHow').hidden = true;
   $('psGroup').hidden = !isHouse();
   if (isHouse()) {
     const P = house.plausible();
@@ -463,14 +488,22 @@ $('flat').addEventListener('click', () => {
   if ((state.s === 'terrain' && terrain) || !blocks) { render(); setCamera(state.v); return; }
   blocks.tip(state.d === '2d'); render();
 });
-// A shared link or the back button changes the hash: follow it.
-window.addEventListener('hashchange', () => {
+// A shared link or the back button changes the hash: follow it. A tour step always moves the camera to its view.
+const followHash = (forceCamera = false) => {
   const prev = state.v + state.d, prevSel = state.sel; fromHash(order);
   if (state.sel !== prevSel) { sel = codec.decode(state.sel); selVersion++; state.sel = codec.encode(sel); applySelection(); }
   render();
-  if (state.v + state.d !== prev) setCamera(state.v);
-});
-window.__vt = { state, elections, meta, house: () => house.now(), terrain: () => terrain, blocks: () => blocks, views: () => views, sel: () => sel, setSelection, effW, tipHtml: tip.countyHtml,
+  if (forceCamera || state.v + state.d !== prev) setCamera(state.v);
+};
+window.addEventListener('hashchange', () => followHash());
+// Saved views and tours: the card with the caption; a tour step sets the whole state, as a link would.
+const savedViews = registry ? createSavedViews({ registry, bal, eff, houseData, elections, stName,
+  apply: (st) => { if (terrain) terrain.stopMotion(); history.replaceState(null, '', location.search + '#' + hashFor(st)); followHash(true); } }) : null;
+if (savedViews) {
+  savedViews.setOnResize(() => { if (views && effW() !== 'terrain') views.redraw(false); });
+  if (!ASK.exporting) savedViews.open({ view: ASK.view, tour: ASK.tour }, { applyState: false });
+}
+window.__vt = { state, elections, saved: () => savedViews, meta, house: () => house.now(), terrain: () => terrain, blocks: () => blocks, views: () => views, sel: () => sel, setSelection, effW, tipHtml: tip.countyHtml,
   colours: { GARNET: GARNET + '', SAPPHIRE: SAPPHIRE + '', NEUTRAL: NEUTRAL + '' } };
 sel = codec.decode(state.sel); state.sel = codec.encode(sel);
 ready = true;
