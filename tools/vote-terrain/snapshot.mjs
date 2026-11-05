@@ -29,7 +29,7 @@ const SLUG = /^[a-z0-9][a-z0-9-]{0,80}$/;   // the same rule as js/data.js
 // Every file the page fetches: the shared data, each election's terrain grids and every Circles layout.
 function dataFiles() {
   const geo = readJSON(path.join(PAGE, 'geometry.json')), terrain = readJSON(path.join(PAGE, 'terrain.json'));
-  const files = ['geometry.json', geo.bin, 'elections.json', 'balance.json', 'effective.json', 'house.json', 'history.json', 'terrain.json', 'terrain-counties.bin', 'terrain-cells.bin'];
+  const files = ['geometry.json', geo.bin, 'elections.json', 'balance.json', 'effective.json', 'house.json', 'history.json', 'simulator.json', 'terrain.json', 'terrain-counties.bin', 'terrain-cells.bin'];
   for (const e of Object.values(terrain.elections)) files.push(...Object.values(e.file));
   files.push(...fs.readdirSync(PAGE).filter((f) => /^circles-[a-z0-9]+\.json$/.test(f)).sort());
   return [...new Set(files)];

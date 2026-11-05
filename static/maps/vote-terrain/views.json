@@ -141,6 +141,31 @@
         "w": "history",
         "hc": "weight"
       }
+    },
+    {
+      "slug": "simulator-2024-president",
+      "title": "Swing simulator, 2024",
+      "file": "One swing for every race on Nov. 5, 2024: where control changes hands",
+      "caption": "On a uniform swing, a simplification and not a forecast: the House changes hands at {calc.sim.y2024.house.toD.other.at|pt} points of margin toward Democrats, the Electoral College at {calc.sim.y2024.pres.toD.other.at|pt}, when {calc.sim.y2024.pres.toD.other.states|states} flip, and the Senate at {calc.sim.y2024.sen.toD.other.at|pt}.",
+      "sources": "FEC, official 2024 presidential results (certified state totals); National Archives, electoral votes; MIT Election Data and Science Lab, 2024 Senate by state (unofficial file version); Clerk of the House, 2024 election statistics. Swing in points of two-party margin.",
+      "state": {
+        "e": "pres2024",
+        "w": "sim",
+        "sm": "pres"
+      }
+    },
+    {
+      "slug": "simulator-2026-house",
+      "title": "Swing simulator, House 2026",
+      "file": "One swing for every House race on Nov. 3, 2026, unofficial: captured seats stay put",
+      "caption": "On the unofficial count and a uniform swing, a simplification and not a forecast: the Democratic House majority holds until {calc.sim.y2026.house.toR.first.at|pt} points of margin toward Republicans, and Republicans reach 218 at {calc.sim.y2026.house.toR.other.at|pt}. Of {calc.sim.y2026.captured.n} captured seats, {calc.sim.y2026.captured.flipAtPs} flip at a swing of {calc.sim.y2026.captured.ps} points either way. Unofficial count as of {house.asof2026|et}.",
+      "sources": "AP via CNN, 2026 House and Senate results, unofficial as of {house.asof2026|et}. Swing in points of two-party margin.",
+      "state": {
+        "e": "house2026",
+        "w": "sim",
+        "sm": "house",
+        "sw": "-ps"
+      }
     }
   ],
   "tours": [

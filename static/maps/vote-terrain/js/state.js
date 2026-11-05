@@ -4,13 +4,15 @@
    previous race, w view tab, sel the selection: states (s:CA,NV), a rule from a drag (r:, q:, b:) or a
    list of counties (c:). ps: the plausible swing behind the House bands (points, 'state', or empty for the
    default). hc: which History chart (seats: residents per House seat; small: the smallest change; weight: weight
-   per vote over time). */
+   per vote over time). Simulator: sw the swing (points of margin, positive toward Democrats;
+   empty for none; ps or -ps: the plausible swing in force, toward Democrats or Republicans), swr the rule
+   (u uniform, p proportional), lock the states held at their actual result (CA,PA), sm which body its map shows. */
 import { parsePs } from './house.js';
-export const state = { e: 'pres2024', h: 'total', c: 'margin', s: 'terrain', m: '1', v: 'west', d: '3d', u: 'd', n: 'area', l: 'votes', g: '0', w: 'terrain', sel: '', ps: '', hc: 'seats' };
+export const state = { e: 'pres2024', h: 'total', c: 'margin', s: 'terrain', m: '1', v: 'west', d: '3d', u: 'd', n: 'area', l: 'votes', g: '0', w: 'terrain', sel: '', ps: '', hc: 'seats', sw: '', swr: 'u', lock: '', sm: '' };
 // Districts and Seats and votes draw the House track (results by district); History draws the long view on any track;
 // the others need county results.
-export const TABS = ['terrain', 'circles', 'arrows', 'dots', 'scatter', 'strips', 'seats', 'history'];
-export const TAB_NAME = { terrain: 'Terrain', circles: 'Circles', arrows: 'Arrows', dots: 'Dots', scatter: 'Scatter', strips: 'Districts', seats: 'Seats and votes', history: 'History' };
+export const TABS = ['terrain', 'circles', 'arrows', 'dots', 'scatter', 'strips', 'seats', 'history', 'sim'];
+export const TAB_NAME = { terrain: 'Terrain', circles: 'Circles', arrows: 'Arrows', dots: 'Dots', scatter: 'Scatter', strips: 'Districts', seats: 'Seats and votes', history: 'History', sim: 'Simulator' };
 // Lenses: one question each, setting several controls at once. Changing any control in Adjust makes the view "custom".
 export const LENSES = {
   votes: { set: { n: 'area', h: 'total', c: 'margin', g: '0', d: '3d' }, v: 'national',
@@ -38,5 +40,10 @@ export const fromHash = (order) => {
   state.sel = q.get('sel') || '';
   state.ps = parsePs(q.get('ps') || '');
   if (!['seats', 'small', 'weight'].includes(state.hc)) state.hc = 'seats';
+  state.sw = q.get('sw') || ''; state.sm = q.get('sm') || '';
+  if (!['ps', '-ps'].includes(state.sw)) state.sw = state.sw !== '' && isFinite(+state.sw) && Math.abs(+state.sw) <= 10 && +state.sw !== 0 ? String(+(+state.sw).toFixed(1)) : '';
+  if (!['u', 'p'].includes(state.swr)) state.swr = 'u';
+  state.lock = (q.get('lock') || '').split(',').filter((x) => /^[A-Z]{2}$/.test(x)).join(',');
+  if (!['', 'pres', 'sen', 'house'].includes(state.sm)) state.sm = '';
 };
 export const toHash = () => history.replaceState(null, '', '#' + new URLSearchParams(state).toString());

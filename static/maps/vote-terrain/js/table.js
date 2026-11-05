@@ -1,8 +1,10 @@
 /* Table: the numbers behind the view in use, as in the tooltip. On the House track: one row per district
-   (Districts) or per state (Seats and votes). History: one row per census, then one per presidential election. */
+   (Districts) or per state (Seats and votes). History: one row per census, then one per presidential election.
+   Simulator: one row per place on the election day (each state for president, each Senate race, each House district),
+   with the swing at which it changes hands and its winner at the swing in force. */
 import { fmt, esc, countyLabelOf, $ } from './util.js';
 
-export function createTable({ geo, el, state, model, house, history, selection, effW, pctCh, OFFICE_NAME, stName }) {
+export function createTable({ geo, el, state, model, house, history, selection, effW, pctCh, OFFICE_NAME, stName, simCtx }) {
   const { meta } = geo, { elections } = el;
   const wrap = $('tableWrap'), table = $('table');
   let sort = { k: 2, dir: -1 };
@@ -53,7 +55,34 @@ export function createTable({ geo, el, state, model, house, history, selection, 
       '<tr><th>Election</th><th>Census</th><th>Residents per senator</th><th>Electoral votes per vote cast</th></tr>' +
       H.weight.map((w) => `<tr><td>${w.year}</td><td>${w.census}</td><td>${w.senate.ratio.toFixed(1)}×: ${esc(stName(w.senate.big))} ${fmt(w.senate.bigPop)} against ${esc(stName(w.senate.small))} ${fmt(w.senate.smallPop)}</td><td>${w.ev.ratio.toFixed(2)}×: ${esc(stName(w.ev.hi))} (${w.ev.hiEv} for ${fmt(w.ev.hiVotes)}) against ${esc(stName(w.ev.lo))} (${w.ev.loEv} for ${fmt(w.ev.loVotes)})</td></tr>`).join('') + '</tbody>';
   };
+  // Simulator: every place, the swing that flips it and its winner now.
+  const renderSim = () => {
+    const S = simCtx();
+    if (!S) { $('tableTitle').textContent = 'Simulator'; $('tableNote').textContent = 'Loading…'; table.innerHTML = ''; return; }
+    const { sim, P, s, rule, locked } = S, sel = selection();
+    const sts = sel ? new Set(sel.states || [...sel.counties].map((f) => meta[f].st)) : null;
+    const BODY = { pres: 'President', sen: 'Senate', house: 'House' };
+    let rs = [...(P.pres || []), ...P.sen, ...(P.house || [])];
+    if (sts) rs = rs.filter((p) => sts.has(p.st));
+    const cols = [
+      ['Race', (p) => BODY[p.body], String],
+      ['Place', (p) => (p.body === 'pres' ? `${stName(p.st)} (${p.ev} EV)` : p.body === 'sen' ? `${stName(p.st)}${p.race.endsWith('special') ? ' (special)' : ''}` : `${p.st}-${p.n}`), String],
+      ['Actual', (p) => p.actual || 'undecided', String],
+      ['Two-party margin', (p) => (p.D > 0 && p.R > 0 ? sim.marginOf(p) : null), lead],
+      ['Flips at', (p) => { const f = sim.flipAt(p, rule); return f == null ? null : f; }, (f) => (f == null ? 'held' : `${Math.abs(f).toFixed(2)} to ${f > 0 ? 'D' : 'R'}`)],
+      ['At this swing', (p) => sim.winnerAt(p, s, rule, locked) || 'undecided', String],
+      ['Note', (p) => (p.fixed ? `held: ${p.fixed}` : locked.has(p.st) ? 'locked' : p.body === 'house' ? p.band : ''), String],
+    ];
+    if (sort.k >= cols.length) sort = { k: 4, dir: 1 };
+    const get = cols[sort.k][1];
+    rs.sort((x, y) => { let a = get(x), c = get(y); if (sort.k === 4) { a = a == null ? null : Math.abs(a); c = c == null ? null : Math.abs(c); } if (a == null) return 1; if (c == null) return -1; return (typeof a === 'string' ? a.localeCompare(c, 'en', { numeric: true }) : a - c) * sort.dir; });
+    $('tableTitle').textContent = `Simulator, ${S.label}: ${s === 0 ? 'the actual result' : `${Math.abs(s).toFixed(1)} points toward ${s > 0 ? 'Democrats' : 'Republicans'}`} (${rule === 'p' ? 'proportional' : 'uniform'} swing)`;
+    $('tableNote').textContent = `${fmt(rs.length)} races. Flips at: the swing in points of two-party margin at which the race changes hands. ${S.unofficial} Click a heading to sort.`;
+    table.innerHTML = '<thead><tr>' + cols.map((c, i) => `<th data-k="${i}"${i === sort.k ? ` aria-sort="${sort.dir > 0 ? 'ascending' : 'descending'}"` : ''}>${c[0]}</th>`).join('') + '</tr></thead><tbody>' +
+      rs.map((r) => '<tr>' + cols.map((c) => `<td>${esc(c[2](c[1](r)))}</td>`).join('') + '</tr>').join('') + '</tbody>';
+  };
   const render = () => {
+    if (effW() === 'sim') return renderSim();
     if (effW() === 'history') return renderHistory();
     if (house.isHouse()) return renderHouse();
     const b = model.baselineOf(), w = effW(), sel = selection();

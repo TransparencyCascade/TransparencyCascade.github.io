@@ -134,7 +134,9 @@
   .bop .src { margin-top:8px; padding-top:6px; font-size:11px; }
   .bop .src a { color:var(--graphite); }
   /* View tabs, flat views, selection chip, find and table */
-  .tabs { position:fixed; left:50%; top:20px; transform:translateX(-50%); display:flex; background:var(--paper); border:1px solid var(--rule); z-index:4; }
+  /* Centred and as wide as its labels need, up to the space between the panel and the key (a fixed box would
+     otherwise shrink to half the window and wrap the labels). */
+  .tabs { position:fixed; left:50%; top:20px; transform:translateX(-50%); display:flex; width:max-content; max-width:calc(100vw - 500px); background:var(--paper); border:1px solid var(--rule); z-index:4; }
   .tabs button { font:inherit; font-size:13px; color:var(--ink); background:transparent; border:0; border-left:1px solid var(--rule); padding:6px 16px; cursor:pointer; }
   .tabs button:first-child { border-left:0; }
   .tabs button[aria-pressed=true] { background:var(--ink); color:var(--paper); }
@@ -180,6 +182,29 @@
   body.export .panel, body.export .tabs, body.export .tab-why, body.export .bop, body.export .offices, body.export .timeline,
   body.export #locator, body.export .view-card, body.export .tour-caption, body.export #grain, body.export .key .lens-i, body.export #rankBtn,
   body.export .v2d-head .v2d-seg, body.export .v2d-head .lens-i, body.export .v2d-sort, body.export .v2d-showall, body.export .v2d-foot { display:none !important; }
+  /* Simulator */
+  .sim-top { flex:none; }
+  #v2d .v2d-root[data-view=sim] .v2d-body { overflow-y:auto; overflow-x:hidden; display:block; }
+  #v2d .v2d-root[data-view=sim] .v2d-foot { max-height:4.5em; overflow-y:auto; overflow-wrap:anywhere; }
+  .sim-readout-row { display:flex; flex-wrap:wrap; gap:4px 16px; align-items:baseline; }
+  .sim-readout { font:700 15px 'Courier Prime', monospace; color:var(--ink); }
+  .sim-label { font-size:12px; color:var(--graphite); }
+  .sim-range { width:100%; margin:4px 0 0; accent-color:var(--ink); height:22px; }
+  .v2d-body .sim-axis { font-size:10px; }
+  .v2d-body .sim-tick { font-size:11px; fill:var(--ink); font-weight:700; paint-order:stroke; stroke:var(--ground); stroke-width:4px; }
+  .v2d-body .sim-bar-lab { font-size:11px; fill:var(--graphite); }
+  .sim-main { display:flex; gap:12px; min-height:0; }
+  .sim-tiles { flex:none; }
+  .v2d-body .sim-tile-st { font-size:11px; font-weight:700; fill:#fff; paint-order:stroke; stroke:rgba(35,48,107,.55); stroke-width:2px; }
+  .v2d-body .sim-tile-n { font-size:9px; fill:#fff; paint-order:stroke; stroke:rgba(35,48,107,.55); stroke-width:2px; }
+  .sim-list { font-size:12px; color:var(--graphite); padding-right:4px; }
+  .sim-list h4 { font:700 12px 'Courier Prime', monospace; color:var(--ink); margin:8px 0 4px; }
+  .sim-list .sim-cap { margin:0 0 4px; }
+  .sim-row { display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:8px; align-items:center; padding:2px 0; border-bottom:1px solid var(--rule); cursor:pointer; }
+  .sim-row.faint { opacity:.55; }
+  .sim-lock { font:inherit; font-size:11px; color:var(--ink); background:transparent; border:1px solid var(--rule); padding:1px 6px; cursor:pointer; }
+  .sim-lock[aria-pressed=true] { background:var(--ink); color:var(--paper); }
+  body.export .sim-lock, body.export .sim-range { display:none !important; }
   .v2d-head .v2d-showall { font:inherit; font-size:12px; color:var(--ink); background:var(--paper); border:1px solid var(--rule); padding:4px 10px; cursor:pointer; }
   .sel-chip { display:flex; flex-wrap:wrap; gap:6px; align-items:center; border:1px solid var(--ink); background:rgba(35,48,107,.06); padding:6px 8px; margin:0 0 12px; font-size:12.5px; }
   .sel-chip span { flex:1 1 100%; }
@@ -230,8 +255,8 @@
     .find { top:52px; }
     .table-wrap { inset:52px 10px 90px; }
     .panel { left:10px; right:10px; width:auto; top:auto; bottom:110px; max-height:34%; padding:10px 12px; }
-    body[data-w=dots] .panel, body[data-w=arrows] .panel, body[data-w=scatter] .panel, body[data-w=strips] .panel, body[data-w=seats] .panel, body[data-w=history] .panel { max-height:24%; }
-    body[data-w=dots] .key, body[data-w=arrows] .key, body[data-w=scatter] .key, body[data-w=strips] .key, body[data-w=seats] .key, body[data-w=history] .key { width:150px; padding:8px 10px; }
+    body[data-w=dots] .panel, body[data-w=arrows] .panel, body[data-w=scatter] .panel, body[data-w=strips] .panel, body[data-w=seats] .panel, body[data-w=history] .panel, body[data-w=sim] .panel { max-height:24%; }
+    body[data-w=dots] .key, body[data-w=arrows] .key, body[data-w=scatter] .key, body[data-w=strips] .key, body[data-w=seats] .key, body[data-w=history] .key, body[data-w=sim] .key { width:150px; padding:8px 10px; }
     #locator { display:none !important; }
     h1 { font-size:24px; }
     .about, .rank { left:10px; right:10px; top:10px; width:auto; max-height:calc(100% - 20px); }
@@ -251,7 +276,7 @@
 <div id="v2d"></div>
 <div id="grain" aria-hidden="true"></div>
 <nav class="tabs" id="tabs" aria-label="View">
-  <button data-w="terrain">Terrain</button><button data-w="circles">Circles</button><button data-w="arrows">Arrows</button><button data-w="dots">Dots</button><button data-w="scatter">Scatter</button><button data-w="strips">Districts</button><button data-w="seats">Seats and votes</button><button data-w="history">History</button>
+  <button data-w="terrain">Terrain</button><button data-w="circles">Circles</button><button data-w="arrows">Arrows</button><button data-w="dots">Dots</button><button data-w="scatter">Scatter</button><button data-w="strips">Districts</button><button data-w="seats">Seats and votes</button><button data-w="history">History</button><button data-w="sim">Simulator</button>
 </nav>
 <p class="tab-why" id="tabWhy" hidden></p>
 <aside class="view-card" id="viewCard" hidden aria-live="polite" aria-label="Saved view"></aside>
@@ -389,6 +414,6 @@
 <div class="offices" id="offices" role="group" aria-label="Office"></div>
 <nav class="timeline" id="timeline" aria-label="Election"></nav>
 <canvas id="locator" aria-label="Locator: the whole country from above, with the part in view marked. Click to move the view there." role="button" tabindex="0"></canvas>
-<script type="module" src="js/main.js?v=84"></script>
+<script type="module" src="js/main.js?v=85"></script>
 </body>
 </html>

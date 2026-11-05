@@ -230,6 +230,47 @@ const SCENARIOS = [
   ...['residents-per-seat', 'smallest-change-history', 'weight-over-time'].map((v) => ({ name: `v-view-${v}`, query: `view=${v}`,
     probe: (page) => page.evaluate(() => ({ card: document.getElementById('viewCard').innerText.replace(/\s+/g, ' '), w: window.__vt.effW(), hc: window.__vt.state.hc,
       charts: document.querySelectorAll('#v2d svg.hist-chart').length })) })),
+  // The swing simulator: one swing for every race on the election day; the slider, locks and rule in the link; the
+  // thresholds against a direct count; the 2024 Electoral College against the smallest change.
+  { name: 'm-sim-2024', hash: 'e=pres2024&w=sim' },
+  { name: 'm-sim-2024-swing', hash: 'e=pres2024&w=sim&sw=1.8&lock=NV&sel=s:PA' },
+  { name: 'm-sim-house2026', hash: 'e=house2026&w=sim&sw=-6' },
+  { name: 'm-sim-sen2018-prop', hash: 'e=sen2018&w=sim&swr=p&sw=6' },
+  { name: 'm-sim-table', hash: 'e=pres2024&w=sim&sw=1.8', act: key('t') },
+  { name: 'm-sim-phone', hash: 'e=pres2024&w=sim&sw=1.8', viewport: { width: 390, height: 844 } },
+  { name: 'm-sim-hover', hash: 'e=pres2024&w=sim', act: async (page) => { const b = await page.locator('#v2d .sim-tile[data-st=PA] rect').boundingBox(); await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.waitForTimeout(250); }, tip: true },
+  { name: 'm-sim-slider', hash: 'e=pres2024&w=sim', probe: async (page) => {
+    const now = () => page.evaluate(() => { const S = window.__vt.sim(), t = S.sim.tally(S.P, S.s, S.rule, S.locked); return { s: S.s, ev: [t.pres.D, t.pres.R], ctl: t.pres.control, hash: location.hash.match(/(?:^|&)(sw|lock)=[^&]*/g) }; });
+    await page.$eval('.sim-range', (r) => { r.value = '1.8'; r.dispatchEvent(new Event('input', { bubbles: true })); }); await settle(page);
+    const at = await now();
+    await page.locator('.sim-lock[data-lock=PA]').first().click(); await settle(page);
+    const locked = await now();
+    await page.reload(); await page.waitForFunction(() => window.__vt && window.__vt.sim()); await settle(page);
+    const reloaded = await now();
+    await page.click('.sim-reset'); await settle(page);
+    const reset = await now();
+    return { at, locked, reloaded, reset, ok: at.ctl === 'D' && at.ev[0] === 270 && locked.ctl === 'R' && JSON.stringify(reloaded) === JSON.stringify(locked) && reset.s === 0 && reset.ctl === 'R' }; } },
+  { name: 'm-sim-thresholds', hash: 'e=pres2024&w=sim', probe: (page) => page.evaluate(async () => {
+    const bal = await (await fetch('balance.json')).json(), S = window.__vt.sim(), { sim, P } = S;
+    // Direct count: Republican-held states in order of margin, electoral votes added until Democrats reach 270.
+    const tot = S.sim.tally(P, 0, 'u'), order = P.pres.filter((p) => p.actual === 'R').map((p) => ({ st: p.st, ev: p.ev, m: -sim.marginOf(p) })).sort((a, b) => a.m - b.m);
+    let ev = tot.pres.D, raw = null; const states = [];
+    for (const x of order) { ev += x.ev; states.push(x.st); if (ev >= 270) { raw = x.m; break; } }
+    const th = sim.thresholds(P, 'u'), tick = th.find((k) => k.body === 'pres');
+    const small = bal.elections.pres2024.smallest.president.states.slice().sort().join();
+    // Every tick: control at the tick is the new one, just inside it the old one.
+    const ticksOk = th.every((k) => { const sg = Math.sign(k.at); return sim.tally(P, k.at, 'u')[k.body].control === k.control && sim.tally(P, k.raw - sg * 1e-6, 'u')[k.body].control === k.from; });
+    return { raw, tick, states: states.slice().sort().join(), small, ticksOk, ok: Math.abs(tick.raw - raw) < 1e-9 && states.slice().sort().join() === small && ticksOk }; }) },
+  { name: 'm-sim-data', hash: 'e=sen2026&w=sim', probe: (page) => page.evaluate(async () => {
+    const d = await (await fetch('simulator.json')).json(), bal = await (await fetch('balance.json')).json();
+    const sen = { 2016: 'pres2016', 2018: 'd2018', 2020: 'pres2020', 2022: 'd2022', 2024: 'pres2024' };
+    const senOk = Object.entries(sen).every(([y, k]) => d.days[y].senate.actual.D === bal.elections[k].senate.caucusD && d.days[y].senate.actual.R === bal.elections[k].senate.R);
+    const presOk = ['2016', '2020', '2024'].every((y) => { const a = d.days[y].pres.actual; return a.D + a.R === 538; });
+    const seats = Object.values(d.days).every((x) => x.senate.holdover.D + x.senate.holdover.R + x.senate.races.length === 100);
+    return { senOk, presOk, seats, ok: senOk && presOk && seats }; }) },
+  ...['simulator-2024-president', 'simulator-2026-house'].map((v) => ({ name: `v-view-${v}`, query: `view=${v}`,
+    probe: (page) => page.evaluate(() => ({ card: document.getElementById('viewCard').innerText.replace(/\s+/g, ' '), w: window.__vt.effW(), s: window.__vt.sim() && window.__vt.sim().s })) })),
+  { name: 'n-nogl-sim', hash: 'e=pres2024&w=sim&sw=1.8', gl: false },
   { name: 'n-nogl-house', hash: 'e=house2026&w=seats', gl: false },
   { name: 'n-nogl', hash: 'w=terrain', gl: false },
   { name: 'n-nogl-blocks', hash: 's=blocks', gl: false },

@@ -1,5 +1,6 @@
 /* Flat companion views for the vote terrain: Circles, Arrows, Dots and Scatter (d3 + SVG), and for the
-   House track, District strips and Seats against votes; History (any office) draws the long view. main.js owns
+   House track, District strips and Seats against votes; History (any office) draws the long view; Simulator (any
+   office) moves every place on the election day by one swing. main.js owns
    the data, the state and the selection; each view only draws what it is given and reports the reader's
    gestures back through ctx.select(). This module holds what the views share: the county outlines and
    centroids, state borders, the frame each view draws in, and the gesture helpers. */
@@ -11,6 +12,7 @@ import { circlesView } from './circles.js';
 import { stripsView } from './strips.js';
 import { seatsView } from './seats.js';
 import { historyView } from './history.js';
+import { simView } from './sim.js';
 
 export function createViews2d(ctx) {
   const { el, geo, meta } = ctx;
@@ -85,7 +87,7 @@ export function createViews2d(ctx) {
 
   const env = { ctx, meta, DUR, head, body, foot, place, inSel, shiftOf, longPress, dragGuard, nearest, hitLayer,
     countyPath, centroid, bboxOf, statePath, W0, statesOf, rows: () => ctx.rows() };
-  const views = { dots: dotsView(env), arrows: arrowsView(env), scatter: scatterView(env), circles: circlesView(env), strips: stripsView(env), seats: seatsView(env), history: historyView(env) };
+  const views = { dots: dotsView(env), arrows: arrowsView(env), scatter: scatterView(env), circles: circlesView(env), strips: stripsView(env), seats: seatsView(env), history: historyView(env), sim: simView(env) };
   let current = null;
   return {
     show(name) {

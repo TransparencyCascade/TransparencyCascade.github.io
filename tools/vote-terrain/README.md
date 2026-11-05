@@ -20,7 +20,8 @@ checks it; Hugo does not publish `tools/`.
 | `tooltip.js`, `balance.js`, `selection.js`, `find.js`, `table.js`, `about.js` | The tip, balance of power, selection codec, find box, table, read-once drawers |
 | `terrain.js` | Smooth terrain (three.js), loaded only with WebGL |
 | `blocks.js` | Exact counties (three.js), loaded the first time it is shown |
-| `views2d/` | Circles, Arrows, Dots, Scatter, for the House track Districts (`strips.js`) and Seats and votes (`seats.js`), and History (`history.js`, any track) (d3 + SVG), and what they share |
+| `views2d/` | Circles, Arrows, Dots, Scatter, for the House track Districts (`strips.js`) and Seats and votes (`seats.js`), History (`history.js`, any track) and the Simulator (`sim.js`, any track) (d3 + SVG), and what they share |
+| `sim.js` | The swing simulator's arithmetic (pure): each place's flip point under uniform or proportional swing, seats and control at a swing, where control changes |
 | `views.js` | Saved views and tours (`views.json`): `?view=`, `?tour=`, the card with the caption, caption tokens resolved from the data |
 
 `window.__vt` exists only for the smoke test, `export.mjs` and console checks. When you change a module, bump the
@@ -58,6 +59,16 @@ Run from the repository root, in this order (each step reads what the one before
    `vt-historical-depth-method-note.md`). Reads `elections.json` beside the output to link years the page has.
    Checks: state seats add to the national row at every census; electoral votes add to 538 every year; 2016, 2020
    and 2024 equal `balance.json`'s smallest change.
+
+9. `python3 -I tools/vote-terrain/build_simulator.py <downloads> static/maps/vote-terrain/balance.json static/maps/vote-terrain/simulator.json`
+   The Simulator's races (`sw=` swing, `swr=u|p` rule, `lock=` states held, `sm=` map body): for each election day,
+   each state's certified presidential totals and electoral votes (Maine's and Nebraska's district electors held),
+   each Senate race's top Democratic-side and Republican candidates (fusion lines merged; races not a Democrat
+   against a Republican held at their result), the seats not on the ballot, and who breaks a 50-50 tie. Reads the
+   same downloads as `build_balance.py` and imports its parsers. Checks: at no swing the electoral votes are each
+   year's pledged result and the Senate is the chamber after each election; seats not up plus races make 100.
+   The House comes from `house.json` at run time. Gap: the MIT 2024 Senate state file has no row for Nebraska's
+   special election, so that seat is counted with the seats not up and does not move.
 
 `geometry_codec.mjs` packs the geometry (lossless; it checks the round trip). To convert a geometry.json in
 the old shape: `node tools/vote-terrain/geometry_codec.mjs <old geometry.json> static/maps/vote-terrain`.
@@ -135,6 +146,7 @@ The open task is `cascade-research/notes/vote-terrain-refresh-2026-with-certifie
    checks: county sums against certified state totals, the effective-vote decomposition, population totals.
    For the House: rebuild the district CSVs with `build_house_2026_comparison.py` on the certified canvasses,
    then `build_house.py`; the plausible-swing default moves with the data (and later with 1976–2024 history).
+   Then `build_simulator.py` (2026 Senate from the certified canvass in place of the AP feed).
 5. List every figure that changed (old and new value) for Mark before any piece cites a refreshed number.
 6. Take the "unofficial" flag off an election only when its certified source is in place.
 7. Run the smoke test. Expected differences are the changed numbers; re-record once they are checked.

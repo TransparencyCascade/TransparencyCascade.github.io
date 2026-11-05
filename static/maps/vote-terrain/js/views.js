@@ -11,13 +11,16 @@
    calc.eff.<election>: hi, lo (state codes), hiName, loName, ratio (weight per vote, highest over lowest state)
    calc.hist: first, last (census rows), capYear, lastHiName/lastHiV, lastLoName/lastLoV (most and fewest residents per seat,
      latest census), smallFirst, smallLast, smallMin, smallMax (elections with the fewest and most votes in their smallest change)
+   calc.sim.y<year>.<pres|sen|house>.<toD|toR>.<first|other>: { at, control, states } (uniform swing; see below);
+     calc.sim.y<year>.captured: { n, ps, flipAtPs }. filter pt: a swing as unsigned points (1.8).
    calc.house.<year>: ps, captured, contestable, atRisk, apart, capv, capvShare, st.<ST>.{captured, contestable, atRisk}
      (bands at the default plausible swing). An unknown token stops the caption and logs an error, so a broken
      caption cannot reach a card unnoticed. */
 import { fmt, esc, list, $ } from './util.js';
 import { createHouse } from './house.js';
+import { createSim } from './sim.js';
 
-export function createSavedViews({ registry, bal, eff, houseData, histData, elections, stName, apply }) {
+export function createSavedViews({ registry, bal, eff, houseData, histData, simData, elections, stName, apply }) {
   const etTime = (iso) => new Date(iso).toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', month: 'short', day: 'numeric', year: 'numeric' }) + ' ET';
   // Derived figures, computed once from the data files (the House bands with their own state, at the default plausible swing).
   const calc = { eff: {}, house: {} };
@@ -45,9 +48,37 @@ export function createSavedViews({ registry, bal, eff, houseData, histData, elec
     Object.assign(calc.hist, { wFirst: wF, wLast: wL, wLastBigName: stName(wL.senate.big), wLastSmallName: stName(wL.senate.small),
       wLastHiName: stName(wL.ev.hi), wLastLoName: stName(wL.ev.lo), wFirstHiName: stName(wF.ev.hi), wFirstLoName: stName(wF.ev.lo) });
   }
-  const roots = { bal, eff, house: houseData, hist: histData, elections, calc };
+  // The simulator (simulator.json): per election day, where control of each body changes on a uniform swing, toward
+  // Democrats (toD) and toward Republicans (toR): first, the first change; other, the first that hands it to the other
+  // party; each { at (points, unsigned), control, states (the places flipped at that swing, earliest first) }.
+  // Captured seats (House, at the default plausible swing): how many, and how many flip at that swing either way.
+  if (simData) {
+    const S = createSim(simData);
+    calc.sim = {};
+    for (const y of Object.keys(simData.days)) {
+      const hn = houseData.years.includes(y) ? createHouse({ data: houseData, state: { e: 'house' + y, ps: '' }, elections }).now() : null;
+      const P = S.placesFor(y, hn), th = S.thresholds(P, 'u'), base = S.tally(P, 0, 'u'), c = {};
+      for (const b of ['pres', 'sen', 'house']) {
+        if (!base[b]) continue;
+        c[b] = { actual: base[b].control };
+        for (const [k, dir] of [['toD', 1], ['toR', -1]]) {
+          const list = th.filter((x) => x.body === b && x.at * dir > 0).sort((a, b2) => Math.abs(a.at) - Math.abs(b2.at));
+          const pack = (x) => x && { at: Math.abs(x.at), control: x.control,
+            states: S.flipped(P, x.at, 'u', new Set(), b).map((f) => f.p.st).filter((st, i, a) => a.indexOf(st) === i) };
+          c[b][k] = { first: pack(list[0]), other: pack(list.find((x) => x.control !== base[b].control && x.control !== 'none' && x.control !== 'tie')) };
+        }
+      }
+      if (hn) {
+        const ps = hn.plausible.value, cap = P.house.filter((p) => p.band === 'captured');
+        const flips = (sw) => S.tally(P, sw, 'u').house.flips.filter((p) => p.band === 'captured').length;
+        c.captured = { n: cap.length, ps, flipAtPs: Math.max(flips(ps), flips(-ps)) };
+      }
+      calc.sim['y' + y] = c;
+    }
+  }
+  const roots = { bal, eff, house: houseData, hist: histData, elections, calc, sim: simData };
   const FILTERS = {
-    n: (v) => fmt(v), raw: (v) => String(v), x: (v) => v.toFixed(1) + '×', pct: (v) => v.toFixed(1) + '%', et: (v) => etTime(v),
+    n: (v) => fmt(v), raw: (v) => String(v), pt: (v) => Math.abs(v).toFixed(1), x: (v) => v.toFixed(1) + '×', pct: (v) => v.toFixed(1) + '%', et: (v) => etTime(v),
     last: (v) => String(v).split(' ').pop(), states: (v) => list(v.map(stName)),
     perstate: (v) => list(Object.entries(v).sort((a, b) => b[1] - a[1]).map(([st, n]) => `${fmt(n)} in ${stName(st)}`)),
   };
