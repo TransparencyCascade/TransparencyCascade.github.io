@@ -198,7 +198,9 @@ for (const gl of [true, false]) {
 }
 server.close();
 process.stdout.write('\n');
-fs.writeFileSync(path.join(RUN, 'results.json'), JSON.stringify({ results, errors, loadBytes }, null, 1));
+// Recording a subset (--only) updates those scenarios in the existing baseline and keeps the rest.
+const prior = RECORD && ONLY && fs.existsSync(path.join(RUN, 'results.json')) ? JSON.parse(fs.readFileSync(path.join(RUN, 'results.json'), 'utf8')) : null;
+fs.writeFileSync(path.join(RUN, 'results.json'), JSON.stringify(prior ? { results: { ...prior.results, ...results }, errors: { ...prior.errors, ...errors }, loadBytes: prior.loadBytes } : { results, errors, loadBytes }, null, 1));
 
 const fb = loadBytes.firstLoad;
 if (fb) console.log(`First load (t-default): ${(fb.local / 1e6).toFixed(2)} MB from the page folder (${(fb.localGzip / 1e6).toFixed(2)} MB gzipped), ${(fb.cdn / 1e6).toFixed(2)} MB from CDNs; files: ${fb.files.join(' ')}`);

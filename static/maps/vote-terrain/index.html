@@ -10,7 +10,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@600;700&family=Courier+Prime:wght@400;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/deck.gl@9.0.38/dist.min.js"></script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <style>
   :root {
@@ -82,8 +81,9 @@
   .bop .flip { font:inherit; color:inherit; text-align:left; background:transparent; border:0; border-left:2px solid var(--rule); padding:2px 0 2px 8px; margin:0; cursor:pointer; width:100%; }
   .bop .flip:hover { border-left-color:var(--ink); }
   .bop .flip[aria-pressed=true] { border-left-color:var(--ink); background:rgba(35,48,107,0.07); }
-  .deck-tooltip, .vt-tip { font-family:'Courier Prime', monospace !important; font-size:13px !important; background:var(--paper) !important;
-                  color:var(--ink) !important; border:1px solid var(--rule); padding:8px 10px !important; max-width:320px; line-height:1.4; }
+  .vt-tip { font-family:'Courier Prime', monospace; font-size:13px; background:var(--paper);
+            color:var(--ink); border:1px solid var(--rule); padding:8px 10px; max-width:320px; line-height:1.4; }
+  .blocks-label { position:absolute; left:0; top:0; font-size:14px; color:var(--ink); white-space:nowrap; pointer-events:none; }
   .seg2 { margin-top:6px; }
   /* Lenses: four questions, each setting the controls below */
   .lenses { display:grid; gap:4px; margin:0 0 8px; }
@@ -346,6 +346,6 @@
 <div class="offices" id="offices" role="group" aria-label="Office"></div>
 <nav class="timeline" id="timeline" aria-label="Election"></nav>
 <canvas id="locator" aria-label="Locator: the whole country from above, with the part in view marked. Click to move the view there." role="button" tabindex="0"></canvas>
-<script type="module" src="js/main.js?v=75"></script>
+<script type="module" src="js/main.js?v=76"></script>
 </body>
 </html>

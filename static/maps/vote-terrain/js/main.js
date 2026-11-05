@@ -18,7 +18,6 @@ import { createSelectionCodec } from './selection.js';
 import { createFind } from './find.js';
 import { createTable } from './table.js';
 import { createAbout } from './about.js';
-import { createBlocks } from './blocks.js';
 import { createViews2d } from './views2d/index.js';
 
 // Without WebGL the 3D views cannot draw: the page falls back to a flat view (see noGL) and keeps everything else.
@@ -45,10 +44,16 @@ const sideSpace = () => {
 };
 let glFailed = !hasGL, blocks = null, terrain = null, views = null;
 const blocksScene = () => ({ heightOf: model.heightOf, colourOf: model.colourOf, flat: state.d === '2d', key: [state.e, state.h, state.c, state.d, selVersion].join('|') });
-if (hasGL) try {
-  blocks = createBlocks({ container: $('map'), pieces, presets, k: el.k, tooltipHtml: tip.countyHtml, onError: () => noGL(),
-    initial: { view: state.v, flat: state.d === '2d', side: sideSpace(), scene: blocksScene() } });
-} catch (e) { glFailed = true; blocks = null; }
+// Exact counties loads the first time it is shown.
+let blocksLoading = null;
+const ensureBlocks = () => {
+  if (blocks || blocksLoading || glFailed) return;
+  blocksLoading = import('./blocks.js').then(({ createBlocks }) => {
+    blocks = createBlocks({ container: $('map'), pieces, presets, k: el.k, onHover: tip.hoverCounty,
+      initial: { view: state.v, flat: state.d === '2d', side: sideSpace(), scene: blocksScene() } });
+    render({ animate: false });
+  }).catch(() => noGL());
+};
 
 // ---------- terrain view (terrain.js) ----------
 const terrainState = () => {
@@ -66,6 +71,7 @@ const tabWhy = (w) => (w === 'terrain' && glFailed ? 'needs WebGL, which this br
 const effW = () => (!tabWhy(state.w) ? state.w : 'circles');
 const showView = () => {
   const w = effW(), is3d = w === 'terrain', on = is3d && state.s === 'terrain' && terrain;
+  if (is3d && state.s !== 'terrain') ensureBlocks();
   $('map').style.display = is3d && !on && blocks ? 'block' : 'none';
   if (terrain) terrain.show(is3d && state.s === 'terrain');
   if (!on) tip.hide();
