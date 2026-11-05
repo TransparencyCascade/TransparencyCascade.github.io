@@ -5,7 +5,7 @@ import { fmt, list, $ } from './util.js';
 import { dataUrl } from './data.js';
 import * as Mn from './money.js';
 
-export function createBalance({ el, bal, money, state, house, selection, onResize }) {
+export function createBalance({ el, bal, money, needMoney, state, house, selection, onResize }) {
   const { elections } = el;
   const D_COL = d3.rgb(SAPPHIRE) + '', R_COL = d3.rgb(GARNET) + '';
   const pct = (n, total) => (n / total * 100).toFixed(2) + '%';
@@ -75,7 +75,9 @@ export function createBalance({ el, bal, money, state, house, selection, onResiz
         h += `<p>${flip(sm.senate.races.map((r) => r.state), `${fmt(sm.senate.votes)} in ${list(where)}${runoff} would have given ${other} the Senate.`)}</p>`;
       }
       if (sm.house) h += `<p>${flip([...new Set(sm.house.districts.map((d) => d.district.split('-')[0]))], `${fmt(sm.house.votes)} in ${list(sm.house.districts.map((d) => d.district))} would have given Democrats the House.`)}</p>`;
-      if (money) h += costParagraphs(Mn.costLine(money, elections[state.e].year, sm), money, elections[state.e].year);
+      // The cost line needs money.json (860 KB), which loads the first time the box is open: the box draws without it, and again when it arrives.
+      if (money()) h += costParagraphs(Mn.costLine(money(), elections[state.e].year, sm), money(), elections[state.e].year);
+      else if (box.classList.contains('open')) needMoney();
       h += `<p class="muted">Voters moving from winner to runner-up: half the margin plus one, closest races first.${sm.president ? ' 270 needed; Maine and Nebraska district electors held as cast.' : ''} Click a line to select its states.</p></div>`;
     }
     const S = bal.sources;
@@ -123,7 +125,7 @@ export function createBalance({ el, bal, money, state, house, selection, onResiz
   };
   const box = $('bop'), toggle = $('bopToggle');
   const setOpen = (open) => {
-    box.classList.toggle('open', open); toggle.setAttribute('aria-expanded', open); toggle.textContent = open ? '−' : '+'; toggle.setAttribute('aria-label', open ? 'Show less' : 'Show the full balance of power');
+    box.classList.toggle('open', open); if (open && !money()) needMoney(); toggle.setAttribute('aria-expanded', open); toggle.textContent = open ? '−' : '+'; toggle.setAttribute('aria-label', open ? 'Show less' : 'Show the full balance of power');
     $('bopBody').hidden = !open; $('bopLines').hidden = open;
     try { localStorage.setItem('vt-bop-open', open ? '1' : '0'); } catch (e) { /* storage off: the choice lasts this visit */ }
     fit();

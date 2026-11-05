@@ -267,6 +267,12 @@
   table.cl th { position:sticky; top:0; background:var(--ground); cursor:pointer; border-bottom:1px solid var(--rule); font-weight:700; }
   table.cl th[aria-sort] { text-decoration:underline; }
   table.cl .l { text-align:left; } table.cl .r { text-align:right; }
+  /* People: three stacked canvases (outlines, dots, the hover and selection outline) */
+  #v2d .v2d-root[data-view=people] .v2d-body { overflow:hidden; position:relative; }
+  .pp-wrap { position:absolute; inset:0; cursor:crosshair; }
+  .pp-wrap canvas { position:absolute; left:0; top:0; }
+  .pp-top { pointer-events:none; }
+  .pp-msg { position:absolute; left:12px; top:12px; color:var(--graphite); }
   /* Money: the chart and, for Where it came from, the donors beside it */
   #v2d .v2d-root[data-view=money] .v2d-body { overflow:hidden; }
   .mn-wrap { display:flex; gap:16px; flex:1 1 0; min-height:0; align-items:stretch; }
@@ -336,8 +342,8 @@
     .find { top:52px; }
     .table-wrap { inset:52px 10px 90px; }
     .panel { left:10px; right:10px; width:auto; top:auto; bottom:110px; max-height:34%; padding:10px 12px; }
-    body[data-w=dots] .panel, body[data-w=arrows] .panel, body[data-w=scatter] .panel, body[data-w=strips] .panel, body[data-w=seats] .panel, body[data-w=history] .panel, body[data-w=money] .panel, body[data-w=sim] .panel, body[data-w=power] .panel, body[data-w=road] .panel, body[data-w=closest] .panel { max-height:24%; }
-    body[data-w=dots] .key, body[data-w=arrows] .key, body[data-w=scatter] .key, body[data-w=strips] .key, body[data-w=seats] .key, body[data-w=history] .key, body[data-w=money] .key, body[data-w=sim] .key, body[data-w=power] .key, body[data-w=road] .key, body[data-w=closest] .key { width:150px; padding:8px 10px; }
+    body[data-w=dots] .panel, body[data-w=people] .panel, body[data-w=arrows] .panel, body[data-w=scatter] .panel, body[data-w=strips] .panel, body[data-w=seats] .panel, body[data-w=history] .panel, body[data-w=money] .panel, body[data-w=sim] .panel, body[data-w=power] .panel, body[data-w=road] .panel, body[data-w=closest] .panel { max-height:24%; }
+    body[data-w=dots] .key, body[data-w=people] .key, body[data-w=arrows] .key, body[data-w=scatter] .key, body[data-w=strips] .key, body[data-w=seats] .key, body[data-w=history] .key, body[data-w=money] .key, body[data-w=sim] .key, body[data-w=power] .key, body[data-w=road] .key, body[data-w=closest] .key { width:150px; padding:8px 10px; }
     #locator { display:none !important; }
     h1 { font-size:24px; }
     .about, .rank { left:10px; right:10px; top:10px; width:auto; max-height:calc(100% - 20px); }
@@ -357,7 +363,7 @@
 <div id="v2d"></div>
 <div id="grain" aria-hidden="true"></div>
 <nav class="tabs" id="tabs" aria-label="View">
-  <button data-w="terrain">Terrain</button><button data-w="circles">Circles</button><button data-w="arrows">Arrows</button><button data-w="dots">Dots</button><button data-w="scatter">Scatter</button><button data-w="strips">Districts</button><button data-w="seats">Seats and votes</button><button data-w="history">History</button><button data-w="sim">Simulator</button><button data-w="power">Power</button><button data-w="road">Road to 270</button><button data-w="closest">Closest</button><button data-w="dropoff">Turnout drop-off</button><button data-w="split">Ticket splitting</button><button data-w="money">Money</button>
+  <button data-w="terrain">Terrain</button><button data-w="circles">Circles</button><button data-w="people">People</button><button data-w="arrows">Arrows</button><button data-w="dots">Swing strips</button><button data-w="scatter">Scatter</button><button data-w="strips">Districts</button><button data-w="seats">Seats and votes</button><button data-w="history">History</button><button data-w="sim">Simulator</button><button data-w="power">Power</button><button data-w="road">Road to 270</button><button data-w="closest">Closest</button><button data-w="dropoff">Turnout drop-off</button><button data-w="split">Ticket splitting</button><button data-w="money">Money</button>
 </nav>
 <p class="tab-why" id="tabWhy" hidden></p>
 <aside class="view-card" id="viewCard" hidden aria-live="polite" aria-label="Saved view"></aside>
@@ -537,6 +543,6 @@
 <div class="offices" id="offices" role="group" aria-label="Office"></div>
 <nav class="timeline" id="timeline" aria-label="Election"></nav>
 <canvas id="locator" aria-label="Locator: the whole country from above, with the part in view marked. Click to move the view there." role="button" tabindex="0"></canvas>
-<script type="module" src="js/main.js?v=93"></script>
+<script type="module" src="js/main.js?v=94"></script>
 </body>
 </html>

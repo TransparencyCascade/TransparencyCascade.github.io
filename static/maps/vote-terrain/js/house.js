@@ -17,7 +17,7 @@ export function createHouse({ data, state, elections }) {
   // The page's election entries for the House track: no county data, so the county views stand down.
   const elections_ = Object.fromEntries(data.years.map((y) => ['house' + y, { label: `House ${y}`, office: 'U.S. House', year: +y, data: {}, house: true,
     unofficial: y === '2026', source: `${data.sources[y]}. District file: ${data.csv}.`,
-    notes: ['House results are by district, so the views that need county results (Terrain, Circles, Arrows, Dots, Scatter) stand down',
+    notes: ['House results are by district, so the views that need county results (Terrain, Circles, People, Arrows, Swing strips, Scatter) stand down',
       'Bands use swings only between elections on the same lines; several states redrew between 2022 and 2026',
       ...(y === '2026' ? ['Louisiana\'s Nov. 3 races were an open primary; its runoffs are on Dec. 12'] : [])] }]));
   const isHouse = () => !!(elections[state.e] && elections[state.e].house);

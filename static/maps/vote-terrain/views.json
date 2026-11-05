@@ -358,14 +358,16 @@
       "slug": "money-dollars-per-decisive-vote",
       "title": "Dollars per decisive vote, Senate races {money.cycles.0|raw} to {money.cycles.9|raw}",
       "file": "Dollars per decisive vote, Senate, {money.cycles.0|raw} to {money.cycles.9|raw}",
-      "caption": "In the {calc.money.y2024.races} Senate races of {calc.money.y2024.year|raw} with dollars assigned, the median race had {calc.money.y2024.medFlip|usd} of candidate spending per vote to flip ({calc.money.y2024.medFlipOut|usd} with party and race-named outside money) and {calc.money.y2024.medMoved|usd} per vote moved. Beside the dots: super and hybrid PACs disbursed {calc.money.y2024.disb|usdw} that cycle, {calc.money.y2024.alloc|usdw} named for a race (Schedule E) and {calc.money.y2024.notAlloc|usdw} not. Spending and votes sit side by side, not as cause and effect.",
+      "caption": "In the {calc.money.y2024.races} Senate races of {calc.money.y2024.year|raw} with dollars assigned, the median race had {calc.money.y2024.medFlip|usd} of candidate spending per vote to flip ({calc.money.y2024.medFlipOut|usd} with party and race-named outside money) and {calc.money.y2024.medMoved|usd} per vote moved. Beside the dots: super and hybrid PACs disbursed {calc.money.y2024.netDisb|usdw} that cycle, net of transfers between committees, {calc.money.y2024.alloc|usdw} named for a race (Schedule E) and {calc.money.y2024.netNotAlloc|usdw} not. Spending and votes sit side by side, not as cause and effect.",
       "sources": "FEC bulk files retrieved {money.sources.webk24.retrieved|raw}: candidate summaries, committee summaries, party coordinated expenditures, Schedule E. Votes: MIT Election Data and Science Lab and certified results; {calc.money.y2026.year|raw} partial (committee summaries through {calc.money.y2026.committeesThrough|raw}) and unofficial (AP feed). Not named for a race: operations, canvassing, transfers to other committees, races not drawn. Unreported money (501(c)(4) groups and other organizations that do not disclose) is not counted and not estimated.",
       "state": {
         "e": "sen2024",
         "w": "money",
         "mc": "time",
         "md": "flip",
-        "mm": "out"
+        "mm": "out",
+        "mp": "full",
+        "mg": "net"
       }
     },
     {
@@ -406,6 +408,46 @@
         "w": "circles",
         "l": "won",
         "sel": "s:NV,NH"
+      }
+    },
+    {
+      "slug": "people-2024-president",
+      "title": "Where the votes were cast, 2024",
+      "file": "One dot per {calc.people.pres2024.per|n} votes, by party; President {elections.pres2024.year|raw}",
+      "caption": "Each dot stands for {calc.people.pres2024.per|n} votes: {calc.people.pres2024.dots|n} dots for {calc.people.pres2024.votes|n} votes, {calc.people.pres2024.D|n} Democratic and {calc.people.pres2024.R|n} Republican. Dots sit in each county where people live (2020 census tracts), so cities fill in and empty land stays empty. Within a county the party of each dot is drawn at random in the county's shares: the map shows how many votes a county holds, not where its Democrats or Republicans live.",
+      "sources": "{elections.pres2024.source} Where people live: 2020 census tract centres of population and land area, Census Bureau.",
+      "state": {
+        "e": "pres2024",
+        "w": "people",
+        "pn": "1000"
+      }
+    },
+    {
+      "slug": "people-2026-senate",
+      "title": "Where the Senate votes were cast, 2026 (unofficial)",
+      "file": "One dot per {calc.people.sen2026.per|n} votes, by party; Senate {elections.sen2026.year|raw}, unofficial",
+      "caption": "Unofficial 2026 results: each dot stands for {calc.people.sen2026.per|n} votes, {calc.people.sen2026.dots|n} dots for the {calc.people.sen2026.votes|n} votes counted in {calc.people.sen2026.counties|n} counties with a Democrat-against-Republican Senate result, {calc.people.sen2026.D|n} Democratic and {calc.people.sen2026.R|n} Republican. Blank land is a state with no such race. Dots sit where people live in each county; the party of each dot within a county is drawn at random in the county's shares.",
+      "sources": "{elections.sen2026.source} Where people live: 2020 census tract centres of population and land area, Census Bureau.",
+      "state": {
+        "e": "sen2026",
+        "w": "people",
+        "pn": "1000"
+      }
+    },
+    {
+      "slug": "money-same-date-2026-vs-2024",
+      "title": "Outside money at the same date, 2026 against 2024",
+      "file": "Super and hybrid PAC spending, through the pre-general report in each cycle",
+      "caption": "Through each cycle's pre-general report, super PACs and hybrid PACs had disbursed {calc.money.same.y2026.netDisb|usdw} in 2026, net of transfers between committees, against {calc.money.same.y2024.netDisb|usdw} in 2024 and {calc.money.same.y2022.netDisb|usdw} in 2022. At that point 2026 {calc.money.same.vs2024.net.verb|raw} 2024 by {calc.money.same.vs2024.net.diff|usdw} ({calc.money.same.vs2024.net.pct|pt} percent) and {calc.money.same.vs2022.net.verb|raw} 2022 by {calc.money.same.vs2022.net.diff|usdw} ({calc.money.same.vs2022.net.pct|pt} percent). Gross, counting a dollar passed from one committee to another twice, 2026 stands at {calc.money.same.y2026.grossDisb|usdw} against {calc.money.same.y2024.grossDisb|usdw}.",
+      "sources": "FEC electronically filed reports (Form 3X) filed by each election day, covering through the pre-general report ({calc.money.same.y2022.through|raw}, {calc.money.same.y2024.through|raw}, {calc.money.same.y2026.through|raw}); 2026 filings on record through {calc.money.same.y2026.filingsBy|raw}. Net removes transfers and contributions to other committees (lines 22 and 23). Unreported money is not in these figures and is not estimated.",
+      "state": {
+        "e": "sen2024",
+        "w": "money",
+        "mc": "time",
+        "md": "flip",
+        "mm": "out",
+        "mp": "pre",
+        "mg": "net"
       }
     }
   ],

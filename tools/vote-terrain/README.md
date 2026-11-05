@@ -20,7 +20,8 @@ checks it; Hugo does not publish `tools/`.
 | `tooltip.js`, `balance.js`, `selection.js`, `find.js`, `table.js`, `about.js` | The tip, balance of power, selection codec, find box, table, read-once drawers |
 | `terrain.js` | Smooth terrain (three.js), loaded only with WebGL |
 | `blocks.js` | Exact counties (three.js), loaded the first time it is shown |
-| `views2d/` | Circles, Arrows, Dots, Scatter, for the House track Districts (`strips.js`) and Seats and votes (`seats.js`), History (`history.js`, any track), Road to 270 (`road.js`) and Closest races (`closest.js`, any track; `rb=`, `ro=` in the link), Scatter's second chart (`sx=ms`), the Simulator (`sim.js`, any track) and Power (`power.js`, county tracks: weight per vote ranked, the cartogram, concentration) (d3 + SVG), and what they share (`style.js`: ink, rules, the state tile grid) |
+| `views2d/` | Circles, Arrows, Dots (tab label "Swing strips"; URL key `w=dots` unchanged), Scatter, for the House track Districts (`strips.js`) and Seats and votes (`seats.js`), History (`history.js`, any track), Road to 270 (`road.js`) and Closest races (`closest.js`, any track; `rb=`, `ro=` in the link), Scatter's second chart (`sx=ms`), the Simulator (`sim.js`, any track) and Power (`power.js`, county tracks: weight per vote ranked, the cartogram, concentration) (d3 + SVG), and what they share (`style.js`: ink, rules, the state tile grid) |
+| `people.js`, `views2d/people.js` | The People tab (dot map, `w=people`, `pn=500|1000|5000`): one dot per N votes coloured by party, inside each county where people live (`people.json` + `people.bin`, lazy-loaded the first time the tab is shown; `build_people.mjs`). `people.js` is pure: decode the slots, `dotCounts` (a county's votes over N, rounded up or down at random with a fixed seed so small counties are not always zero), `totals` (the caption tokens `calc.people.<election>`). Drawn on canvas (outlines, dots as pixels in a shuffled order, hover and selection outline); hover is the county tooltip, a click selects, a selection fades other counties; the table is the county table with a Dots column |
 | `views2d/dropoff.js`, `views2d/split.js` | Turnout drop-off (county votes in the top midterm race as a share of the presidential year before, against margin, with 2022's band behind 2026; `c=drop` colours Terrain and Circles by it) and Ticket splitting (Senate margin minus governor margin on a flat map and as a strip per state) |
 | `power.js` | The Power tab's arithmetic (pure): weight per vote by state with its three parts, each state's share of votes, electoral votes and Senate seats, each party's concentration curve and the counties that reach a share of its votes (also the selection rule `k:`) |
 | `sim.js` | The swing simulator's arithmetic (pure): each place's flip point under uniform or proportional swing, seats and control at a swing, where control changes |
@@ -87,6 +88,17 @@ Run from the repository root, in this order (each step reads what the one before
 
 `geometry_codec.mjs` packs the geometry (lossless; it checks the round trip). To convert a geometry.json in
 the old shape: `node tools/vote-terrain/geometry_codec.mjs <old geometry.json> static/maps/vote-terrain`.
+
+12. `VT_MODULES=<dir with node_modules/d3-geo> node tools/vote-terrain/build_people.mjs`
+   `people.json` + `people.bin`: the dot map's slots. Reads `.census-cache/CenPop2020_Mean_TR.txt` (2020 tract population and population-weighted centre,
+   https://www2.census.gov/geo/docs/reference/cenpop2020/tract/CenPop2020_Mean_TR.txt) and `.census-cache/2020_Gaz_tracts_national.zip` (tract land
+   area, the Gazetteer; both about 6 MB, not committed) and projects with build_data.mjs's `geoAlbersUsa`. Method in one line: each county's slots are
+   drawn from its tracts, a tract chosen in proportion to its population, the slot placed at random within a disc as large as the tract's land
+   around its centre of population, kept inside the county outline. Slots are in random order and seeded (SEED, then the county code), so a rebuild gives the same
+   bytes. A county holds ceil(most votes any election counts there / 500) + 1 slots, so every election at every N has enough; positions are for where people live,
+   not how they voted, so one file serves every election (the party of each dot comes from the election's county totals at run time). 325,694 slots, 1.27 MB (1.13 MB gzipped).
+   Checks printed: tract population against the page's counties (9,719 people left out: two Alaska census areas created after the county outlines were drawn,
+   and Puerto Rico), slots that fell back to a tract centre (246: the disc did not land inside the county outline in 12 tries).
 
 10. `python3 -I tools/vote-terrain/build_overlays.py ~/detention-pipeline static/maps/vote-terrain/overlays.json`
    Overlays from our research (`ov=monitors|detention`). DOJ monitors: the counties holding a jurisdiction on DOJ's
@@ -175,6 +187,18 @@ Phase 7, "Money: dollars per decisive vote". Rules are in the script's docstring
   and the split the page shows: `allocatedToARaceUsd` (Schedule E, plus coordinated expenditures for parties) and `notAllocatedToARaceUsd` (disbursements
   less that: operating costs such as canvassing, petitions and staff, transfers to other committees, and money for races the page does not draw). Receipts
   and disbursements include transfers between committees, so a dollar passed along is counted by both. The page never shows one part without the other.
+- **Net of transfers** (per group, per cycle): `netReceiptsUsd` = receipts less transfers in from affiliated and other party committees (F3X line 12; webk `TRANS_FROM_AFF`);
+  `netDisbursementsUsd` = disbursements less transfers out to affiliated and other party committees (line 22; `TRANF_TO_AFF`) and contributions to federal candidates and other
+  committees (line 23; `CONTRIB_TO_OTHER_CMTE`); `netNotAllocatedToARaceUsd` = net disbursements less Schedule E (and coordinated). The Money tab shows net by default (`mg=net`), gross with `mg=gross`.
+  Contributions received from other political committees (line 11c) are not removed: the giver is usually outside these groups.
+- **Same point in each cycle** (`committees.cycles.<2022|2024|2026>.preGeneral`; `mp=pre`, the default, or `mp=full`): the FEC's summary files hold one row per committee and cycle as of the
+  file's date, so the per-filing data is the electronically filed Form 3X (calendar year to date, column B) from the FEC's daily zips
+  (`bulk-downloads/electronic/<YYYYMMDD>.zip`), each .fec read by an HTTP range request (first few KB; nothing is downloaded whole; cached by day in `.fec-cache/f3x/`, about 5 MB; the first run
+  takes about 40 minutes for three cycles). Cycle to date = the last report of the year before (through 31 December) + the last report of the election year covering through the pre-general
+  date (2022-10-19, 2024-10-16, 2026-10-14: 20 days before the election), latest filing number winning, among reports filed by election day. Committees are grouped by their webk type.
+  `reconcile` compares total disbursements with the summary file for committees whose summary ends by election day (2026: 2,985 committees, 96% to the dollar, -0.25% in total).
+  Committees that file monthly report through 30 September at that point; the comparison is of what the filings on record said, the same rule in each cycle.
+  Caption tokens: `calc.money.same.y2022|y2024|y2026` and `vs2024`, `vs2022` (see views.js).
 - **Donor concentration** (`donors`, per cycle 2010-2026): itemized individual contributions (Schedule A line 11A, from `indiv<YY>`) to the cycle's
   super PACs, deduplicated to the latest version per (committee, transaction), terminated rows dropped, refunds subtracted. Donors are keyed by name and
   state (the FEC has no donor id: two people of one name in one state are one donor here). Entity type IND only; companies and LLCs are totalled apart

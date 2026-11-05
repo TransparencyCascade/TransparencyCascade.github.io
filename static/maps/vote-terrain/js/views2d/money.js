@@ -24,9 +24,10 @@ export function moneyView({ ctx, head, body, foot, place, shiftOf }) {
   function build() {
     const cyc = [['all', 'All'], ...M.CYCLES.map((y) => [y, y])];
     head.innerHTML = (exporting ? '' : sw('mc', null, CHARTS, 'Chart') + sw('md', null, [['flip', 'Votes to flip'], ['moved', 'Votes moved']], 'Decisive votes') +
-      sw('mm', null, [['cand', 'Candidates'], ['party', '+ parties'], ['out', '+ outside, by race']], 'Money counted') + `<div class="seg v2d-seg mn-sw mn-cyc" role="group" aria-label="Cycle">${cyc.map(([v, t]) => `<button data-my="${v}">${t}</button>`).join('')}</div>`) +
+      sw('mm', null, [['cand', 'Candidates'], ['party', '+ parties'], ['out', '+ outside, by race']], 'Money counted') +
+      sw('mp', null, [['pre', 'Through the pre-general report'], ['full', 'Whole cycle']], 'Committee bars: how far into each cycle') + sw('mg', null, [['net', 'Net of transfers'], ['gross', 'Gross']], 'Committee bars: transfers between committees') + `<div class="seg v2d-seg mn-sw mn-cyc" role="group" aria-label="Cycle">${cyc.map(([v, t]) => `<button data-my="${v}">${t}</button>`).join('')}</div>`) +
       '<span class="v2d-ref mn-note"></span>';
-    for (const k of ['mc', 'md', 'mm', 'my']) head.querySelectorAll(`[data-${k}]`).forEach((b) => b.addEventListener('click', () => ctx.setMoney({ [k]: b.dataset[k] })));
+    for (const k of ['mc', 'md', 'mm', 'my', 'mp', 'mg']) head.querySelectorAll(`[data-${k}]`).forEach((b) => b.addEventListener('click', () => ctx.setMoney({ [k]: b.dataset[k] })));
     body.innerHTML = '<div class="mn-wrap"><svg class="v2d-band mn-chart"></svg><div class="mn-side"></div></div>';
     svg = d3.select(body).select('svg'); side = body.querySelector('.mn-side');
   }
@@ -39,12 +40,14 @@ export function moneyView({ ctx, head, body, foot, place, shiftOf }) {
     head.querySelectorAll('[data-md]').forEach((b) => { b.setAttribute('aria-pressed', b.dataset.md === S.md); b.disabled = k !== 'time'; });
     head.querySelectorAll('[data-mm]').forEach((b) => { b.setAttribute('aria-pressed', b.dataset.mm === S.mm); b.disabled = k === 'donors'; });
     head.querySelectorAll('[data-my]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.my === String(S.my)));
+    for (const q of ['mp', 'mg']) head.querySelectorAll(`[data-${q}]`).forEach((b) => { b.setAttribute('aria-pressed', b.dataset[q] === S[q]); b.disabled = k !== 'time'; });
+    head.querySelectorAll('.mn-sw[aria-label^="Committee bars"]').forEach((g) => { g.hidden = k !== 'time'; });
     const cycSw = head.querySelector('.mn-cyc'); if (cycSw) cycSw.hidden = k === 'time';
     head.querySelectorAll('[data-my="all"]').forEach((b) => { b.hidden = k === 'donors'; });
     side.hidden = k !== 'donors'; side.innerHTML = '';
     const cov = D.coverage['2026'];
     head.querySelector('.mn-note').textContent = {
-      time: `One dot per Senate race, dollars counted: ${M.COUNTS[S.mm]}, over ${M.DEFS[S.md]} (log scale). Median per cycle as a bar across the dots; in 2024 the median race is ${M.usd(M.medianOf(D, 2024, S.mm, 'flip'))} per vote to flip and ${M.usd(M.medianOf(D, 2024, S.mm, 'moved'))} per vote moved. 2026 is partial and unofficial: filings through ${cov.committeeSummariesThrough}, candidate summaries through ${cov.candidateSummariesThrough}.`,
+      time: `One dot per Senate race, dollars counted: ${M.COUNTS[S.mm]}, over ${M.DEFS[S.md]} (log scale). Median per cycle as a bar across the dots; in 2024 the median race is ${M.usd(M.medianOf(D, 2024, S.mm, 'flip'))} per vote to flip and ${M.usd(M.medianOf(D, 2024, S.mm, 'moved'))} per vote moved. 2026 is partial and unofficial: filings through ${cov.committeeSummariesThrough}, candidate summaries through ${cov.candidateSummariesThrough}. Bars: ${S.mg === 'net' ? 'net of transfers' : 'gross'}; net takes out money passed to other committees (reported by the sender and again as received), which gross counts twice: in 2024, ${M.usdWords(M.outside(D, 2024, false, false).disbursed)} gross against ${M.usdWords(M.outside(D, 2024, true, false).disbursed)} net.`,
       lost: `${S.my === 'all' ? 'Every Senate race with both sides named, 2008 to 2026' : `Senate ${S.my}`}: the Democratic side's share of the two candidates' spending (${M.COUNTS[S.mm]}) against its share of the two-party vote. Spending and votes side by side; neither is shown as the cause of the other.`,
       donors: `Itemized individual gifts to super PACs, ${S.my === 'all' ? 2026 : S.my}${S.my === 2026 || S.my === 'all' ? `: partial, committee summaries through ${cov.committeeSummariesThrough}, itemized lines through ${cov.itemizedLinesThrough}` : ''}. Donors are named only at $1 million or more.`,
     }[k];
@@ -93,23 +96,24 @@ export function moneyView({ ctx, head, body, foot, place, shiftOf }) {
     note(gd, pad.l, h1 - 22, ['Bar and figure: the cycle\'s median. Colour: the winner\'s party.', '* 2026 is partial and unofficial (dots outlined).']);
     // The outside money no race can be named for, beside it (below it on a phone).
     const op = { l: 46, r: 8, t: 28, b: 54 };
-    const rowsC = cycles.map((c) => ({ c, v: M.committees(D, c) })).filter((d) => d.v);
-    const bx = d3.scaleBand().domain(cycles).range([op.l, wr - op.r]).padding(0.22);
-    const by = d3.scaleLinear().domain([0, d3.max(rowsC, (d) => d.v.notAllocated + Math.max(0, d.v.allocated)) * 1.12]).range([h2 - op.b, op.t + 8]).nice();
-    gb.append('text').attr('class', 'axis-title').attr('x', 4).attr('y', 13).text('Super and hybrid PAC spending, by cycle');
+    const net = S.mg === 'net', pre = S.mp === 'pre';
+    const rowsC = (pre ? M.PRE_CYCLES : cycles).map((c) => ({ c, v: M.outside(D, c, net, pre), gross: M.outside(D, c, false, pre) })).filter((d) => d.v);
+    const bx = d3.scaleBand().domain(rowsC.map((d) => d.c)).range([op.l, wr - op.r]).padding(0.22);
+    const by = d3.scaleLinear().domain([0, d3.max(rowsC, (d) => Math.max(0, d.v.notAllocated) + Math.max(0, d.v.allocated)) * 1.12]).range([h2 - op.b, op.t + 8]).nice();
+    gb.append('text').attr('class', 'axis-title').attr('x', 4).attr('y', 13).text(`Super and hybrid PACs, ${net ? 'net' : 'gross'}, ${pre ? 'to the pre-general report' : 'whole cycle'}`);
     for (const t of by.ticks(5)) {
       gb.append('line').attr('x1', op.l).attr('x2', wr - op.r).attr('y1', by(t)).attr('y2', by(t)).attr('stroke', RULE).attr('stroke-width', 0.5);
       gb.append('text').attr('x', op.l - 5).attr('y', by(t) + 4).attr('text-anchor', 'end').text(t ? '$' + t / 1e9 + 'B' : '0');
     }
     const bars = gb.append('g').attr('class', 'mn-bars').selectAll('g').data(rowsC).join('g')
-      .on('mousemove', (ev, d) => ctx.hoverHtml(unallocTip(D, d.c, d.v), ev.clientX, ev.clientY)).on('mouseleave', () => ctx.hover(null));
+      .on('mousemove', (ev, d) => ctx.hoverHtml(unallocTip(D, d.c, d.v, d.gross, net, pre), ev.clientX, ev.clientY)).on('mouseleave', () => ctx.hover(null));
     bars.append('rect').attr('class', 'mn-notalloc').attr('x', (d) => bx(d.c)).attr('width', bx.bandwidth()).attr('y', (d) => by(Math.max(0, d.v.notAllocated))).attr('height', (d) => Math.max(0, by(0) - by(Math.max(0, d.v.notAllocated)))).attr('fill', INK);
     bars.append('rect').attr('class', 'mn-alloc').attr('x', (d) => bx(d.c)).attr('width', bx.bandwidth()).attr('y', (d) => by(Math.max(0, d.v.notAllocated) + d.v.allocated)).attr('height', (d) => Math.max(0, by(Math.max(0, d.v.notAllocated)) - by(Math.max(0, d.v.notAllocated) + d.v.allocated)))
       .attr('fill', 'rgba(35,48,107,.25)').attr('stroke', INK).attr('stroke-width', 0.8);
-    bars.append('text').attr('x', (d) => bx(d.c) + bx.bandwidth() / 2).attr('y', h2 - op.b + 16).attr('text-anchor', 'middle').text((d) => (d.c === 2026 ? '26*' : String(d.c).slice(2)));
+    bars.append('text').attr('x', (d) => bx(d.c) + bx.bandwidth() / 2).attr('y', h2 - op.b + 16).attr('text-anchor', 'middle').text((d) => (d.c === 2026 && !pre ? '26*' : pre ? String(d.c) : String(d.c).slice(2)));
     bars.append('text').attr('x', (d) => bx(d.c) + bx.bandwidth() / 2).attr('y', (d) => by(Math.max(0, d.v.notAllocated) + d.v.allocated) - 4).attr('text-anchor', 'middle').attr('fill', INK).attr('font-size', 9.5).attr('font-weight', 700)
       .text((d) => (d.v.notAllocated > 5e7 ? (d.v.notAllocated / 1e9).toFixed(2) : ''));
-    note(gb, op.l, h2 - 22, ['Dark: no race named. Pale: Schedule E.', 'Label: the dark part, $B. * partial.']);
+    note(gb, op.l, h2 - 22, ['Dark: no race named. Pale: Schedule E.', pre ? 'Label: the dark part, $B. Same report in each cycle.' : 'Label: the dark part, $B. * partial.']);
   }
   const raceTip = (D, r, S) => {
     const f = M.figures(r), cov = D.coverage[r.cycle];
@@ -120,11 +124,11 @@ export function moneyView({ ctx, head, body, foot, place, shiftOf }) {
       `Per vote to flip: ${per('cand', 'flip')} candidates, ${per('out', 'flip')} with outside. Per vote moved: ${per('cand', 'moved')}, ${per('out', 'moved')}<br>` +
       `<span style="color:${GRAPHITE}">FEC candidate summaries through ${cov.candidateSummariesThrough}; Schedule E through ${cov.scheduleEFileThrough}. Click to select the state</span>`;
   };
-  const unallocTip = (D, c, v) => {
-    const sp = v.superPac, hy = v.hybrid, cov = D.coverage[c];
-    return `<b>${c} cycle${c === 2026 ? ' (partial)' : ''}: super PACs and hybrid PACs</b><br>Disbursements (spent): ${M.usdWords(v.disbursed)}<br>Named for a race, Schedule E (outside): ${M.usdWords(v.allocated)}<br>` +
-      `No race named (disbursements less Schedule E): ${M.usdWords(v.notAllocated)}<br>Super PACs: ${M.usdWords(sp.notAllocatedToARaceUsd)}; hybrid PACs: ${M.usdWords(hy.notAllocatedToARaceUsd)}<br>` +
-      `<span style="color:${GRAPHITE}">FEC committee summaries through ${cov.committeeSummariesThrough}. Includes transfers to other committees and operating costs, and money for races the page does not draw.</span>`;
+  const unallocTip = (D, c, v, g, net, pre) => {
+    const sp = v.superPac, hy = v.hybrid, cov = D.coverage[c], spN = net ? sp.netNotAllocatedToARaceUsd : sp.notAllocatedToARaceUsd, hyN = net ? hy.netNotAllocatedToARaceUsd : hy.notAllocatedToARaceUsd;
+    return `<b>${c} cycle${pre ? `, through the pre-general report (${v.through})` : c === 2026 ? ' (partial)' : ''}: super PACs and hybrid PACs, ${net ? 'net of transfers' : 'gross'}</b><br>Disbursements (spent): ${M.usdWords(v.disbursed)}${net ? ` (gross ${M.usdWords(g.disbursed)}: ${M.usdWords(g.disbursed - v.disbursed)} passed to other committees)` : ''}<br>` +
+      `Named for a race, Schedule E (outside): ${M.usdWords(v.allocated)}<br>No race named (disbursements less Schedule E): ${M.usdWords(v.notAllocated)}<br>Super PACs: ${M.usdWords(spN)}; hybrid PACs: ${M.usdWords(hyN)}<br>` +
+      `<span style="color:${GRAPHITE}">${pre ? `FEC reports filed by ${v.filingsBy}, covering through ${v.through} or the last report before it.` : `FEC committee summaries through ${cov.committeeSummariesThrough}.`} ${net ? 'Net removes transfers and contributions to other committees, so a dollar passed along counts once.' : 'Gross counts a dollar passed from one committee to another in both. '}Includes operating costs and money for races the page does not draw.</span>`;
   };
 
   // ---------- outspent and lost ----------

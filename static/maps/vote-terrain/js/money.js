@@ -32,6 +32,27 @@ export const committees = (M, cycle) => {
     disbursed: sp.disbursementsUsd + hy.disbursementsUsd, received: sp.receiptsUsd + hy.receiptsUsd };
 };
 
+/** Super PACs and hybrid PACs together, net of transfers between committees or gross, through the pre-general report (pre) or the whole cycle: the figures the committee bars,
+    the table and the caption tokens share. Null when the cycle has no such figures (pre: only 2022, 2024 and 2026 have them). */
+export const outside = (M, cycle, net, pre) => {
+  const C = M.committees.cycles[cycle], src = C && (pre ? C.preGeneral : C); if (!src) return null;
+  const sp = src.superPac, hy = src.hybrid, D = (g) => (net ? g.netDisbursementsUsd : g.disbursementsUsd), N = (g) => (net ? g.netNotAllocatedToARaceUsd : g.notAllocatedToARaceUsd), R = (g) => (net ? g.netReceiptsUsd : g.receiptsUsd);
+  return { superPac: sp, hybrid: hy, disbursed: D(sp) + D(hy), allocated: sp.allocatedToARaceUsd + hy.allocatedToARaceUsd, notAllocated: N(sp) + N(hy), received: R(sp) + R(hy),
+    through: pre ? src.through : null, filingsBy: pre ? src.filingsOnRecordBy : null };
+};
+export const PRE_CYCLES = [2022, 2024, 2026];
+/** The same point in each cycle (the pre-general report), super PACs and hybrid PACs together: the figures for each cycle, and 2026 against 2024 and 2022, net and gross. */
+export const sameDate = (M) => {
+  const out = {};
+  for (const y of PRE_CYCLES) {
+    const n = outside(M, y, true, true), g = outside(M, y, false, true); if (!n || !g) return null;
+    out['y' + y] = { through: n.through, filingsBy: n.filingsBy, netDisb: n.disbursed, grossDisb: g.disbursed, netReceipts: n.received, grossReceipts: g.received, netNot: n.notAllocated, grossNot: g.notAllocated, alloc: n.allocated };
+  }
+  const cmp = (a, b, k) => { const d = out['y' + a][k] - out['y' + b][k], base = out['y' + b][k]; return { diff: Math.abs(d), pct: Math.abs(d) / base * 100, word: d > 0 ? 'more' : d < 0 ? 'less' : 'the same', verb: d > 0 ? 'exceeded' : d < 0 ? 'fell short of' : 'matched' }; };
+  for (const b of [2024, 2022]) out['vs' + b] = { net: cmp(2026, b, 'netDisb'), gross: cmp(2026, b, 'grossDisb'), netNot: cmp(2026, b, 'netNot'), netReceipts: cmp(2026, b, 'netReceipts') };
+  return out;
+};
+
 /** Outspent and lost: each race's two-party vote share against the two named candidates' spending share. Dem side is the Democratic-side candidate in the vote record. */
 export const sideMoney = (s, o, count) => s.spentUsd + (count !== 'cand' ? s.coordUsd : 0) + (count === 'out' ? s.ieForUsd + o.ieAgainstUsd : 0);
 export const lostRows = (M, cycle, count) => {

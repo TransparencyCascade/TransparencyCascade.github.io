@@ -269,6 +269,7 @@ const SCENARIOS = [
     probe: (page) => page.evaluate(() => ({ card: document.getElementById('viewCard').innerText.replace(/\s+/g, ' '), hidden: document.getElementById('viewCard').hidden })) })),
   { name: 'v-captions', query: 'tour=guide-1-4', probe: (page) => page.evaluate(async () => {
     const reg = await (await fetch('views.json')).json(), S = window.__vt.saved();
+    await window.__vt.ensureMoney();   // the captions that quote money need it, and it loads only when something asks
     const texts = reg.views.map((v) => S.text(v.slug)), all = JSON.stringify(texts);
     const steps = reg.tours.every((t) => t.steps.every((st) => reg.views.some((v) => v.slug === st.view)));
     return { n: texts.length, unresolved: (all.match(/\[\?\]|\{[a-z]/g) || []).length, steps, ok: !/\[\?\]/.test(all) && steps, captions: texts.map((t) => t.caption) }; }) },
@@ -686,7 +687,7 @@ const SCENARIOS = [
   { name: 'm-time-hover', hash: 'w=money&mm=out', act: async (page) => { const b = await page.locator('#v2d svg.mn-chart .mn-dots circle').nth(200).boundingBox(); await page.mouse.move(b.x + b.width / 2 - 20, b.y - 20); await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.waitForTimeout(250); }, tip: true },
   { name: 'm-time-table', hash: 'w=money&mm=out', act: key('t') },
   { name: 'm-time-sel', hash: 'w=money&sel=s:GA,NC' },
-  { name: 'm-unallocated', hash: 'w=money', probe: (page) => page.evaluate(async () => {
+  { name: 'm-unallocated', hash: 'w=money&mp=full&mg=gross', probe: (page) => page.evaluate(async () => {
     // The bar of each cycle is disbursements less Schedule E for super PACs and hybrid PACs, from the committee rows; bar heights are in proportion, and the pale
     // Schedule E part stands on the dark part, so neither is dropped.
     const M = await (await fetch('money.json')).json(), cyc = M.cycles.filter((c) => M.committees.cycles[c]);
@@ -697,7 +698,7 @@ const SCENARIOS = [
     const paleOk = cyc.every((c, j) => Math.abs(pale[j] / dark[i] - raw(c).se / raw(big).not) < 0.02);
     return { cycles: cyc.length, bars: dark.length, paleBars: pale.length, big, bigNot: Math.round(raw(big).not), c2008: Math.round(raw(2008).dis), c2024: Object.fromEntries(Object.entries(raw(2024)).map(([k, v]) => [k, Math.round(v)])), c2026: Object.fromEntries(Object.entries(raw(2026)).map(([k, v]) => [k, Math.round(v)])), ratioOk, paleOk,
       ok: dark.length === cyc.length && pale.length === cyc.length && ratioOk && paleOk }; }) },
-  { name: 'm-unallocated-hover', hash: 'w=money', act: async (page) => { const b = await page.locator('#v2d svg.mn-chart .mn-notalloc').nth(8).boundingBox(); await page.mouse.move(b.x + b.width / 2 - 20, b.y + 4); await page.mouse.move(b.x + b.width / 2, b.y + b.height - 4); await page.waitForTimeout(250); }, tip: true },
+  { name: 'm-unallocated-hover', hash: 'w=money&mp=full&mg=gross', act: async (page) => { const b = await page.locator('#v2d svg.mn-chart .mn-notalloc').nth(8).boundingBox(); await page.mouse.move(b.x + b.width / 2 - 20, b.y + 4); await page.mouse.move(b.x + b.width / 2, b.y + b.height - 4); await page.waitForTimeout(250); }, tip: true },
   { name: 'm-lost', hash: 'w=money&mc=lost&my=2024', probe: (page) => page.evaluate(MONEY_LOST_PROBE, { mm: 'cand', my: 2024 }) },
   { name: 'm-lost-all-out', hash: 'w=money&mc=lost&my=all&mm=out', probe: (page) => page.evaluate(MONEY_LOST_PROBE, { mm: 'out', my: 'all' }) },
   { name: 'm-lost-table', hash: 'w=money&mc=lost&my=2024', act: key('t') },
@@ -728,8 +729,40 @@ const SCENARIOS = [
       const perFlip = Math.round(spent / flip);
       return { cost: text.slice(0, 900), races: rs.map((r) => r.st), flip, spent: Math.round(spent), perFlip, hasType: /\(spent\)/.test(text) && /\(outside\)/.test(text), mentionsPerFlip: text.includes('$' + Math.round(spent / flip / 100) * 100) || found.includes('$' + perFlip.toLocaleString('en-US')) || found.some((f) => Math.abs(+f.replace(/[$,]/g, '') - perFlip) < 1),
         ok: !!cost && (rs.length === 0 ? /not assigned/.test(text) : /\(spent\)/.test(text)) && (rs.length === 0 || /\(outside\)/.test(text)) && /FEC filings through/.test(text) && (rs.length === 0 || found.some((f) => Math.abs(+f.replace(/[$,]/g, '') - perFlip) < 1 || Math.abs(+f.replace(/[$,]/g, '') - perFlip) / perFlip < 0.0001)) }; }, [y, day]) })),
-  ...['money-dollars-per-decisive-vote', 'money-outspent-and-lost-2024', 'money-where-it-came-from-2026', 'money-cost-of-the-smallest-change-2022'].map((v) => ({ name: `v-view-${v}`, query: `view=${v}`,
+  ...['money-dollars-per-decisive-vote', 'money-outspent-and-lost-2024', 'money-where-it-came-from-2026', 'money-cost-of-the-smallest-change-2022', 'money-same-date-2026-vs-2024', 'people-2024-president', 'people-2026-senate'].map((v) => ({ name: `v-view-${v}`, query: `view=${v}`,
     probe: (page) => page.evaluate(() => ({ card: document.getElementById('viewCard').innerText.replace(/\s+/g, ' '), w: window.__vt.effW(), mc: window.__vt.state.mc, unresolved: document.getElementById('viewCard').innerText.includes('[?]') })) })),
+  // The committee bars net of transfers, through the pre-general report in each cycle (the default), recomputed here from money.json's committee rows and the F3X sums it carries.
+  { name: 'm-net-pre', hash: 'w=money', probe: (page) => page.evaluate(async () => {
+    const M = await (await fetch('money.json')).json(), cyc = [2022, 2024, 2026];
+    const raw = (c, net) => { const g = M.committees.cycles[c].preGeneral, f = (k) => g.superPac[k] + g.hybrid[k];
+      const dis = net ? f('disbursementsUsd') - f('transfersOutUsd') - f('contributionsToOtherCommitteesUsd') : f('disbursementsUsd'), se = f('scheduleEUsd'); return { dis, se, not: dis - se, thru: g.through }; };
+    const dark = [...document.querySelectorAll('#v2d svg.mn-chart .mn-notalloc')].map((r) => +r.getAttribute('height')), pale = [...document.querySelectorAll('#v2d svg.mn-chart .mn-alloc')].map((r) => +r.getAttribute('height'));
+    const big = cyc.reduce((a, c) => (raw(c, true).not > raw(a, true).not ? c : a), cyc[0]), i = cyc.indexOf(big);
+    const ratioOk = cyc.every((c, j) => Math.abs(dark[j] / dark[i] - Math.max(0, raw(c, true).not) / raw(big, true).not) < 0.02), paleOk = cyc.every((c, j) => Math.abs(pale[j] / dark[i] - raw(c, true).se / raw(big, true).not) < 0.02);
+    const title = [...document.querySelectorAll('#v2d svg.mn-chart .axis-title')].map((t) => t.textContent).join(' | ');
+    const same = cyc.map((c) => [c, Math.round(raw(c, true).dis), Math.round(raw(c, false).dis), raw(c, true).thru]);
+    return { bars: dark.length, same, ratioOk, paleOk, title, netBelowGross: cyc.every((c) => raw(c, true).dis < raw(c, false).dis), ok: dark.length === 3 && pale.length === 3 && ratioOk && paleOk && /net/.test(title) && /pre-general/.test(title) }; }) },
+  { name: 'm-net-pre-hover', hash: 'w=money', act: async (page) => { const b = await page.locator('#v2d svg.mn-chart .mn-notalloc').nth(2).boundingBox(); await page.mouse.move(b.x + b.width / 2 - 20, b.y + 4); await page.mouse.move(b.x + b.width / 2, b.y + b.height - 4); await page.waitForTimeout(250); }, tip: true },
+  { name: 'm-net-full', hash: 'w=money&mp=full&mg=net', probe: (page) => page.evaluate(async () => {
+    const M = await (await fetch('money.json')).json(), cyc = M.cycles.filter((c) => M.committees.cycles[c]);
+    const net = (c) => { const g = M.committees.cycles[c], f = (k) => g.superPac[k] + g.hybrid[k]; return f('disbursementsUsd') - f('transfersOutUsd') - f('contributionsToOtherCommitteesUsd') - f('scheduleESummaryUsd'); };
+    const dark = [...document.querySelectorAll('#v2d svg.mn-chart .mn-notalloc')].map((r) => +r.getAttribute('height')), big = cyc.reduce((a, c) => (net(c) > net(a) ? c : a), cyc[0]), i = cyc.indexOf(big);
+    return { bars: dark.length, big, ok: dark.length === cyc.length && cyc.every((c, j) => Math.abs(dark[j] / dark[i] - Math.max(0, net(c)) / net(big)) < 0.02) }; }) },
+  // Lazy loading: money.json is not fetched until the Money tab, a money saved view or the open balance box's cost line asks for it.
+  { name: 'z-lazy-closed', hash: 'e=pres2024&v=national', probe: (page) => page.evaluate(() => ({ money: performance.getEntriesByType('resource').filter((r) => /money\.json/.test(r.name)).length, people: performance.getEntriesByType('resource').filter((r) => /people\.(json|bin)/.test(r.name)).length })) },
+  { name: 'z-lazy-bop-open', hash: 'e=pres2024&v=national', act: click('#bopToggle'), probe: (page) => page.evaluate(() => ({ money: performance.getEntriesByType('resource').filter((r) => /money\.json/.test(r.name)).length, cost: !!document.querySelector('#bopBody .cost') })) },
+  { name: 'z-lazy-money-tab', hash: 'w=money', probe: (page) => page.evaluate(() => ({ money: performance.getEntriesByType('resource').filter((r) => /money\.json/.test(r.name)).length })) },
+  { name: 'z-lazy-people-tab', hash: 'w=people', probe: (page) => page.evaluate(() => ({ people: performance.getEntriesByType('resource').filter((r) => /people\.(json|bin)/.test(r.name)).length, money: performance.getEntriesByType('resource').filter((r) => /money\.json/.test(r.name)).length })) },
+  // People: the dot map. Counts are recomputed here from elections.json (votes by party over votes per dot, within a half percent; each county's dots are rounded at random).
+  ...[['pres2024', '1000'], ['pres2024', '500'], ['pres2024', '5000'], ['sen2026', '1000'], ['pres2016', '1000'], ['gov2022', '1000']].map(([e, n]) => ({ name: `p-people-${e}-${n}`, hash: `e=${e}&w=people&pn=${n}`, probe: (page) => page.evaluate(PEOPLE_PROBE, +n) })),
+  { name: 'p-people-sel', hash: 'e=pres2024&w=people&sel=s:PA,WI,MI' },
+  { name: 'p-people-table', hash: 'e=pres2024&w=people', act: key('t') },
+  { name: 'p-people-hover', hash: 'e=pres2024&w=people', act: async (page) => { const b = await page.locator('#v2d .pp-wrap').boundingBox(); await page.mouse.move(b.x + b.width * 0.5, b.y + b.height * 0.4); await page.mouse.move(b.x + b.width * 0.52, b.y + b.height * 0.42); await page.waitForTimeout(250); }, tip: true },
+  { name: 'p-people-click', hash: 'e=pres2024&w=people', act: async (page) => { const b = await page.locator('#v2d .pp-wrap').boundingBox(); await page.mouse.click(b.x + b.width * 0.52, b.y + b.height * 0.42); }, probe: (page) => page.evaluate(() => ({ selection: window.__vt.sel() ? window.__vt.sel().counties.size : 0 })) },
+  { name: 'p-people-house', hash: 'e=house2026&w=people' },
+  { name: 'p-people-phone', hash: 'e=pres2024&w=people', viewport: { width: 390, height: 844 } },
+  { name: 'p-dots-key', hash: 'w=dots', probe: (page) => page.evaluate(() => ({ label: document.querySelector('#tabs [data-w=dots]').textContent, people: document.querySelector('#tabs [data-w=people]').textContent, pressed: document.querySelector('#tabs [data-w=dots]').getAttribute('aria-pressed') })) },
+  { name: 'n-nogl-people', hash: 'e=pres2024&w=people', gl: false },
   { name: 'm-phone', hash: 'w=money&mc=donors', viewport: { width: 390, height: 844 } },
   { name: 'm-phone-time', hash: 'w=money', viewport: { width: 390, height: 844 } },
   { name: 'n-nogl-money', hash: 'w=money&mm=out', gl: false },
@@ -737,6 +770,21 @@ const SCENARIOS = [
   { name: 'n-nogl-closest', hash: 'e=sen2026&w=closest', gl: false },
   { name: 'n-nogl-ms', hash: 'w=scatter&sx=ms', gl: false },
 ].filter((s) => !ONLY || s.name.includes(ONLY));
+
+
+// People probe: the dots drawn for the election in view against the votes in elections.json, recomputed here without the page's helper code.
+const PEOPLE_PROBE = async (N) => {
+  const vt = window.__vt, E = (await (await fetch('elections.json')).json()).elections[vt.state.e], P = await (await fetch('people.json')).json();
+  const have = new Set(P.counties), sum = { D: 0, R: 0, O: 0 };
+  for (const [f, v] of Object.entries(E.data)) { if (!have.has(f)) continue; sum.D += v[2]; sum.R += v[1]; sum.O += Math.max(0, v[0] - v[1] - v[2]); }
+  const note = document.querySelector('.pp-note').textContent, m = /([\d,]+) dots: ([\d,]+) Democratic, ([\d,]+) Republican(?:, ([\d,]+) other)?/.exec(note), num = (x) => +String(x || '0').replace(/,/g, '');
+  const got = m ? { D: num(m[2]), R: num(m[3]), O: num(m[4]) } : null, dots = m ? num(m[1]) : 0;
+  const near = (a, b) => Math.abs(a - b) <= Math.max(0.005 * b, 1.5 * Math.sqrt(have.size));   // a half percent, or three standard deviations of the random rounding (each county adds up to half a dot of spread)
+  const c = document.querySelector('#v2d canvas.pp-dots'), px = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let lit = 0; for (let i = 3; i < px.length; i += 4) if (px[i]) lit++;
+  return { note, N, expected: { D: Math.round(sum.D / N), R: Math.round(sum.R / N), O: Math.round(sum.O / N) }, got, countiesWithSlots: have.size, litPixels: lit > 0, slots: P.slots, bytes: (await (await fetch('people.bin')).arrayBuffer()).byteLength,
+    foot: document.querySelector('.v2d-foot').textContent.slice(0, 160), unofficial: /unofficial/.test(note + document.querySelector('.v2d-foot').textContent) === !!E.unofficial,
+    ok: !!got && near(got.D, sum.D / N) && near(got.R, sum.R / N) && (sum.O / N < 3 || near(got.O, sum.O / N)) && lit > 20000 && dots === got.D + got.R + got.O };
+};
 
 // ---------- the record kept for each scenario ----------
 async function settle(page) {
@@ -759,6 +807,7 @@ const fingerprint = (page, withTip) => page.evaluate(async (withTip) => {
       '#findList', '#about', '#rank', '.tour-caption', '#ovCard', '#keyOv', '#histCard', '#drawer', '#dropHow'].map((q) => [q, txt(q)])),
     ramp: document.getElementById('ramp').innerHTML,
     svg: await Promise.all(svgs.map((s) => sha(s.outerHTML))),
+    canvas: await Promise.all([...document.querySelectorAll('#v2d canvas.pp-dots')].filter((c) => c.closest('[hidden]') === null && c.width).map((c) => sha(c.toDataURL()))),
     svgCounts: svgs.map((s) => s.querySelectorAll('circle, path, line').length).join(','),
     tip: withTip ? txt('.vt-tip') : undefined,
     labels: [...document.querySelectorAll('.peak, .metro')].filter((p) => p.style.visibility === 'visible').map((p) => p.textContent).join(','),

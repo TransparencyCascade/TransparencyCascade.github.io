@@ -6,7 +6,7 @@
 import { fmt, esc, countyLabelOf, $ } from './util.js';
 import * as Mn from './money.js';
 
-export function createTable({ geo, el, state, model, house, history, money, selection, effW, pctCh, OFFICE_NAME, stName, simCtx, power, roadCtx, closestCtx, overlays, ovSet, ovSummary, turnout }) {
+export function createTable({ geo, el, state, model, house, history, money, peopleDots, selection, effW, pctCh, OFFICE_NAME, stName, simCtx, power, roadCtx, closestCtx, overlays, ovSet, ovSummary, turnout }) {
   const { meta } = geo, { elections } = el;
   const wrap = $('tableWrap'), table = $('table');
   let sort = { k: 2, dir: -1 };
@@ -183,7 +183,9 @@ export function createTable({ geo, el, state, model, house, history, money, sele
   // Money: the figures behind each chart, every one with its type: medians per cycle, the outside money by committee group (named for a race and not),
   // every Senate race, outspent and lost, and the donors.
   const renderMoney = () => {
-    const D = money, sec = (t, n) => `<tr><th colspan="${n}">${esc(t)}</th></tr>`, cyc = Mn.CYCLES, row = (cells) => '<tr>' + cells.map((c) => `<td>${esc(c)}</td>`).join('') + '</tr>', hd = (cells) => '<tr>' + cells.map((c) => `<th>${esc(c)}</th>`).join('') + '</tr>';
+    const D = money();
+    if (!D) { $('tableTitle').textContent = 'Money'; $('tableNote').textContent = 'Loading the money data…'; table.innerHTML = ''; return; }
+    const sec = (t, n) => `<tr><th colspan="${n}">${esc(t)}</th></tr>`, cyc = Mn.CYCLES, row = (cells) => '<tr>' + cells.map((c) => `<td>${esc(c)}</td>`).join('') + '</tr>', hd = (cells) => '<tr>' + cells.map((c) => `<th>${esc(c)}</th>`).join('') + '</tr>';
     $('tableTitle').textContent = 'Money: dollars per decisive vote, outside money by committee, outspent and lost, and individual donors to super PACs';
     $('tableNote').textContent = `Each figure's type is in its heading: spent (candidates' disbursements), outside (reported to the FEC as spent by others, for or against the candidates, or by party committees), received. 2026 is partial: committee summaries through ${D.coverage['2026'].committeeSummariesThrough}, itemized lines through ${D.coverage['2026'].itemizedLinesThrough}, and unofficial votes. Unreported money (501(c)(4) groups and other organizations that do not disclose) is not in these figures and is not estimated.`;
     const my = state.my || (state.mc === 'donors' ? '2026' : 'all'), dc = my === 'all' ? 2026 : +my;
@@ -193,6 +195,9 @@ export function createTable({ geo, el, state, model, house, history, money, sele
       sec('Outside money as committee totals: disbursements (spent) and what a race can be named for (Schedule E, outside), by cycle, super PACs and hybrid PACs', 8) +
       hd(['Cycle', 'Super PAC receipts', 'Super PAC disbursements', 'Super PAC Schedule E', 'Super PAC, no race named', 'Hybrid disbursements', 'Hybrid Schedule E', 'Hybrid, no race named']) +
       cyc.map((c) => { const v = Mn.committees(D, c); return row([c === 2026 ? '2026 (partial)' : c, Mn.usd(v.superPac.receiptsUsd), Mn.usd(v.superPac.disbursementsUsd), Mn.usd(v.superPac.scheduleESummaryUsd), Mn.usd(v.superPac.notAllocatedToARaceUsd), Mn.usd(v.hybrid.disbursementsUsd), Mn.usd(v.hybrid.scheduleESummaryUsd), Mn.usd(v.hybrid.notAllocatedToARaceUsd)]); }).join('') +
+      sec('Super PACs and hybrid PACs together, net of transfers and gross, through the pre-general report in each cycle (the same point: reports filed by election day, covering through the cycle\'s pre-general date) and for the whole cycle', 8) +
+      hd(['Cycle and point', 'Disbursed, net of transfers', 'Disbursed, gross', 'Received, net', 'Received, gross', 'Schedule E (outside)', 'No race named, net', 'No race named, gross']) +
+      [...Mn.PRE_CYCLES.map((c) => [c, true]), ...cyc.map((c) => [c, false])].map(([c, pre]) => { const n = Mn.outside(D, c, true, pre), g = Mn.outside(D, c, false, pre); return n && row([`${c} ${pre ? 'through ' + n.through : c === 2026 ? 'whole cycle so far (partial)' : 'whole cycle'}`, Mn.usd(n.disbursed), Mn.usd(g.disbursed), Mn.usd(n.received), Mn.usd(g.received), Mn.usd(n.allocated), Mn.usd(n.notAllocated), Mn.usd(g.notAllocated)]); }).join('') +
       sec('Party committees (types Y and Z): disbursements, Schedule E and coordinated expenditures (outside), the rest', 6) + hd(['Cycle', 'Receipts', 'Disbursements', 'Schedule E', 'Coordinated', 'No race named']) +
       cyc.map((c) => { const p = Mn.committees(D, c).party; return row([c, Mn.usd(p.receiptsUsd), Mn.usd(p.disbursementsUsd), Mn.usd(p.scheduleESummaryUsd), Mn.usd(p.partyCoordinatedUsd), Mn.usd(p.notAllocatedToARaceUsd)]); }).join('') +
       sec(`Outspent and lost, ${my === 'all' ? 'every cycle' : my}, money counted: ${Mn.COUNTS[state.mm]} (the Democratic side and the Republican side are the two candidates named in the vote record)`, 8) +
@@ -233,6 +238,7 @@ export function createTable({ geo, el, state, model, house, history, money, sele
       ['County', (r) => countyLabelOf(meta, r.f).replace(/, \w\w$/, ''), String], ['State', (r) => r.st, String],
       ['Votes', (r) => r.v[0], fmt], ['Republican', (r) => r.v[1], fmt], ['Democratic', (r) => r.v[2], fmt],
       ['Margin', (r) => r.m, lead],
+      ...(w === 'people' && peopleDots ? [['Dots', (r) => (r.v ? peopleDots(r.f) : null), (x) => (x == null ? '' : fmt(x))]] : []),
       ...(b ? [['Swing', (r) => r.s, (s) => (s == null ? '' : `${Math.abs(s).toFixed(1)} to ${s >= 0 ? 'D' : 'R'}`)]] : []),
       ...(b && w === 'scatter' && state.sx === 'ms' ? [['Margin in the earlier race', (r) => (r.b && r.b[0] > 0 ? model.margin(r.b) : null), lead]] : []),
       ...(b && w === 'scatter' && state.sx !== 'ms' ? [['Rep. votes', (r) => (r.b && r.b[1] > 0 ? pctCh(r.v[1], r.b[1]) : null), signedPct],
@@ -248,7 +254,7 @@ export function createTable({ geo, el, state, model, house, history, money, sele
     const get = cols[sort.k][1];
     rs = rs.slice().sort((x, y) => { const a = get(x), c = get(y); if (a == null) return 1; if (c == null) return -1; return (typeof a === 'string' ? a.localeCompare(c) : a - c) * sort.dir; });
     $('tableTitle').textContent = `${sel ? 'Selected counties' : 'Every county'}, ${elections[state.e].label}`;
-    $('tableNote').textContent = `${fmt(rs.length)} ${rs.length === 1 ? 'county' : 'counties'}` + (b ? `. Swing in points since ${model.baselineLabel()}` : '') +
+    $('tableNote').textContent = `${fmt(rs.length)} ${rs.length === 1 ? 'county' : 'counties'}` + (w === 'people' ? `. Dots: one per ${fmt(+state.pn)} votes, the county's votes over that, rounded at random with a fixed seed (the dot map's own counts)` : '') + (b ? `. Swing in points since ${model.baselineLabel()}` : '') +
       (b && w === 'scatter' && state.sx !== 'ms' ? '; vote changes in percent since the same race' : '') + (b && w === 'scatter' && state.sx === 'ms' ? '; margin in the earlier race, then swing since it' : '') + '. Click a heading to sort.' +
       (ovSet && ovSet() ? ' ' + ovSummary() : '');
     table.innerHTML = '<thead><tr>' + cols.map((c, i) => `<th data-k="${i}"${i === sort.k ? ` aria-sort="${sort.dir > 0 ? 'ascending' : 'descending'}"` : ''}>${c[0]}</th>`).join('') + '</tr></thead><tbody>' +
