@@ -270,6 +270,7 @@ const SCENARIOS = [
   { name: 'v-captions', query: 'tour=guide-1-4', probe: (page) => page.evaluate(async () => {
     const reg = await (await fetch('views.json')).json(), S = window.__vt.saved();
     await window.__vt.ensureMoney();   // the captions that quote money need it, and it loads only when something asks
+    await window.__vt.ensureFunnel();   // likewise the funnel's
     const texts = reg.views.map((v) => S.text(v.slug)), all = JSON.stringify(texts);
     const steps = reg.tours.every((t) => t.steps.every((st) => reg.views.some((v) => v.slug === st.view)));
     return { n: texts.length, unresolved: (all.match(/\[\?\]|\{[a-z]/g) || []).length, steps, ok: !/\[\?\]/.test(all) && steps, captions: texts.map((t) => t.caption) }; }) },
@@ -765,12 +766,85 @@ const SCENARIOS = [
   { name: 'n-nogl-people', hash: 'e=pres2024&w=people', gl: false },
   { name: 'm-phone', hash: 'w=money&mc=donors', viewport: { width: 390, height: 844 } },
   { name: 'm-phone-time', hash: 'w=money', viewport: { width: 390, height: 844 } },
+  // Funnel: the stages for a state read back from the page and recomputed here from the raw EAVS 2024 CSV (tools/vote-terrain/.eavs-cache/csv, the build's input, not committed;
+  // without it the county rows of funnel.json are summed instead, which still checks the state rows and the display). Missing codes (negative, blank) are missing, never zero.
+  { name: 'z-lazy-funnel-closed', hash: 'w=terrain&v=national', probe: (page) => page.evaluate(() => ({ funnel: performance.getEntriesByType('resource').filter((r) => /funnel\.json/.test(r.name)).length })) },
+  { name: 'z-lazy-funnel-tab', hash: 'w=funnel', probe: (page) => page.evaluate(() => ({ funnel: performance.getEntriesByType('resource').filter((r) => /funnel\.json/.test(r.name)).length })) },
+  { name: 'f-funnel-nation-2024', hash: 'e=pres2024&w=funnel&fy=2024', probe: (page) => funnelProbe(page, [null], 2024) },
+  { name: 'f-funnel-in-2024', hash: 'e=pres2024&w=funnel&fy=2024&sel=s:IN', probe: (page) => funnelProbe(page, ['IN'], 2024) },
+  { name: 'f-funnel-ga-2024', hash: 'e=pres2024&w=funnel&fy=2024&sel=s:GA', probe: (page) => funnelProbe(page, ['GA'], 2024) },
+  { name: 'f-funnel-compare', hash: 'e=pres2024&w=funnel&fy=2024&sel=s:IN&fc=s:GA', probe: (page) => funnelProbe(page, ['IN', 'GA'], 2024) },
+  { name: 'f-funnel-vs-nation', hash: 'e=pres2024&w=funnel&fy=2024&sel=s:IN&fc=n', probe: (page) => funnelProbe(page, ['IN', null], 2024) },
+  { name: 'f-funnel-2020', hash: 'e=pres2020&w=funnel&sel=s:TX', probe: (page) => page.evaluate(() => { const c = window.__vt.funnelCols()[0]; return { year: c.year, label: c.label, reg: c.stages.find((x) => x.id === 'reg').v, code: c.stages.find((x) => x.id === 'reg').code, remCode: c.leaks[0].code, weight: !!c.weight }; }) },
+  { name: 'f-funnel-midterm', hash: 'e=sen2022&w=funnel', probe: (page) => page.evaluate(() => { const c = window.__vt.funnelCols()[0]; return { year: c.year, rem: c.leaks[0].code, counted: c.stages.find((x) => x.id === 'counted').v, weight: c.weight && c.weight.label }; }) },
+  { name: 'f-funnel-table', hash: 'e=pres2024&w=funnel&fy=2024&sel=s:IN', act: key('t') },
+  { name: 'f-funnel-table-compare', hash: 'e=pres2024&w=funnel&fy=2024&sel=s:IN&fc=n', act: key('t') },
+  { name: 'f-funnel-hover', hash: 'e=pres2024&w=funnel&fy=2024&sel=s:IN', act: async (page) => { const b = await page.locator('#v2d .fn-row[data-rate=gap]').boundingBox(); await page.mouse.move(b.x + 40, b.y + 5); await page.mouse.move(b.x + 60, b.y + 8); await page.waitForTimeout(250); }, tip: true },
+  { name: 'f-funnel-click-colour', hash: 'e=pres2024&w=funnel&fy=2024&sel=s:IN', act: seq(click('#v2d .fn-leak[data-rate=rem]'), click('#v2d .fn-go[data-cw=circles]')), probe: (page) => page.evaluate(() => ({ c: window.__vt.state.c, fs: window.__vt.state.fs, w: window.__vt.state.w, key: document.querySelector('#keyTitle').textContent, labels: document.querySelector('#rampLabels').textContent })) },
+  { name: 'f-funnel-colour-circles', hash: 'e=pres2024&w=circles&c=fun&fs=rem&fy=2024', probe: (page) => page.evaluate(() => ({ key: document.querySelector('#keyTitle').textContent, labels: document.querySelector('#rampLabels').textContent, how: document.querySelector('#dropHow').textContent.slice(0, 80) })) },
+  { name: 'f-funnel-colour-circles-mail', hash: 'e=pres2024&w=circles&c=fun&fs=mail&fy=2024' },
+  { name: 'f-funnel-colour-terrain-gap', hash: 'e=pres2024&w=terrain&c=fun&fs=gap&fy=2024&v=national' },
+  { name: 'f-funnel-reasons', hash: 'e=pres2024&w=funnel&fy=2024&sel=s:MA', act: async (page) => { await page.click('#v2d .fn-reasons summary'); }, probe: (page) => page.evaluate(() => ({ summary: document.querySelector('.fn-reasons summary').textContent, rows: [...document.querySelectorAll('.fn-reasons tbody tr')].map((r) => r.textContent) })) },
+  { name: 'f-funnel-house', hash: 'e=house2026&w=funnel' },
+  { name: 'f-funnel-phone', hash: 'e=pres2024&w=funnel&sel=s:IN', viewport: { width: 390, height: 844 } },
+  { name: 'n-nogl-funnel', hash: 'e=pres2024&w=funnel&fy=2024&sel=s:IN', gl: false },
   { name: 'n-nogl-money', hash: 'w=money&mm=out', gl: false },
   { name: 'n-nogl-road', hash: 'e=pres2024&w=road', gl: false },
   { name: 'n-nogl-closest', hash: 'e=sen2026&w=closest', gl: false },
   { name: 'n-nogl-ms', hash: 'w=scatter&sx=ms', gl: false },
 ].filter((s) => !ONLY || s.name.includes(ONLY));
 
+
+// Funnel probe: for each place (a state, or null for the nation) read the figures the page shows and recompute them from the raw EAVS CSV (or, without it, from funnel.json's county rows).
+const FUNNEL_ST = new Set('AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY'.split(' '));
+const FUNNEL_ITEMS = { reg: 'A1a', rem: 'A12a', mail_rej: 'C9a', prov_rej: 'E1d', counted: 'F1a' };
+let rawEavs;
+function parseCsv(text) {
+  const rows = []; let row = [], cur = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+    else if (c === '"') q = true; else if (c === ',') { row.push(cur); cur = ''; } else if (c === '\n') { row.push(cur.replace(/\r$/, '')); rows.push(row); row = []; cur = ''; } else cur += c;
+  }
+  if (cur || row.length) { row.push(cur); rows.push(row); }
+  return rows;
+}
+function eavsRaw2024() {
+  if (rawEavs !== undefined) return rawEavs;
+  const f = path.join(HERE, '.eavs-cache/csv/2024_EAVS_for_Public_Release_nolabel_V2.csv');
+  if (!fs.existsSync(f)) return (rawEavs = false);
+  const rows = parseCsv(fs.readFileSync(f, 'latin1')), h = rows[0], col = Object.fromEntries(Object.entries(FUNNEL_ITEMS).map(([k, c]) => [k, h.indexOf(c)])), sc = h.indexOf('State_Abbr');
+  const out = { __nation: Object.fromEntries(Object.keys(FUNNEL_ITEMS).map((k) => [k, { v: 0, miss: 0 }])) };
+  for (const r of rows.slice(1)) {
+    const st = r[sc]; if (!FUNNEL_ST.has(st)) continue;
+    const S = (out[st] ||= Object.fromEntries(Object.keys(FUNNEL_ITEMS).map((k) => [k, { v: 0, miss: 0 }])));
+    for (const k of Object.keys(FUNNEL_ITEMS)) {
+      const t = (r[col[k]] || '').trim().replace(/,/g, ''), v = t === '' ? NaN : Number(t);
+      for (const T of [S, out.__nation]) { if (Number.isFinite(v) && v >= 0) T[k].v += v; else T[k].miss += 1; }
+    }
+  }
+  return (rawEavs = out);
+}
+async function funnelProbe(page, places, year) {
+  const raw = year === 2024 ? eavsRaw2024() : false;
+  const shown = await page.evaluate(() => [...document.querySelectorAll('#v2d .fn-col')].map((c) => ({ label: c.querySelector('.fn-h').firstChild.textContent.trim(), rows: Object.fromEntries([...c.querySelectorAll('.fn-row, .fn-leak')].map((r) => [r.querySelector('.fn-lab').firstChild.textContent.trim(), r.querySelector('.fn-num').firstChild.textContent.trim()])), weight: (c.querySelector('.fn-w') || {}).textContent })));
+  const counties = raw ? null : await page.evaluate(async () => { const d = await (await fetch('funnel.json')).json(), ids = d.meta.ids, out = {};
+    for (const f of d.counties) { const st = f.slice(0, 2), r = d.county['2024'][f]; if (!r) continue; const o = (out[st] ||= {}); ids.forEach((k, i) => { if (r[i] != null) o[k] = (o[k] || 0) + r[i]; }); } return out; });
+  const LABEL = { reg: 'Registered voters', rem: 'Removed from the rolls', mail_rej: 'Mail ballots rejected', prov_rej: 'Provisional ballots rejected', counted: 'Ballots counted' };
+  const FIPS = { IN: '18', GA: '13' };
+  const res = places.map((st, i) => {
+    const S = shown[i], row = {}; let ok = !!S;
+    for (const k of Object.keys(LABEL)) {
+      const t = S && S.rows[LABEL[k]], got = t == null ? undefined : t === 'missing' ? null : Number(t.replace(/,/g, ''));
+      const want = raw ? raw[st || '__nation'][k].v : st ? (counties[FIPS[st]] || {})[k] : null;
+      const cmp = raw || st ? got === want : true;
+      row[k] = { got, want: want == null ? undefined : want, miss: raw ? raw[st || '__nation'][k].miss : undefined, ok: cmp };
+      ok = ok && cmp;
+    }
+    return { place: st || 'nation', label: S && S.label, weight: S && S.weight, source: raw ? 'raw EAVS 2024 V2 CSV' : 'funnel.json county rows', figures: row, ok };
+  });
+  return { places: res, ok: res.every((r) => r.ok) };
+}
 
 // People probe: the dots drawn for the election in view against the votes in elections.json, recomputed here without the page's helper code.
 const PEOPLE_PROBE = async (N) => {

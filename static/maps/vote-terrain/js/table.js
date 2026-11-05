@@ -6,7 +6,7 @@
 import { fmt, esc, countyLabelOf, $ } from './util.js';
 import * as Mn from './money.js';
 
-export function createTable({ geo, el, state, model, house, history, money, peopleDots, selection, effW, pctCh, OFFICE_NAME, stName, simCtx, power, roadCtx, closestCtx, overlays, ovSet, ovSummary, turnout }) {
+export function createTable({ geo, el, state, model, house, history, funnelCols, funnelYear, money, peopleDots, selection, effW, pctCh, OFFICE_NAME, stName, simCtx, power, roadCtx, closestCtx, overlays, ovSet, ovSummary, turnout }) {
   const { meta } = geo, { elections } = el;
   const wrap = $('tableWrap'), table = $('table');
   let sort = { k: 2, dir: -1 };
@@ -219,8 +219,23 @@ export function createTable({ geo, el, state, model, house, history, money, peop
       ['Filings', A.musk.filings.join(', ')]].map((r) => row(r)).join('') + '</tbody>';
     table.innerHTML = h;
   };
+  // Funnel: every stage, leak and reason for each place in view, with its EAVS item, share of residents, rate and the jurisdictions that did not report it.
+  const renderFunnel = () => {
+    const cols = funnelCols();
+    $('tableTitle').textContent = `Voter funnel, EAVS ${funnelYear()}: ${cols ? cols.map((c) => c.label).join(' against ') : ''}`;
+    $('tableNote').textContent = 'Each figure with its EAVS item code. A figure that jurisdictions did not report (EAVS codes -88, -99 or blank) is missing, never zero: the count is of those that did, and the last column says how many did not. Ballots cast is derived (counted plus rejected: a floor). A removal or a rejection is not a count of eligible voters turned away.';
+    if (!cols) { table.innerHTML = '<tbody><tr><td>Loading the voter funnel…</td></tr></tbody>'; return; }
+    const pc = (x) => (x == null ? '' : (x * 100).toFixed(1) + '%'), num = (x) => (x.v == null ? 'missing' : fmt(Math.round(x.v)));
+    const rowsOf = (D) => [...D.stages, ...D.leaks, ...D.reasons.rows.map((r) => ({ ...r, label: '   of removals: ' + r.label, share: null, rate: null }))];
+    const base = rowsOf(cols[0]);
+    const head = '<thead><tr><th>Figure</th><th>EAVS item</th>' + cols.map((c) => `<th>${esc(c.label)}: count</th><th>% of residents</th><th>Rate</th><th>Jur. missing</th>`).join('') + '</tr></thead>';
+    const body = base.map((r, i) => '<tr>' + `<td>${esc(r.label)}</td><td>${esc(r.code || '')}</td>` + cols.map((c) => { const x = rowsOf(c)[i] || {};
+      return `<td>${esc(num(x))}</td><td>${esc(pc(x.share))}</td><td>${esc(x.rate ? pc(x.rate.rate) + ' ' + x.rateId : '')}</td><td>${esc(x.miss ? fmt(x.miss) : '')}</td>`; }).join('') + '</tr>').join('');
+    table.innerHTML = head + '<tbody>' + body + '</tbody>';
+  };
   const M2votes = (r) => fmt(r.votes.D + r.votes.R);
   const render = () => {
+    if (effW() === 'funnel') return renderFunnel();
     if (effW() === 'money') return renderMoney();
     if (effW() === 'dropoff') return renderDropoff();
     if (effW() === 'split') return renderSplit();

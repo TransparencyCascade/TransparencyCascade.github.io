@@ -32,6 +32,7 @@ import { createViews2d } from './views2d/index.js';
 import { createHouse, PS_MIN, PS_MAX } from './house.js';
 import { createSavedViews, askedFor } from './views.js';
 import { decodePeople, dotCounts } from './people.js';
+import { createFunnel, YEARS as FUNNEL_YEARS, RATES as FUNNEL_RATES } from './funnel.js';
 import { createSim } from './sim.js';
 import { createPower } from './power.js';
 import { createOverlays } from './overlays.js';
@@ -54,6 +55,15 @@ const registry = ASK.view || ASK.tour ? await fetch('views.json').then((r) => r.
 // money.json (860 KB) loads only when something needs it: the Money tab, a saved view that shows money or quotes it in its caption, or the balance box's cost line
 // (when the box is open). A snapshot made before the Money tab has no money.json: 'missing', and the tab and the cost line say so.
 let moneyData = null, moneyState = 'idle', moneyLoading = null, moneyLoaded = () => {};
+// funnel.json (1.4 MB, the voter funnel's EAVS stages by state and county) loads the first time the Funnel tab or its colour is shown, or with a saved view that uses it.
+let funnel = null, funnelState = 'idle', funnelLoading = null, funnelLoaded = () => {};
+const ensureFunnel = () => {
+  if (funnelState === 'idle') {
+    funnelState = 'loading';
+    funnelLoading = getJSON('funnel.json').then((d) => { funnel = createFunnel({ data: d, eff, elections: el.elections, meta: geo.meta }); funnelState = 'ready'; }, () => { funnelState = 'missing'; }).then(() => funnelLoaded());
+  }
+  return funnelLoading;
+};
 let peopleData = null, peopleState = 'idle';   // people.json and people.bin (the dot map's slots): loaded the first time the People tab is shown
 const ensureMoney = () => {
   if (moneyState === 'idle') {
@@ -65,6 +75,7 @@ const ensureMoney = () => {
 if (registry) {
   const askedViews = ASK.view ? [ASK.view] : (registry.tours.find((t) => t.slug === ASK.tour) || { steps: [] }).steps.map((x) => x.view);
   if (askedViews.some((slug) => { const v = registry.views.find((x) => x.slug === slug); return v && /money/.test(JSON.stringify(v)); })) await ensureMoney();
+  if (askedViews.some((slug) => { const v = registry.views.find((x) => x.slug === slug); return v && /funnel/.test(JSON.stringify(v)); })) await ensureFunnel();
 }
 // The simulator's races (simulator.json) load the first time the Simulator is shown, or with the saved views (their captions use it).
 let simData = registry ? await getJSON('simulator.json') : null, simLoading = null;
@@ -96,10 +107,10 @@ fromHash(order);
 let sel = null, selVersion = 0, drawers = null;
 const turnout = createTurnout({ elections, meta });
 const places = createPlaces({ elections, order: el.order.filter((e) => !house.ids.includes(e)), meta });
-const model = createModel({ geo, el, bal, eff, state, selection: () => sel, turnout });
+const model = createModel({ geo, el, bal, eff, state, selection: () => sel, turnout, funnel: () => funnel });
 if (!meta[state.hk]) state.hk = '';
 if (state.cu && state.cu !== 'sel' && !regionData.regions.some((r) => r.id === state.cu)) state.cu = '';
-const { officeOf, baselineOf, baselineLabel, isWeight, isDrop, isMargin, weighted, weightsFor, effOf, multFor, effShown } = model;
+const { officeOf, baselineOf, baselineLabel, isWeight, isDrop, isFun, isMargin, weighted, weightsFor, effOf, multFor, effShown } = model;
 const tip = createTooltip({ geo, el, bal, state, model, turnout });
 const power = createPower({ meta, elections, eff, bal });
 const overlays = createOverlays({ data: ovData, meta, elections, sameOffice });
@@ -136,15 +147,17 @@ const terrainState = () => {
   let countyValue = null;
   if (isWeight()) { countyValue = {}; for (const f in elections[state.e].data) { const x = effOf(f); if (x) countyValue[f] = Math.log2(x.r); } }
   else if (isDrop()) { countyValue = {}; for (const f in elections[state.e].data) { const x = turnout.value(f, model.dropYear()); if (x != null) countyValue[f] = x; } }
-  return { ...state, kc: model.kcOf(), mode: isWeight() || isDrop() ? 'value' : isMargin() ? 'margin' : 'swing', weights: w ? w.factor : null,
+  else if (isFun() && funnel) { countyValue = {}; for (const f in elections[state.e].data) { const x = funnel.colourValue(f, model.funYear(), state.fs); if (x != null) countyValue[f] = x; } }
+  return { ...state, kc: model.kcOf(), mode: isWeight() || isDrop() || isFun() ? 'value' : isMargin() ? 'margin' : 'swing', weights: w ? w.factor : null,
     baseWeights: w && b ? weightsFor(b, state.h).factor : null,
-    countyMult: pop ? multFor(state.e) : null, baseCountyMult: pop && b ? multFor(b) : null, countyValue, valueMax: isDrop() ? DROP_MAX : WEIGHT_MAX };
+    countyMult: pop ? multFor(state.e) : null, baseCountyMult: pop && b ? multFor(b) : null, countyValue, valueMax: isDrop() ? DROP_MAX : isFun() ? FUNNEL_RATES[state.fs].max : WEIGHT_MAX };
 };
 // Why a tab cannot be used for the election in view ('' when it can).
 const HOUSE_TABS = ['strips', 'seats'];
 const tabWhy = (w) => (w === 'money' ? (moneyState === 'missing' ? 'needs money.json, which this snapshot does not have' : '')
+  : w === 'funnel' && funnelState === 'missing' ? 'needs funnel.json, which this snapshot does not have'
   : w === 'people' && peopleState === 'missing' ? 'needs people.json, which this snapshot does not have'
-  : w === 'history' || w === 'sim' || w === 'road' || w === 'closest' ? ''
+  : w === 'history' || w === 'sim' || w === 'road' || w === 'closest' || w === 'funnel' ? ''
   : isHouse() && !HOUSE_TABS.includes(w) ? 'needs county results, and House results are by district'
   : !isHouse() && HOUSE_TABS.includes(w) ? 'draws the House by district: choose House above the timeline'
   : w === 'dropoff' && !turnout.DROP[elections[state.e].year] ? 'compares a midterm year with the presidential year before it: choose 2022 or 2026 in the timeline'
@@ -325,6 +338,22 @@ const region = () => {
 };
 // ---------- the swing simulator (views2d/sim.js, sim.js) ----------
 const sim = () => (simData ? (sim.o ||= createSim(simData)) : null);
+// ---------- the voter funnel (views2d/funnel.js, funnel.js) ----------
+const funnelLabel = (spec) => (!spec ? 'The nation' : spec.states ? spec.states.map(stName).join(', ') : codec.summary(spec));
+const funnelCols = () => {
+  if (!funnel) return null;
+  const year = model.funYear(), A = funnel.describe(year, sel, effOf, funnelLabel(sel)), cols = [A];
+  const compare = state.fc === 'n' ? { states: null, nation: true } : state.fc ? { states: [state.fc.slice(2)] } : null;
+  if (compare) cols.push(funnel.describe(year, compare.nation ? null : compare, effOf, compare.nation ? 'The nation' : funnelLabel(compare)));
+  return cols;
+};
+const funnelCtx = () => {
+  if (funnelState === 'missing') return { error: 'needs funnel.json, which this snapshot does not have' };
+  if (!funnel) return null;
+  const year = model.funYear(), src = funnel.data.meta.sources.find((x) => x.year === year), E = eff.elections[funnel.electionFor(year)];
+  return { year, fs: state.fs, cols: funnelCols(), hasSel: !!sel, placeState: sel && sel.states && sel.states.length === 1 ? sel.states[0] : '', compareState: state.fc === 'n' ? 'n' : state.fc.slice(2),
+    source: `U.S. Election Assistance Commission, Election Administration and Voting Survey, ${src ? src.version : year} (eac.gov); item codes in each figure. Residents: ${funnel.basisOf(year)} Census; citizens of voting age: ACS ${E ? E.cvap : 'special tabulation'}. Weight of a vote: ${elections[funnel.electionFor(year)].label}, effective.json. Missing codes (-88, -99, blanks) are missing, never zero. Ballots cast is derived (counted plus rejected, a floor).` };
+};
 const ensurePeople = () => {
   if (peopleState !== 'idle') return;
   peopleState = 'loading';
@@ -408,6 +437,11 @@ views = createViews2d({
   // People (views2d/people.js, people.js): the slots, loaded the first time the tab is shown; votes per dot (state.pn).
   people: () => peopleData, peopleN: () => state.pn, setPeople: (patch) => { Object.assign(state, patch); render({ animate: false }); }, electionMeta: () => elections[state.e],
   setMoney: (patch) => { Object.assign(state, patch); render({ animate: false }); },
+  // Funnel (views2d/funnel.js, funnel.js): the year (state.fy), the stage rate that colours the maps (state.fs), the comparison (state.fc), the selection as the place.
+  funnel: () => funnelCtx(), funnelYears: () => FUNNEL_YEARS, funnelStates: () => (funnel ? funnel.stateIds().map((st) => [st, stName(st)]) : []),
+  setFunnel: (patch) => { Object.assign(state, patch); render({ animate: false }); }, funnelElectionLabel: (e) => elections[e].label,
+  funnelPlace: (st) => { if (st === '_') return; setSelection(st ? { states: [st] } : null); },
+  colourFunnel: (w) => { if (!state.fs) return; state.c = 'fun'; state.l = 'custom'; state.w = w; render({ animate: false }); setCamera(state.v, false); },
   // Which History chart is drawn (state.hc), and the switch that changes it.
   historyChart: () => state.hc,
   setHistoryChart: (k) => { state.hc = k; render({ animate: false }); },
@@ -459,7 +493,7 @@ document.querySelectorAll('[data-preset]').forEach((b) => { const r = regionData
 
 // ---------- find, table, read-once text ----------
 const find = createFind({ geo, el, ALL_ST: codec.ALL_ST, stName, choose: (spec) => setSelection(spec, { frame: true }) });
-const table = createTable({ geo, el, state, model, house, history: histData, money: () => moneyData, peopleDots: (f) => { const d = elections[state.e].data[f], c = dotCounts(f, d, +state.pn, peopleData && peopleData.at[f] ? peopleData.at[f].n : Infinity); return c.D + c.R + c.O; }, turnout, places, regions: regionData, areaOf: () => (drawers ? drawers.areaOf() : null), splitSel: () => (effW() === 'split' ? turnout.split() : null), selection: () => sel, effW, pctCh: codec.pctCh, OFFICE_NAME, stName, simCtx: () => simCtx(), power, roadCtx: () => roadCtx(), closestCtx: () => closestCtx(),
+const table = createTable({ geo, el, state, model, house, history: histData, funnelCols: () => funnelCols(), funnelYear: () => model.funYear(), money: () => moneyData, peopleDots: (f) => { const d = elections[state.e].data[f], c = dotCounts(f, d, +state.pn, peopleData && peopleData.at[f] ? peopleData.at[f].n : Infinity); return c.D + c.R + c.O; }, turnout, places, regions: regionData, areaOf: () => (drawers ? drawers.areaOf() : null), splitSel: () => (effW() === 'split' ? turnout.split() : null), selection: () => sel, effW, pctCh: codec.pctCh, OFFICE_NAME, stName, simCtx: () => simCtx(), power, roadCtx: () => roadCtx(), closestCtx: () => closestCtx(),
   overlays, ovSet, ovSummary: () => $('ovText').textContent });
 const about = createAbout({ el, eff, state, tip, selection: () => sel, select: setSelection, stName, house });
 // The comparison's method, one click away: the matching, then the unmatched medians for reference.
@@ -531,8 +565,9 @@ function render(opts = {}) {
   const bo = baselineOf();
   $('swingBtn').textContent = !bo ? 'Swing' : bo === 'senprior' ? 'Swing since last Senate race' : bo === 'govprior' ? 'Swing since last governor\'s race' : `Swing since ${elections[bo].year}`;
   const dY = model.dropYear(), dD = turnout.drop(dY), pctF = (x) => (x * 100).toFixed(0) + '%';
-  $('dropHow').hidden = !isDrop() || isHouse();
-  if (isDrop() && !isHouse()) $('dropHow').textContent = `Colour: ${dY} votes in the top race on the ballot (the Senate, else the governor) as a share of the ${elections[dD.base].year} presidential votes, against the share across all counties shown (${pctF(dD.all)}). Counties show where the election in view has a result; states with no statewide race that year are pale. Choose Governor above the timeline to see the states whose top race was the governor's.`;
+  $('dropHow').hidden = !(isDrop() || isFun()) || isHouse();
+  if (isFun() && !isHouse()) $('dropHow').textContent = `Colour: ${FUNNEL_RATES[state.fs].label}, EAVS ${model.funYear()}, by county, in percentage points above (ochre) or below (teal) the national rate. A county with a jurisdiction that did not report a figure has none and is pale. A removal or a rejection is not a count of eligible voters turned away. Choose Margin or Swing to leave this colour.`;
+  else if (isDrop() && !isHouse()) $('dropHow').textContent = `Colour: ${dY} votes in the top race on the ballot (the Senate, else the governor) as a share of the ${elections[dD.base].year} presidential votes, against the share across all counties shown (${pctF(dD.all)}). Counties show where the election in view has a result; states with no statewide race that year are pale. Choose Governor above the timeline to see the states whose top race was the governor's.`;
   $('swingHow').textContent = !bo ? 'No earlier race for the same seat in the data, so only margin is available.'
     : `Swing compares each county with ${bo === 'senprior' ? 'its state\'s previous race for the same Senate seat (2020 in most states)'
       : bo === 'govprior' ? 'its state\'s previous governor\'s race (2022, or 2024 in New Hampshire and Vermont)'
@@ -547,7 +582,8 @@ function render(opts = {}) {
   if (vw === 'sim' || vw === 'road' || vw === 'closest') ensureSim();
   if (vw === 'money') ensureMoney();
   if (vw === 'people') ensurePeople();
-  $('keyHeight').textContent = vw === 'people' ? `One dot per ${fmt(+state.pn)} votes` : vw === 'money' ? { time: 'Dots: one Senate race; bars: the median; money and votes side by side', lost: 'Dots: one Senate race; shaded: the bigger spender lost', donors: 'Bars: share of super PAC receipts' }[state.mc] : vw === 'power' ? { rank: 'Bars: three parts on a doubling scale; black tick: their product', tiles: 'Square area: share of ' + { votes: 'votes cast', ev: 'electoral votes', sen: 'Senate seats' }[state.pm], conc: 'Lines: each party\'s votes, biggest counties first' }[state.pc] : vw === 'sim' ? 'Tiles: margin after the swing; outlined: flipped; dashed: locked' : vw === 'road' ? ((r0) => (r0 && r0.body === 'sen' ? 'Segment width: one seat per race; the wide blocks are seats not on the ballot' : 'Segment width: electoral votes'))(roadCtx()) : vw === 'closest' ? 'Rows: races; click a heading to sort' : vw === 'dropoff' ? 'Circle area: votes in the midterm race; band: the 2022 pattern' : vw === 'split' ? 'Tick: one county; dark bar: the state\'s median' : vw === 'history' ? { seats: 'Dots: each state; line: the national average', small: 'Dots: each election, on a log scale', weight: 'Lines: largest against smallest, as a ratio', bias: 'Bars: the tipping state\'s margin minus the nation\'s, in points' }[state.hc] : vw === 'strips' ? 'Tick: one district; shading: at risk and contestable' : vw === 'seats' ? 'Point area: districts in the state' : vw === 'dots' ? 'Dot area: votes' : vw === 'scatter' ? 'Circle area: votes' : vw === 'arrows' ? 'Arrow length: swing'
+  if (vw === 'funnel' || isFun()) ensureFunnel();
+  $('keyHeight').textContent = vw === 'funnel' ? 'Bars: share of residents' : vw === 'people' ? `One dot per ${fmt(+state.pn)} votes` : vw === 'money' ? { time: 'Dots: one Senate race; bars: the median; money and votes side by side', lost: 'Dots: one Senate race; shaded: the bigger spender lost', donors: 'Bars: share of super PAC receipts' }[state.mc] : vw === 'power' ? { rank: 'Bars: three parts on a doubling scale; black tick: their product', tiles: 'Square area: share of ' + { votes: 'votes cast', ev: 'electoral votes', sen: 'Senate seats' }[state.pm], conc: 'Lines: each party\'s votes, biggest counties first' }[state.pc] : vw === 'sim' ? 'Tiles: margin after the swing; outlined: flipped; dashed: locked' : vw === 'road' ? ((r0) => (r0 && r0.body === 'sen' ? 'Segment width: one seat per race; the wide blocks are seats not on the ballot' : 'Segment width: electoral votes'))(roadCtx()) : vw === 'closest' ? 'Rows: races; click a heading to sort' : vw === 'dropoff' ? 'Circle area: votes in the midterm race; band: the 2022 pattern' : vw === 'split' ? 'Tick: one county; dark bar: the state\'s median' : vw === 'history' ? { seats: 'Dots: each state; line: the national average', small: 'Dots: each election, on a log scale', weight: 'Lines: largest against smallest, as a ratio', bias: 'Bars: the tipping state\'s margin minus the nation\'s, in points' }[state.hc] : vw === 'strips' ? 'Tick: one district; shading: at risk and contestable' : vw === 'seats' ? 'Point area: districts in the state' : vw === 'dots' ? 'Dot area: votes' : vw === 'scatter' ? 'Circle area: votes' : vw === 'arrows' ? 'Arrow length: swing'
     : vw === 'circles' ? (state.h === 'pop' ? 'Area: represented people' : 'Circle area: votes')
     : state.d === '2d' ? 'Flat map: colour only' : state.h === 'pop' ? 'Height: represented people'
     : state.h === 'net' ? `Height: net margin ${per}` : state.h === 'ev' || state.h === 'sen' ? `Height: votes × ${state.h === 'ev' ? 'electoral' : 'Senate'} weight`
@@ -603,6 +639,7 @@ function render(opts = {}) {
     $('keyTitle').textContent = state.hc === 'seats' ? 'Residents per House seat' : 'Weight per vote';
     $('ramp').innerHTML = ''; $('rampLabels').innerHTML = '';
   }
+  if (vw === 'funnel') { $('keyTitle').textContent = `Voter funnel, EAVS ${model.funYear()}`; $('ramp').innerHTML = ''; $('rampLabels').innerHTML = ''; }
   if (vw === 'people') {   // one dot per N votes, coloured by party
     $('keyTitle').textContent = `Dots: ${elections[state.e].label}, one per ${fmt(+state.pn)} votes`;
     $('ramp').innerHTML = `<i style="background:${toward(-40, MARGIN_MAX)}"></i><i style="background:#8C9296"></i><i style="background:${toward(40, MARGIN_MAX)}"></i>`;
@@ -622,13 +659,19 @@ function render(opts = {}) {
     $('keyTitle').textContent = `${dY} votes as a share of ${elections[dD.base].year}'s`;
     $('ramp').innerHTML = d3.range(-DROP_MAX, DROP_MAX + 0.001, DROP_MAX / 6).map((x) => `<i style="background:${towardW(x, DROP_MAX)}"></i>`).join('');
     $('rampLabels').innerHTML = `<span>${pctF(dD.all * 2 ** -DROP_MAX)}</span><span>all: ${pctF(dD.all)}</span><span>${pctF(dD.all * 2 ** DROP_MAX)}</span>`;
+  }  if (panelColour && isFun() && !isHouse()) {   // colour: a stage's rate against the national rate, in points
+    const R = FUNNEL_RATES[state.fs], F = funnel, nat = F ? F.rateOf(F.aggregate(model.funYear(), null), state.fs) : null, pts = (x) => `${x >= 0 ? '+' : '−'}${Math.abs(x)}`;
+    $('keyTitle').textContent = `${R.label}, ${model.funYear()}`;
+    $('ramp').innerHTML = d3.range(-R.max, R.max + 0.001, R.max / 6).map((x) => `<i style="background:${towardW(x, R.max)}"></i>`).join('');
+    $('rampLabels').innerHTML = `<span>${pts(-R.max)} pts</span><span>national${nat ? ': ' + (nat.rate * 100).toFixed(1) + '%' : ''}</span><span>${pts(R.max)} pts</span>`;
   }
+
   if (vw === 'split') {   // Senate margin minus governor margin
     $('keyTitle').textContent = 'Senate margin minus governor margin';
     $('ramp').innerHTML = d3.range(-SPLIT_MAX, SPLIT_MAX + 0.001, SPLIT_MAX / 6).map((x) => `<i style="background:${toward(x, SPLIT_MAX)}"></i>`).join('');
     $('rampLabels').innerHTML = `<span>${SPLIT_MAX} R</span><span>agree</span><span>${SPLIT_MAX} D</span>`;
   }
-  $('ramp').hidden = $('rampLabels').hidden = (vw === 'money' && state.mc === 'donors') || (vw === 'history' && state.hc !== 'small' && state.hc !== 'bias') || (vw === 'power' && state.pc === 'rank');
+  $('ramp').hidden = $('rampLabels').hidden = (vw === 'money' && state.mc === 'donors') || (vw === 'history' && state.hc !== 'small' && state.hc !== 'bias') || (vw === 'power' && state.pc === 'rank') || vw === 'funnel';
   $('rankBtn').hidden = !effShown() || !eff.elections[state.e];
   if (about.isRankOpen()) about.renderRank();
 
@@ -648,7 +691,7 @@ function render(opts = {}) {
   nt.textContent = 'This browser is not drawing 3D (WebGL is off or unavailable), so the map is shown as Circles. Everything else works.';
   tourBtn.disabled = vw !== 'terrain';
   $('flat').disabled = vw !== 'terrain';
-  $('reset').disabled = vw === 'dropoff' || vw === 'split' || vw === 'dots' || vw === 'people' || vw === 'scatter' || vw === 'road' || vw === 'closest' || vw === 'history' || vw === 'money' || vw === 'sim' || vw === 'power' || HOUSE_TABS.includes(vw);
+  $('reset').disabled = vw === 'dropoff' || vw === 'split' || vw === 'dots' || vw === 'people' || vw === 'funnel' || vw === 'scatter' || vw === 'road' || vw === 'closest' || vw === 'history' || vw === 'money' || vw === 'sim' || vw === 'power' || HOUSE_TABS.includes(vw);
   if (sel) $('selText').textContent = codec.summary(sel);
   if (drawers) drawers.render();
   showView();
@@ -772,7 +815,7 @@ const followHash = (forceCamera = false) => {
 };
 window.addEventListener('hashchange', () => followHash());
 // Saved views and tours: the card with the caption; a tour step sets the whole state, as a link would.
-const savedViews = registry ? createSavedViews({ registry, bal, eff, houseData, histData, money: () => moneyData, simData, elections, stName, power, overlays, flips, meta, ms, sameOffice, turnout, places, regionData,
+const savedViews = registry ? createSavedViews({ registry, bal, eff, houseData, histData, funnel: () => funnel, effOf, money: () => moneyData, simData, elections, stName, power, overlays, flips, meta, ms, sameOffice, turnout, places, regionData,
   apply: (st) => { if (terrain) terrain.stopMotion(); history.replaceState(null, '', location.search + '#' + hashFor(st)); followHash(true); if (st.sel && sel) applySelection({ frame: true, fit: 1.15 }); } }) : null;
 if (savedViews) {
   savedViews.setOnResize(() => { if (views && effW() !== 'terrain') views.redraw(false); });
@@ -786,10 +829,11 @@ const fitHeights = () => {
   if (f < 1) kh.textContent += `; heights drawn at ${Math.round(f * 100)}% to fit the card`;
   return f;
 };
-window.__vt = { ensureMoney, state, elections, turnout, places, drawers: () => drawers, openHistory, power, overlays, flips, races, ms, road: () => roadCtx(), closest: () => closestCtx(), sim: () => simCtx(), fitHeights, saved: () => savedViews, meta, house: () => house.now(), terrain: () => terrain, blocks: () => blocks, views: () => views, sel: () => sel, setSelection, effW, tipHtml: tip.countyHtml,
+window.__vt = { funnel: () => funnel, funnelCols, ensureFunnel, ensureMoney, state, elections, turnout, places, drawers: () => drawers, openHistory, power, overlays, flips, races, ms, road: () => roadCtx(), closest: () => closestCtx(), sim: () => simCtx(), fitHeights, saved: () => savedViews, meta, house: () => house.now(), terrain: () => terrain, blocks: () => blocks, views: () => views, sel: () => sel, setSelection, effW, tipHtml: tip.countyHtml,
   colours: { GARNET: GARNET + '', SAPPHIRE: SAPPHIRE + '', NEUTRAL: NEUTRAL + '' } };
 sel = codec.decode(state.sel); state.sel = codec.encode(sel);
 moneyLoaded = () => { if (ready) render({ animate: false }); };
+funnelLoaded = () => { if (ready) { render({ animate: false }); table.refresh(); } };
 ready = true;
 render({ animate: false });
 applySelection({ frame: framesSel() });

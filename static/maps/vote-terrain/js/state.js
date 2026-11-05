@@ -9,17 +9,18 @@
    (u uniform, p proportional), lock the states held at their actual result (CA,PA), sm which body its map shows.
    Power: pc the chart (rank, tiles, conc), pm what the cartogram's squares are sized by (votes, ev, sen), pk the
    party the concentration marker follows (d, r), pa its horizontal axis (land, counties), pq the marker (1-99).
+   fy: the Funnel's election year (2016-2024; empty follows the election in view), fs: the stage rate it colours the maps by (cvr, gap, inact, rem, mail, prov, turn; c=fun), fc: what it is compared with (a state, s:IN, or n for the nation).
    ov: the overlay from our research marked on the county views (monitors, detention; empty for none; overlays.js).
    sx: Scatter's chart (empty: change in votes; ms: margin against swing). rb: which Road to 270 bar (pres, sen; empty for
    the office in view). ro: Closest races' office filter (pres, sen, house, gov; empty for all). hk: the county whose History card is pinned to the
    panel (five-digit code; empty for none). mc: the Money chart (time: dollars per decisive vote; lost: outspent and lost; donors: where it came from), md: its decisive votes
    (flip, moved), mm: the money counted (cand, party, out), my: the cycle (all, or a year; empty: all for lost, 2026 for donors), mg: the committee bars net of transfers between committees (net, the default) or gross, mp: through the pre-general report in each cycle (pre, the default) or the whole cycle (full). pn: People's votes per dot (500, 1000, 5000). cu: the regional close-up drawer ('sel': the selection; a preset's id from regions.json; empty for none). */
 import { parsePs } from './house.js';
-export const state = { e: 'pres2024', h: 'total', c: 'margin', s: 'terrain', m: '1', v: 'west', d: '3d', u: 'd', n: 'area', l: 'votes', g: '0', w: 'terrain', sel: '', ps: '', hc: 'seats', sw: '', swr: 'u', lock: '', sm: '', pc: 'rank', pm: 'votes', pk: 'd', pa: 'land', pq: '50', ov: '', sx: '', rb: '', ro: '', hk: '', cu: '', mc: 'time', md: 'flip', mm: 'cand', my: '', mg: 'net', mp: 'pre', pn: '1000' };
+export const state = { e: 'pres2024', h: 'total', c: 'margin', s: 'terrain', m: '1', v: 'west', d: '3d', u: 'd', n: 'area', l: 'votes', g: '0', w: 'terrain', sel: '', ps: '', hc: 'seats', sw: '', swr: 'u', lock: '', sm: '', pc: 'rank', pm: 'votes', pk: 'd', pa: 'land', pq: '50', ov: '', sx: '', rb: '', ro: '', hk: '', cu: '', mc: 'time', md: 'flip', mm: 'cand', my: '', mg: 'net', mp: 'pre', pn: '1000', fy: '', fs: '', fc: '' };
 // Districts and Seats and votes draw the House track (results by district); History draws the long view on any track;
 // the others need county results.
-export const TABS = ['terrain', 'circles', 'people', 'arrows', 'dots', 'scatter', 'strips', 'seats', 'history', 'sim', 'power', 'road', 'closest', 'dropoff', 'split', 'money'];
-export const TAB_NAME = { terrain: 'Terrain', circles: 'Circles', people: 'People', arrows: 'Arrows', dots: 'Swing strips', scatter: 'Scatter', strips: 'Districts', seats: 'Seats and votes', history: 'History', sim: 'Simulator', power: 'Power', road: 'Road to 270', closest: 'Closest races', dropoff: 'Turnout drop-off', split: 'Ticket splitting', money: 'Money' };
+export const TABS = ['terrain', 'circles', 'people', 'arrows', 'dots', 'scatter', 'strips', 'seats', 'history', 'sim', 'power', 'road', 'closest', 'dropoff', 'split', 'money', 'funnel'];
+export const TAB_NAME = { terrain: 'Terrain', circles: 'Circles', people: 'People', arrows: 'Arrows', dots: 'Swing strips', scatter: 'Scatter', strips: 'Districts', seats: 'Seats and votes', history: 'History', sim: 'Simulator', power: 'Power', road: 'Road to 270', closest: 'Closest races', dropoff: 'Turnout drop-off', split: 'Ticket splitting', money: 'Money', funnel: 'Funnel' };
 // Lenses: one question each, setting several controls at once. Changing any control in Adjust makes the view "custom".
 export const LENSES = {
   votes: { set: { n: 'area', h: 'total', c: 'margin', g: '0', d: '3d' }, v: 'national',
@@ -43,7 +44,7 @@ export const fromHash = (order) => {
   // Phones open on Circles: the flat view that reads at that width.
   if (!q.get('w') && window.innerWidth <= 640) state.w = 'circles';
   if (!TABS.includes(state.w)) state.w = 'terrain';
-  if (!['margin', 'swing', 'weight', 'drop'].includes(state.c)) state.c = 'margin';
+  if (!['margin', 'swing', 'weight', 'drop', 'fun'].includes(state.c)) state.c = 'margin';
   state.sel = q.get('sel') || '';
   state.ps = parsePs(q.get('ps') || '');
   if (!['seats', 'small', 'weight', 'bias'].includes(state.hc)) state.hc = 'seats';
@@ -70,5 +71,9 @@ export const fromHash = (order) => {
   state.mp = q.get('mp') === 'full' ? 'full' : 'pre';
   state.pn = ['500', '1000', '5000'].includes(q.get('pn')) ? q.get('pn') : '1000';
   state.ov = ['monitors', 'detention'].includes(q.get('ov')) ? q.get('ov') : '';
+  state.fy = ['2016', '2018', '2020', '2022', '2024'].includes(q.get('fy')) ? q.get('fy') : '';
+  state.fs = ['cvr', 'gap', 'inact', 'rem', 'mail', 'prov', 'turn'].includes(q.get('fs')) ? q.get('fs') : '';
+  state.fc = /^(s:[A-Z]{2}|n)$/.test(q.get('fc') || '') ? q.get('fc') : '';
+  if (state.c === 'fun' && !state.fs) state.c = 'margin';
 };
 export const toHash = () => history.replaceState(null, '', '#' + new URLSearchParams(state).toString());

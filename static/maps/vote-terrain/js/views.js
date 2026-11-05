@@ -42,6 +42,9 @@
      presPerVote, presSpent } }; calc.money.america: { receipts, disb, schedE, schedEFile, notAlloc, through, schedEThrough, muskCash, muskCashShare, inKind, memo, attributed, attributedShare };
      filters usd ($12,345) and usdw ($4.2 million); root money is money.json itself (coverage, sources).
    calc.people.<election id> (pres2024, sen2026, ...): { per, dots, D, R, O, votes, counties } at one dot per 1,000 votes (the People view's default; people.js).
+   calc.funnel.y<2016|2018|2020|2022|2024>.<nation|ST>: the voter funnel for the nation or a state (funnel.js, funnel.json): pop, cvap, reg, act, cast, counted, rem, mail, prov
+     (counts), remPct, mailPct, provPct, gapPct, turnPct (percent), moved, nonresp, itemised (removals by reason, counts), missRem, missMail, missProv (jurisdictions that did not report), w (weight per vote; filter x2),
+     ppv (residents per vote), label.
    calc.house.<year>: ps, captured, contestable, atRisk, apart, capv, capvShare, st.<ST>.{captured, contestable, atRisk}
      (bands at the default plausible swing). An unknown token stops the caption and logs an error, so a broken
      caption cannot reach a card unnoticed. */
@@ -53,7 +56,7 @@ import { createRaces, OFFICES } from './races.js';
 import { tokens as biasTokens, ratioText } from './bias.js';
 import * as Mn from './money.js';
 
-export function createSavedViews({ registry, bal, eff, houseData, histData, money, simData, elections, stName, power, overlays, flips, meta, ms, sameOffice, turnout, places, regionData, apply }) {
+export function createSavedViews({ registry, bal, eff, houseData, histData, funnel, effOf, money, simData, elections, stName, power, overlays, flips, meta, ms, sameOffice, turnout, places, regionData, apply }) {
   const etTime = (iso) => new Date(iso).toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', month: 'short', day: 'numeric', year: 'numeric' }) + ' ET';
   // Derived figures, computed once from the data files (the House bands with their own state, at the default plausible swing).
   const calc = { eff: {}, house: {} };
@@ -222,6 +225,17 @@ export function createSavedViews({ registry, bal, eff, houseData, histData, mone
   // People (people.js): the dots of an election at one dot per 1,000 votes: dots, D, R, O (counts), votes (what they stand for), counties.
   calc.people = new Proxy({}, { get: (o, k) => (typeof k === 'string' && elections[k] && elections[k].data ? (o[k] ||= Pe.totals(elections[k].data, 1000)) : undefined) });
   const roots = { bal, eff, house: houseData, hist: histData, get money() { return money(); }, elections, calc, sim: simData, ov: overlays && { layers: Object.fromEntries(Object.keys(overlays.sets).map((k) => [k, overlays.layer(k)])) } };
+  // Funnel (funnel.js): the voter funnel for the nation or a state in one election year.
+  const funnelFor = (year, st) => {
+    const F = funnel(); if (!F) return undefined;
+    const D = F.describe(year, st === 'nation' ? null : { states: [st] }, effOf, st === 'nation' ? 'The nation' : stName(st)), g = (id) => D.stages.concat(D.leaks).find((x) => x.id === id), rate = (id) => (g(id) && g(id).rate ? g(id).rate.rate * 100 : null);
+    const gap = F.rateOf(D.agg, 'gap'), turn = F.rateOf(D.agg, 'turn'), R = D.reasons.rows;
+    return { label: D.label, pop: g('pop').v, cvap: g('cvap').v, reg: g('reg').v, act: g('act').v, cast: g('cast').v, counted: g('counted').v, rem: g('rem').v, mail: g('mail_rej').v, prov: g('prov_rej').v,
+      remPct: rate('rem'), mailPct: rate('mail_rej'), provPct: rate('prov_rej'), gapPct: gap ? gap.rate * 100 : null, turnPct: turn ? turn.rate * 100 : null,
+      moved: (R.find((x) => x.id === 'rem_moved') || {}).v, nonresp: (R.find((x) => x.id === 'rem_nonresp') || {}).v, itemised: D.reasons.itemised, missRem: g('rem').miss, missMail: g('mail_rej').miss, missProv: g('prov_rej').miss,
+      w: D.weight ? D.weight.r : null, ppv: D.weight ? D.weight.ppv : null };
+  };
+  calc.funnel = new Proxy({}, { get: (o, k) => (typeof k === 'string' && /^y20\d\d$/.test(k) ? new Proxy({}, { get: (o2, st) => (typeof st === 'string' && (st === 'nation' || /^[A-Z]{2}$/.test(st)) ? (o2[st] ||= funnelFor(+k.slice(1), st)) : undefined) }) : undefined) });
   const FILTERS = {
     ratio: (v) => ratioText(v), n: (v) => fmt(v), raw: (v) => String(v), pt: (v) => Math.abs(v).toFixed(1), lead: (v) => (v >= 0 ? 'D+' : 'R+') + Math.abs(v).toFixed(1), toward: (v) => `${Math.abs(v).toFixed(1)} points toward ${v >= 0 ? 'Democrats' : 'Republicans'}`, swing: (v) => `${Math.abs(v).toFixed(1)} points toward the ${v >= 0 ? 'Democrat' : 'Republican'}`, x: (v) => v.toFixed(1) + '×', x2: (v) => v.toFixed(2) + '×', pct: (v) => v.toFixed(1) + '%', usd: (v) => Mn.usd(v), usdw: (v) => Mn.usdWords(v), pct2: (v) => v.toFixed(2) + '%', et: (v) => etTime(v),
     last: (v) => String(v).split(' ').pop(), states: (v) => list(v.map(stName)),

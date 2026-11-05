@@ -3,8 +3,9 @@
    shared state; owns no DOM. */
 import { toward, towardW, rgb, NODATA, PAGE, SWING_MAX, MARGIN_MAX, WEIGHT_MAX } from './colour.js';
 import { DROP_MAX } from './turnout.js';
+import { RATES, YEARS as FUN_YEARS } from './funnel.js';
 
-export function createModel({ geo, el, bal, eff, state, selection, turnout }) {
+export function createModel({ geo, el, bal, eff, state, selection, turnout, funnel = () => null }) {
   const { meta } = geo;
   const { order, tracks, sameOffice, k, elections } = el;
   // Office tracks: the timeline shows the elections of the office in view.
@@ -16,6 +17,9 @@ export function createModel({ geo, el, bal, eff, state, selection, turnout }) {
   const isWeight = () => state.c === 'weight';
   // Turnout drop-off (turnout.js): colour by each county's midterm votes as a share of the presidential year before, against the share across all counties.
   const isDrop = () => state.c === 'drop';
+  // Voter funnel (funnel.js): colour by a stage's rate (state.fs) in the funnel year, in points above or below the national rate.
+  const isFun = () => state.c === 'fun' && !!RATES[state.fs];
+  const funYear = () => (FUN_YEARS.includes(+state.fy) ? +state.fy : FUN_YEARS.includes(+(elections[state.e] || {}).year) ? +elections[state.e].year : 2024);
   const dropYear = () => turnout.yearOf(state.e);
   const isMargin = () => state.c === 'margin' || (state.c === 'swing' && !baselineOf());
   const swingOf = (f) => {
@@ -27,6 +31,7 @@ export function createModel({ geo, el, bal, eff, state, selection, turnout }) {
     const v = elections[state.e].data[f];
     if (!v) return NODATA;
     if (isDrop()) { const x = turnout.value(f, dropYear()); return x == null ? NODATA : rgb(towardW(x, DROP_MAX)); }
+    if (isFun()) { const F = funnel(), x = F ? F.colourValue(f, funYear(), state.fs) : null; return x == null ? NODATA : rgb(towardW(x, RATES[state.fs].max)); }
     if (isWeight()) { const x = effOf(f); return x ? rgb(towardW(Math.log2(x.r), WEIGHT_MAX)) : NODATA; }
     if (isMargin()) return rgb(toward(margin(v), MARGIN_MAX));
     const s = swingOf(f); return s == null ? NODATA : rgb(toward(s, SWING_MAX));
@@ -117,6 +122,6 @@ export function createModel({ geo, el, bal, eff, state, selection, turnout }) {
     return elections[b].label;
   };
 
-  return { officeOf, margin, baselineOf, baselineLabel, isWeight, isDrop, dropYear, isMargin, swingOf, colourRaw, colourOf, weightsFor, weighted,
+  return { officeOf, margin, baselineOf, baselineLabel, isWeight, isDrop, dropYear, isFun, funYear, isMargin, swingOf, colourRaw, colourOf, weightsFor, weighted,
     V24, repVotesOf, effOf, multFor, effShown, votesOf, kcOf, heightOf, rowsNow };
 }
