@@ -42,7 +42,7 @@
      presPerVote, presSpent } }; calc.money.america: { receipts, disb, schedE, schedEFile, notAlloc, through, schedEThrough, muskCash, muskCashShare, inKind, memo, attributed, attributedShare };
      filters usd ($12,345) and usdw ($4.2 million); root money is money.json itself (coverage, sources).
    calc.people.<election id> (pres2024, sen2026, ...): { per, dots, D, R, O, votes, counties } at one dot per 1,000 votes (the People view's default; people.js).
-   calc.funnel.y<2016|2018|2020|2022|2024>.<nation|ST>: the voter funnel for the nation or a state (funnel.js, funnel.json): pop, cvap, reg, act, cast, counted, rem, mail, prov
+   calc.funnel.y<2016|2018|2020|2022|2024>.<nation|ST>: the voter funnel for the nation or a state (funnel.js, funnel.json): pop, cvap, act (active registrations, the main bar), inact (inactive, the band beside it) and inactPct, reg (all records, active and inactive), gapPct (citizens of voting age without an active registration), cast, counted, rem, mail, prov
      (counts), remPct, mailPct, provPct, gapPct, turnPct (percent), moved, nonresp, itemised (removals by reason, counts), missRem, missMail, missProv (jurisdictions that did not report), w (weight per vote; filter x2),
      ppv (residents per vote), label.
    calc.house.<year>: ps, captured, contestable, atRisk, apart, capv, capvShare, st.<ST>.{captured, contestable, atRisk}
@@ -228,9 +228,9 @@ export function createSavedViews({ registry, bal, eff, houseData, histData, funn
   // Funnel (funnel.js): the voter funnel for the nation or a state in one election year.
   const funnelFor = (year, st) => {
     const F = funnel(); if (!F) return undefined;
-    const D = F.describe(year, st === 'nation' ? null : { states: [st] }, effOf, st === 'nation' ? 'The nation' : stName(st)), g = (id) => D.stages.concat(D.leaks).find((x) => x.id === id), rate = (id) => (g(id) && g(id).rate ? g(id).rate.rate * 100 : null);
+    const D = F.describe(year, st === 'nation' ? null : { states: [st] }, effOf, st === 'nation' ? 'The nation' : stName(st)), g = (id) => D.stages.concat(D.band, D.leaks).find((x) => x.id === id), rate = (id) => (g(id) && g(id).rate ? g(id).rate.rate * 100 : null);
     const gap = F.rateOf(D.agg, 'gap'), turn = F.rateOf(D.agg, 'turn'), R = D.reasons.rows;
-    return { label: D.label, pop: g('pop').v, cvap: g('cvap').v, reg: g('reg').v, act: g('act').v, cast: g('cast').v, counted: g('counted').v, rem: g('rem').v, mail: g('mail_rej').v, prov: g('prov_rej').v,
+    return { label: D.label, pop: g('pop').v, cvap: g('cvap').v, reg: g('reg').v, act: g('act').v, inact: g('inact').v, inactPct: rate('inact'), cast: g('cast').v, counted: g('counted').v, rem: g('rem').v, mail: g('mail_rej').v, prov: g('prov_rej').v,
       remPct: rate('rem'), mailPct: rate('mail_rej'), provPct: rate('prov_rej'), gapPct: gap ? gap.rate * 100 : null, turnPct: turn ? turn.rate * 100 : null,
       moved: (R.find((x) => x.id === 'rem_moved') || {}).v, nonresp: (R.find((x) => x.id === 'rem_nonresp') || {}).v, itemised: D.reasons.itemised, missRem: g('rem').miss, missMail: g('mail_rej').miss, missProv: g('prov_rej').miss,
       w: D.weight ? D.weight.r : null, ppv: D.weight ? D.weight.ppv : null };

@@ -4,7 +4,7 @@
    rate it stands for (removal rate, rejection rate, registration gap) and colour Circles or Terrain by it. Reasons for removal are shown as the
    jurisdictions reported them; a removal or a rejection is not a count of eligible voters turned away, and no count here is said to have changed an
    outcome. A figure no jurisdiction reported is shown as missing, never as zero, with how many jurisdictions did not report it. */
-import { RATES, REASONS } from '../funnel.js';
+import { RATES, REASONS, NVRA_NOTE } from '../funnel.js';
 
 const pct = (x, d = 1) => (x == null ? '–' : (x * 100).toFixed(d) + '%');
 
@@ -39,11 +39,23 @@ export function funnelView({ ctx, head, body, foot, place }) {
     if (x.id === 'rem' || x.id === 'mail_rej' || x.id === 'prov_rej') lines.push('<span class="note">A removal or a rejection is not a count of eligible voters turned away.</span>');
     return lines.join('<br>').replace(/"/g, '&quot;');
   };
+  // The active-registrations bar and, beside it, the inactive band (hatched, labelled); the pair is centred like the other bars.
+  const bandOf = (x) => {
+    const b = x.band, iw = b && b.share != null ? Math.min(1, b.share) * 100 : 0;
+    return b && iw ? `<span class="fn-band" data-tip="${tipFor(b).replace(/"/g, '&quot;')}" style="width:${iw.toFixed(2)}%" aria-hidden="true"><span class="fn-band-l">inactive</span></span>` : '';
+  };
   const stageRow = (x, d, pressed) => {
     const w = x.share == null ? 0 : Math.min(1, x.share) * 100;
     return `<button class="fn-row${x.v == null ? ' fn-miss' : ''}" data-tip="${tipFor(x, d)}"${x.rateId ? ` data-rate="${x.rateId}"` : ''} aria-pressed="${x.rateId && x.rateId === pressed ? 'true' : 'false'}">` +
-      `<span class="fn-lab">${x.label}<small>${x.code || ''}</small></span><span class="fn-track"><span class="fn-bar" style="width:${w.toFixed(2)}%"></span></span>` +
+      `<span class="fn-lab">${x.label}<small>${x.code || ''}</small></span><span class="fn-track"><span class="fn-bar" style="width:${w.toFixed(2)}%"></span>${bandOf(x)}</span>` +
       `<span class="fn-num">${x.v == null ? 'missing' : fmt(Math.round(x.v))}<small>${x.id === 'pop' || x.share == null ? '' : pct(x.share)}${x.miss ? ` · ${fmt(x.miss)} jur. missing` : ''}</small></span></button>`;
+  };
+  const inactRow = (D, pressed) => {
+    const x = D.band[0], t = D.band[1];
+    return `<button class="fn-inact${x.v == null ? ' fn-miss' : ''}" data-tip="${tipFor(x)}" data-rate="inact" aria-pressed="${pressed === 'inact' ? 'true' : 'false'}">` +
+      `<span class="fn-lab">${x.label}<i class="fn-swatch" aria-hidden="true"></i><span class="fn-aside">hatched</span><small>${x.code || ''}</small></span>` +
+      `<span class="fn-num">${x.v == null ? 'missing' : fmt(Math.round(x.v))}<small>${x.rate ? pct(x.rate.rate) + ' of registrations' : ''}${t.v != null ? ` · all records ${fmt(Math.round(t.v))}` : ''}</small></span></button>` +
+      `<p class="fn-inact-note">${NVRA_NOTE}</p>`;
   };
   const leakRow = (x, pressed) => `<button class="fn-leak${x.v == null ? ' fn-miss' : ''}" data-tip="${tipFor(x)}" data-rate="${x.rateId}" aria-pressed="${x.rateId === pressed ? 'true' : 'false'}">` +
     `<span class="fn-lab">${x.label}<small>${x.code || ''}</small></span><span class="fn-num">${x.v == null ? 'missing' : fmt(Math.round(x.v))}<small>${x.rate ? pct(x.rate.rate) + ' ' + ({ rem: 'of registered', mail_rej: 'of mail ballots returned', prov_rej: 'of provisional ballots' })[x.id] : ''}${x.miss ? ` · ${fmt(x.miss)} jur. missing` : ''}</small></span></button>`;
@@ -65,7 +77,7 @@ export function funnelView({ ctx, head, body, foot, place }) {
   function column(D, pressed, cmp) {
     const nowhere = D.stages.every((s) => s.v == null);
     return `<section class="fn-col${cmp ? ' fn-cmp' : ''}"><h3 class="fn-h">${D.label} <small>${D.year}${D.noRows && D.noRows.length ? ` · ${D.noRows.length} counties without EAVS rows (Alaska and Wisconsin report as one state)` : ''}</small></h3>` +
-      `<div class="fn-main"><div class="fn-funnel">${D.stages.map((x) => stageRow(x, D, pressed)).join('')}</div>` +
+      `<div class="fn-main"><div class="fn-funnel">${D.stages.map((x) => stageRow(x, D, pressed) + (x.id === 'act' ? inactRow(D, pressed) : '')).join('')}</div>` +
       `<div class="fn-leaks"><div class="fn-sub">Left the chain, and the reasons as reported</div>${D.leaks.map((x) => leakRow(x, pressed)).join('')}${reasonsHtml(D.reasons)}</div></div>` +
       weightHtml(D) + (nowhere ? '<p class="fn-none">No EAVS figures for this place.</p>' : '') + '</section>';
   }

@@ -14,8 +14,9 @@ code used for each year.
 Stages, in funnel order (ids in funnel.json):
   pop       residents: the census count effective.json uses (2010 Census for 2016-2020, 2020 Census for 2022-2024)
   cvap      citizens of voting age: ACS special tabulation, as effective.json (2014-2018 for 2016-2020, 2019-2023 for 2022-2024)
-  reg       registered voters, active and inactive (A1a)
-  act       of them active (A1b; A3a in 2016)
+  reg       registered voters, active and inactive (A1a); the page shows inactive records as a band beside the active bar,
+            because they stay on the rolls until removed under the NVRA's notice-and-wait process (52 U.S.C. 20507(d))
+  act       of them active (A1b; A3a in 2016): the page's main registered bar
   rem       removed from the rolls since the last general election, by reason (A11a / A9a / A12a; reasons b..g, 2024 adds h)
   mail_ret  mail ballots returned by voters (C1b), the base for the mail rejection rate
   mail_rej  mail ballots rejected (C4b in 2016, C4a in 2018 and 2020, C9a from 2022)
@@ -129,7 +130,7 @@ def main():
     eff = json.load(open(os.path.join(WEB, "effective.json")))
     ycount = {}   # per year: unit key -> accumulators
     codes = defaultdict(Counter)   # (year, item) -> missing code counts
-    st_acc = {y: defaultdict(lambda: {"v": [0.0] * len(IDS), "miss": [0] * len(IDS), "missReg": [0.0] * len(IDS), "n": 0, "pr": [0.0] * 8, "has": [0] * len(IDS)}) for y in YEARS}
+    st_acc = {y: defaultdict(lambda: {"v": [0.0] * len(IDS), "miss": [0] * len(IDS), "missReg": [0.0] * len(IDS), "n": 0, "pr": [0.0] * 10, "has": [0] * len(IDS)}) for y in YEARS}
     co_acc = {y: defaultdict(lambda: {"v": [0.0] * len(IDS), "bad": [False] * len(IDS), "n": 0}) for y in YEARS}
     jur_count = Counter()
     not_in_county = defaultdict(list)
@@ -164,8 +165,9 @@ def main():
                     A["missReg"][IX[k]] += reg or 0
                 else:
                     A["v"][IX[k]] += v
-            # pairwise-valid rate parts: removal / registered, mail rejected / returned, provisional rejected / cast, counted / registered
-            for n, (a, b) in enumerate([("rem", "reg"), ("mail_rej", "mail_ret"), ("prov_rej", "prov"), ("counted", "reg")]):
+            # pairwise-valid rate parts: removal / registered, mail rejected / returned, provisional rejected / cast, counted / registered, active / registered
+            # (the last pair makes the inactive count: registered less active, in the jurisdictions that reported both)
+            for n, (a, b) in enumerate([("rem", "reg"), ("mail_rej", "mail_ret"), ("prov_rej", "prov"), ("counted", "reg"), ("act", "reg")]):
                 if vals[a][0] is not None and vals[b][0] is not None:
                     A["pr"][2 * n] += vals[a][0]
                     A["pr"][2 * n + 1] += vals[b][0]
@@ -224,7 +226,7 @@ def main():
         assert tot == want, (b, tot, want)
     for y in YEARS:
         out_state[str(y)] = {}
-        tot = {"v": [0.0] * len(IDS), "miss": [0] * len(IDS), "missReg": [0.0] * len(IDS), "n": 0, "pr": [0.0] * 8}
+        tot = {"v": [0.0] * len(IDS), "miss": [0] * len(IDS), "missReg": [0.0] * len(IDS), "n": 0, "pr": [0.0] * 10}
         for st, A in sorted(st_acc[y].items()):
             # a figure every jurisdiction in the state left out is missing (null), not a sum of nothing; its missing count is kept
             asked, got = A["has"], [h and A["miss"][i] < A["n"] for i, h in enumerate(A["has"])]
@@ -305,7 +307,7 @@ def main():
             "sources": [{"year": y, "file": SOURCES[y][0], "version": SOURCES[y][1], "url": SOURCES[y][2]} for y in YEARS] +
                        [{"what": "residents and citizen voting-age population: effective.json (2010 and 2020 Census; ACS CVAP 2014-2018 and 2019-2023)"}],
             "years": YEARS, "basis": {str(y): basis_of[y] for y in YEARS}, "items": items_meta, "ids": IDS,
-            "rows": "each row is a value per id in ids; null is missing (never zero). State rows: v the sum of jurisdictions with a figure, miss the jurisdictions without, missReg the registered voters in them, pr the pairwise-valid rate parts [removed, registered, mail rejected, mail returned, provisional rejected, provisional cast, counted, registered].",
+            "rows": "each row is a value per id in ids; null is missing (never zero). State rows: v the sum of jurisdictions with a figure, miss the jurisdictions without, missReg the registered voters in them, pr the pairwise-valid rate parts [removed, registered, mail rejected, mail returned, provisional rejected, provisional cast, counted, registered, active, registered]; inactive = pr[9] - pr[8] (registered less active, in the jurisdictions that reported both).",
             "notes": {
                 "towns": "New England states report by town. A town's 10-digit FIPS code starts with its county's five digits, and towns are summed by those five digits. Connecticut's codes are the eight historic counties the page uses.",
                 "stateOnly": "Alaska reports as one unit and Wisconsin by municipality with no county code, so both are state rows only.",

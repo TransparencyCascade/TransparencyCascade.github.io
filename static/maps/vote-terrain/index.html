@@ -288,6 +288,12 @@
   .fn-main { flex:1 1 380px; min-width:0; } .fn-weight { flex:0 1 190px; font-size:12px; color:var(--graphite); }
   .fn-two .fn-weight { flex:1 0 100%; }
   .fn-row, .fn-leak { display:grid; grid-template-columns:170px 1fr 150px; gap:8px; align-items:center; width:100%; font:inherit; font-size:12px; color:var(--ink); background:transparent; border:0; border-bottom:1px solid transparent; padding:3px 2px; text-align:left; cursor:pointer; }
+  .fn-inact { display:grid; grid-template-columns:1fr 190px; gap:8px; align-items:center; width:100%; font:inherit; font-size:11.5px; color:var(--ink); background:transparent; border:0; border-bottom:1px solid transparent; padding:2px 2px 3px 14px; text-align:left; cursor:pointer; }
+  .fn-inact:hover, .fn-inact[aria-pressed=true] { background:rgba(35,48,107,.07); border-bottom-color:var(--rule); }
+  .fn-aside { font-size:10.5px; color:var(--graphite); } .fn-swatch { display:inline-block; width:12px; height:10px; margin:0 4px 0 6px; vertical-align:-1px; background:repeating-linear-gradient(135deg,#8A93C4 0 2px,#E7E9F4 2px 4px); border:1px solid #5E6AA6; }
+  .fn-band { position:relative; height:100%; background:repeating-linear-gradient(135deg,#8A93C4 0 2px,#E7E9F4 2px 4px); border:1px solid #5E6AA6; border-left:0; box-sizing:border-box; flex:none; }
+  .fn-band-l { position:absolute; left:100%; top:50%; transform:translateY(-50%); margin-left:4px; font-size:10.5px; color:var(--graphite); white-space:nowrap; }
+  .fn-inact-note { margin:0 0 6px; padding:0 2px 0 14px; font-size:11px; color:var(--graphite); }
   .fn-leak { grid-template-columns:1fr 190px; } .fn-two .fn-row { grid-template-columns:140px 1fr 138px; }
   .fn-row:hover, .fn-leak:hover, .fn-row[aria-pressed=true], .fn-leak[aria-pressed=true] { background:rgba(35,48,107,.07); border-bottom-color:var(--rule); }
   .fn-row[aria-pressed=true] .fn-bar { background:var(--ink); }
@@ -305,7 +311,7 @@
   .fn-wlab { display:flex; justify-content:space-between; font-size:10.5px; margin:2px 0 6px; }
   .fn-msg, .fn-none { color:var(--graphite); } .fn-go { font:inherit; font-size:12px; color:var(--ink); background:var(--paper); border:1px solid var(--rule); padding:3px 10px; margin-left:6px; cursor:pointer; }
   .v2d-head select { font:inherit; font-size:12px; color:var(--ink); background:var(--paper); border:1px solid var(--rule); padding:3px 4px; margin-left:4px; }
-  @media (max-width:900px) { .fn-wrap { display:block; } .fn-col { display:block; margin-bottom:22px; } .fn-row, .fn-two .fn-row { grid-template-columns:1fr 100px; } .fn-track { display:none; } }
+  @media (max-width:900px) { .fn-wrap { display:block; } .fn-col { display:block; margin-bottom:22px; } .fn-row, .fn-two .fn-row { grid-template-columns:1fr 100px; } .fn-track { display:none; } .fn-inact { grid-template-columns:1fr 100px; } }
   body.export .v2d-root[data-view=funnel] .v2d-head { display:none !important; }
   /* On a card each figure sits on one line and the reasons (a table on the page) are left to it */
   body.export .fn-row, body.export .fn-leak { grid-template-columns:200px 1fr 330px; padding:1px 2px; } body.export .fn-leak { grid-template-columns:1fr 440px; }
@@ -313,6 +319,7 @@
   body.export .fn-lab small, body.export .fn-num small { display:inline; margin-left:6px; white-space:nowrap; }
   body.export .fn-two .fn-num small { display:block; margin:0; white-space:normal; } body.export .fn-wrap { width:100%; min-width:0; } body.export .fn-col { overflow:hidden; }
   body.export .fn-two .fn-row { grid-template-columns:150px 1fr 180px; } body.export .fn-two .fn-leak { grid-template-columns:1fr 210px; } body.export .fn-two .fn-weight { flex:1 0 100%; }
+  body.export .fn-inact { grid-template-columns:1fr 440px; } body.export .fn-two .fn-inact { grid-template-columns:1fr 250px; } body.export .fn-inact-note { display:none; }
   body.export .fn-reasons { display:none; } body.export .fn-sub { margin:6px 0 0; } body.export .fn-h { margin:0; } body.export .fn-track { height:15px; } body.export .fn-w { font-size:24px; margin:0 0 4px; }
   /* Money: the chart and, for Where it came from, the donors beside it */
   #v2d .v2d-root[data-view=money] .v2d-body { overflow:hidden; }

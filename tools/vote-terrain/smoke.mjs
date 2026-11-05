@@ -775,7 +775,7 @@ const SCENARIOS = [
   { name: 'f-funnel-ga-2024', hash: 'e=pres2024&w=funnel&fy=2024&sel=s:GA', probe: (page) => funnelProbe(page, ['GA'], 2024) },
   { name: 'f-funnel-compare', hash: 'e=pres2024&w=funnel&fy=2024&sel=s:IN&fc=s:GA', probe: (page) => funnelProbe(page, ['IN', 'GA'], 2024) },
   { name: 'f-funnel-vs-nation', hash: 'e=pres2024&w=funnel&fy=2024&sel=s:IN&fc=n', probe: (page) => funnelProbe(page, ['IN', null], 2024) },
-  { name: 'f-funnel-2020', hash: 'e=pres2020&w=funnel&sel=s:TX', probe: (page) => page.evaluate(() => { const c = window.__vt.funnelCols()[0]; return { year: c.year, label: c.label, reg: c.stages.find((x) => x.id === 'reg').v, code: c.stages.find((x) => x.id === 'reg').code, remCode: c.leaks[0].code, weight: !!c.weight }; }) },
+  { name: 'f-funnel-2020', hash: 'e=pres2020&w=funnel&sel=s:TX', probe: (page) => page.evaluate(() => { const c = window.__vt.funnelCols()[0]; return { year: c.year, label: c.label, act: c.stages.find((x) => x.id === 'act').v, code: c.stages.find((x) => x.id === 'act').code, inact: c.stages.find((x) => x.id === 'act').band.v, inactCode: c.stages.find((x) => x.id === 'act').band.code, remCode: c.leaks[0].code, weight: !!c.weight }; }) },
   { name: 'f-funnel-midterm', hash: 'e=sen2022&w=funnel', probe: (page) => page.evaluate(() => { const c = window.__vt.funnelCols()[0]; return { year: c.year, rem: c.leaks[0].code, counted: c.stages.find((x) => x.id === 'counted').v, weight: c.weight && c.weight.label }; }) },
   { name: 'f-funnel-table', hash: 'e=pres2024&w=funnel&fy=2024&sel=s:IN', act: key('t') },
   { name: 'f-funnel-table-compare', hash: 'e=pres2024&w=funnel&fy=2024&sel=s:IN&fc=n', act: key('t') },
@@ -797,7 +797,7 @@ const SCENARIOS = [
 
 // Funnel probe: for each place (a state, or null for the nation) read the figures the page shows and recompute them from the raw EAVS CSV (or, without it, from funnel.json's county rows).
 const FUNNEL_ST = new Set('AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY'.split(' '));
-const FUNNEL_ITEMS = { reg: 'A1a', rem: 'A12a', mail_rej: 'C9a', prov_rej: 'E1d', counted: 'F1a' };
+const FUNNEL_ITEMS = { reg: 'A1a', act: 'A1b', rem: 'A12a', mail_rej: 'C9a', prov_rej: 'E1d', counted: 'F1a' };
 let rawEavs;
 function parseCsv(text) {
   const rows = []; let row = [], cur = '', q = false;
@@ -814,23 +814,26 @@ function eavsRaw2024() {
   const f = path.join(HERE, '.eavs-cache/csv/2024_EAVS_for_Public_Release_nolabel_V2.csv');
   if (!fs.existsSync(f)) return (rawEavs = false);
   const rows = parseCsv(fs.readFileSync(f, 'latin1')), h = rows[0], col = Object.fromEntries(Object.entries(FUNNEL_ITEMS).map(([k, c]) => [k, h.indexOf(c)])), sc = h.indexOf('State_Abbr');
-  const out = { __nation: Object.fromEntries(Object.keys(FUNNEL_ITEMS).map((k) => [k, { v: 0, miss: 0 }])) };
+  const mk = () => ({ ...Object.fromEntries(Object.keys(FUNNEL_ITEMS).map((k) => [k, { v: 0, miss: 0 }])), inact: { v: 0, miss: 0 } });   // inact: registered less active, in the jurisdictions that reported both
+  const out = { __nation: mk() };
   for (const r of rows.slice(1)) {
     const st = r[sc]; if (!FUNNEL_ST.has(st)) continue;
-    const S = (out[st] ||= Object.fromEntries(Object.keys(FUNNEL_ITEMS).map((k) => [k, { v: 0, miss: 0 }])));
+    const S = (out[st] ||= mk());
     for (const k of Object.keys(FUNNEL_ITEMS)) {
       const t = (r[col[k]] || '').trim().replace(/,/g, ''), v = t === '' ? NaN : Number(t);
       for (const T of [S, out.__nation]) { if (Number.isFinite(v) && v >= 0) T[k].v += v; else T[k].miss += 1; }
     }
+    const num = (c) => { const t = (r[col[c]] || '').trim().replace(/,/g, ''), v = t === '' ? NaN : Number(t); return Number.isFinite(v) && v >= 0 ? v : null; }, rg = num('reg'), ac = num('act');
+    for (const T of [S, out.__nation]) { if (rg != null && ac != null) T.inact.v += rg - ac; else T.inact.miss += 1; }
   }
   return (rawEavs = out);
 }
 async function funnelProbe(page, places, year) {
   const raw = year === 2024 ? eavsRaw2024() : false;
-  const shown = await page.evaluate(() => [...document.querySelectorAll('#v2d .fn-col')].map((c) => ({ label: c.querySelector('.fn-h').firstChild.textContent.trim(), rows: Object.fromEntries([...c.querySelectorAll('.fn-row, .fn-leak')].map((r) => [r.querySelector('.fn-lab').firstChild.textContent.trim(), r.querySelector('.fn-num').firstChild.textContent.trim()])), weight: (c.querySelector('.fn-w') || {}).textContent })));
+  const shown = await page.evaluate(() => [...document.querySelectorAll('#v2d .fn-col')].map((c) => ({ label: c.querySelector('.fn-h').firstChild.textContent.trim(), rows: Object.fromEntries([...c.querySelectorAll('.fn-row, .fn-leak, .fn-inact')].map((r) => [r.querySelector('.fn-lab').firstChild.textContent.trim(), r.querySelector('.fn-num').firstChild.textContent.trim()])), weight: (c.querySelector('.fn-w') || {}).textContent })));
   const counties = raw ? null : await page.evaluate(async () => { const d = await (await fetch('funnel.json')).json(), ids = d.meta.ids, out = {};
-    for (const f of d.counties) { const st = f.slice(0, 2), r = d.county['2024'][f]; if (!r) continue; const o = (out[st] ||= {}); ids.forEach((k, i) => { if (r[i] != null) o[k] = (o[k] || 0) + r[i]; }); } return out; });
-  const LABEL = { reg: 'Registered voters', rem: 'Removed from the rolls', mail_rej: 'Mail ballots rejected', prov_rej: 'Provisional ballots rejected', counted: 'Ballots counted' };
+    for (const f of d.counties) { const st = f.slice(0, 2), r = d.county['2024'][f]; if (!r) continue; const o = (out[st] ||= {}); ids.forEach((k, i) => { if (r[i] != null) o[k] = (o[k] || 0) + r[i]; }); if (r[ids.indexOf('reg')] != null && r[ids.indexOf('act')] != null) o.inact = (o.inact || 0) + r[ids.indexOf('reg')] - r[ids.indexOf('act')]; } return out; });
+  const LABEL = { act: 'Active registrations', inact: 'Inactive registrations', rem: 'Removed from the rolls', mail_rej: 'Mail ballots rejected', prov_rej: 'Provisional ballots rejected', counted: 'Ballots counted' };
   const FIPS = { IN: '18', GA: '13' };
   const res = places.map((st, i) => {
     const S = shown[i], row = {}; let ok = !!S;

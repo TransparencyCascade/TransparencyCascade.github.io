@@ -1,19 +1,26 @@
 /* The voter funnel (funnel.json, built by tools/vote-terrain/build_funnel.py from the EAC's EAVS files): from residents to ballots counted
    for the nation, a set of states or a set of counties, in one election year 2016-2024. Pure functions over the data; owns no DOM.
 
-   Stages: residents (census), citizens of voting age (CVAP), registered voters, active registrations, ballots cast (derived: counted plus
-   mail and provisional ballots rejected, so a floor) and ballots counted. Beside the chain: removals since the last general election (with
+   Stages: residents (census), citizens of voting age (CVAP), active registrations (the main registered bar), ballots cast (derived: counted plus
+   mail and provisional ballots rejected, so a floor) and ballots counted. Beside the active bar, as a labelled band: inactive registrations
+   (registered less active, EAVS A1a less A1b). EAVS's total registered (A1a) includes inactive records, which stay on the rolls until removed under the
+   NVRA's notice-and-wait process (52 U.S.C. 20507(d)); in 2024 it nearly equals citizens of voting age, so as the main bar it hides the gap. Beside the chain: removals since the last general election (with
    the reasons the jurisdictions reported), mail ballots rejected and provisional ballots rejected. Every figure carries its EAVS item code.
    Missing values (EAVS codes -88, -99 and blanks) are never zero: a sum is of the jurisdictions that reported, and says how many did not.
    A removal or a rejection is not a count of eligible voters turned away, and nothing here says a count changed an outcome. */
 export const STAGES = [
   { id: 'pop', label: 'Residents', note: 'the census count the effective vote uses' },
   { id: 'cvap', label: 'Citizens of voting age', note: 'ACS citizen voting-age population, as the effective vote uses' },
-  { id: 'reg', label: 'Registered voters', note: 'active and inactive' },
-  { id: 'act', label: 'Active registrations', note: 'registered voters not marked inactive' },
+  { id: 'act', label: 'Active registrations', note: 'registered voters not marked inactive; inactive records are the band beside the bar' },
   { id: 'cast', label: 'Ballots cast', note: 'derived: counted plus mail and provisional ballots rejected (a floor)' },
   { id: 'counted', label: 'Ballots counted', note: 'people whose ballot was counted' },
 ];
+// Beside the active bar: inactive registrations (registered less active, in the jurisdictions that reported both) and the registered total with them (A1a).
+export const BAND = [
+  { id: 'inact', label: 'Inactive registrations', note: 'registered but marked inactive: on the rolls until removed under the NVRA notice-and-wait process (52 U.S.C. 20507(d))' },
+  { id: 'reg', label: 'All registration records', note: 'active and inactive together (EAVS A1a)' },
+];
+export const NVRA_NOTE = 'Inactive records stay on the rolls until removed under the National Voter Registration Act\'s notice-and-wait process: a notice, no reply, and no voting through the second federal general election after it (52 U.S.C. 20507(d)).';
 export const LEAKS = [
   { id: 'rem', label: 'Removed from the rolls', note: 'since the last general election' },
   { id: 'mail_rej', label: 'Mail ballots rejected' },
@@ -25,14 +32,14 @@ export const REASONS = [['rem_moved', 'moved'], ['rem_death', 'death'], ['rem_fe
 // colour in percentage points either side of the national rate. 'pr' rates read the build's pairwise-valid parts.
 export const RATES = {
   cvr: { label: 'Citizens of voting age per resident', max: 10, stage: 'cvap' },
-  gap: { label: 'Registration gap: citizens of voting age not registered', max: 25, stage: 'reg' },
-  inact: { label: 'Inactive share of registrations', max: 15, stage: 'act' },
+  gap: { label: 'Registration gap: citizens of voting age without an active registration', max: 25, stage: 'act' },
+  inact: { label: 'Inactive share of registrations', max: 15, stage: 'inact' },
   rem: { label: 'Removal rate: removed per registered voter', max: 10, stage: 'rem' },
   mail: { label: 'Mail ballot rejection rate', max: 3, stage: 'mail_rej' },
   prov: { label: 'Provisional ballot rejection rate', max: 25, stage: 'prov_rej' },
   turn: { label: 'Ballots counted per citizen of voting age', max: 20, stage: 'counted' },
 };
-export const RATE_OF_STAGE = { cvap: 'cvr', reg: 'gap', act: 'inact', rem: 'rem', mail_rej: 'mail', prov_rej: 'prov', cast: 'turn', counted: 'turn' };
+export const RATE_OF_STAGE = { cvap: 'cvr', act: 'gap', inact: 'inact', rem: 'rem', mail_rej: 'mail', prov_rej: 'prov', cast: 'turn', counted: 'turn' };
 export const YEARS = [2016, 2018, 2020, 2022, 2024];
 
 export function createFunnel({ data, eff, elections, meta, states }) {
@@ -41,7 +48,7 @@ export function createFunnel({ data, eff, elections, meta, states }) {
   const itemMeta = Object.fromEntries(data.meta.items.map((x) => [x.id, x]));
   const basisOf = (y) => data.meta.basis[String(y)];
   const eavsCode = (id, y) => (itemMeta[id] && itemMeta[id].eavs[String(y)]) || null;
-  const empty = () => ({ v: ids.map(() => 0), miss: ids.map(() => 0), missReg: ids.map(() => 0), has: ids.map(() => false), pr: new Array(8).fill(0), n: 0, nulls: ids.map(() => 0), units: 0 });
+  const empty = () => ({ v: ids.map(() => 0), miss: ids.map(() => 0), missReg: ids.map(() => 0), has: ids.map(() => false), pr: new Array(10).fill(0), n: 0, nulls: ids.map(() => 0), units: 0 });
   const addRow = (A, S) => {   // a state or national row
     ids.forEach((k, i) => { A.miss[i] += S.miss[i] || 0; A.missReg[i] += S.missReg[i] || 0; if (S.v[i] != null) { A.v[i] += S.v[i]; A.has[i] = true; } });
     S.pr.forEach((x, i) => { A.pr[i] += x; }); A.n += S.n; A.units += 1;
@@ -69,7 +76,7 @@ export function createFunnel({ data, eff, elections, meta, states }) {
         A.units += 1; touched.add(f);
         ids.forEach((k, j) => { if (r[j] == null) { A.nulls[j] += 1; } else { A.v[j] += r[j]; A.has[j] = true; } });
         // pairwise-valid rate parts at county level
-        [['rem', 'reg'], ['mail_rej', 'mail_ret'], ['prov_rej', 'prov'], ['counted', 'reg']].forEach(([n, d], p) => { if (r[IX[n]] != null && r[IX[d]] != null) { A.pr[2 * p] += r[IX[n]]; A.pr[2 * p + 1] += r[IX[d]]; } });
+        [['rem', 'reg'], ['mail_rej', 'mail_ret'], ['prov_rej', 'prov'], ['counted', 'reg'], ['act', 'reg']].forEach(([n, d], p) => { if (r[IX[n]] != null && r[IX[d]] != null) { A.pr[2 * p] += r[IX[n]]; A.pr[2 * p + 1] += r[IX[d]]; } });
       }
       A.miss = A.nulls.slice();
       scope = 'counties'; label = `${sel.counties.size} counties`;
@@ -81,6 +88,7 @@ export function createFunnel({ data, eff, elections, meta, states }) {
     const { A, pop, cvap, year } = agg;
     if (id === 'pop') return { v: pop, miss: 0, missReg: 0, code: 'Census' };
     if (id === 'cvap') return { v: cvap, miss: 0, missReg: 0, code: 'ACS CVAP' };
+    if (id === 'inact') { const n = A.pr[9] - A.pr[8]; return A.pr[9] > 0 ? { v: n, miss: A.miss[IX.act] || 0, missReg: A.missReg[IX.act] || 0, code: `${eavsCode('reg', year)} less ${eavsCode('act', year)}` } : { v: null, miss: A.miss[IX.act] || 0, missReg: 0, code: eavsCode('act', year) }; }
     const i = IX[id];
     if (i == null || !A.has[i]) return { v: null, miss: A.miss[i] || 0, missReg: 0, code: eavsCode(id, year) };
     return { v: A.v[i], miss: A.miss[i], missReg: A.missReg[i], code: eavsCode(id, year) };
@@ -93,8 +101,8 @@ export function createFunnel({ data, eff, elections, meta, states }) {
     if (id === 'mail') return pr(1);
     if (id === 'prov') return pr(2);
     if (id === 'cvr') return pop > 0 && cvap > 0 ? { rate: cvap / pop, num: cvap, den: pop } : null;
-    if (id === 'gap') return cvap > 0 && x('reg') != null ? { rate: 1 - x('reg') / cvap, num: cvap - x('reg'), den: cvap } : null;
-    if (id === 'inact') return x('reg') > 0 && x('act') != null ? { rate: 1 - x('act') / x('reg'), num: x('reg') - x('act'), den: x('reg') } : null;
+    if (id === 'gap') return cvap > 0 && x('act') != null ? { rate: 1 - x('act') / cvap, num: cvap - x('act'), den: cvap } : null;
+    if (id === 'inact') return A.pr[9] > 0 ? { rate: 1 - A.pr[8] / A.pr[9], num: A.pr[9] - A.pr[8], den: A.pr[9] } : null;
     if (id === 'turn') return cvap > 0 && x('counted') != null ? { rate: x('counted') / cvap, num: x('counted'), den: cvap } : null;
     return null;
   }
@@ -104,7 +112,7 @@ export function createFunnel({ data, eff, elections, meta, states }) {
     const r = data.county[String(year)][f], b = basisOf(year), pop = data.pop[b][i], cvap = data.cvap[b][i], g = (k) => (r ? r[IX[k]] : null);
     const frac = (a, d) => (a != null && d != null && d > 0 ? a / d : null);
     if (id === 'cvr') return frac(cvap, pop);
-    if (id === 'gap') { const q = frac(g('reg'), cvap); return q == null ? null : 1 - q; }
+    if (id === 'gap') { const q = frac(g('act'), cvap); return q == null ? null : 1 - q; }
     if (id === 'inact') { const q = frac(g('act'), g('reg')); return q == null ? null : 1 - q; }
     if (id === 'rem') return frac(g('rem'), g('reg'));
     if (id === 'mail') return frac(g('mail_rej'), g('mail_ret'));
@@ -145,7 +153,7 @@ export function createFunnel({ data, eff, elections, meta, states }) {
       return { id, ...x, share: x.v != null && pop ? x.v / pop : null, rate: r, rateId: rid, missShare: x.missReg && itemOf(agg, 'reg').v ? x.missReg / itemOf(agg, 'reg').v : null }; };
     const e = electionFor(year), w = effOf ? weightFor(year, sel, effOf, e) : null;
     return { year, label: label || agg.label, scope: agg.scope, units: agg.unitsN, noRows: agg.noRows, agg,
-      stages: STAGES.map((s) => ({ ...s, ...fig(s.id) })), leaks: LEAKS.map((s) => ({ ...s, ...fig(s.id) })), reasons: reasons(agg), weight: w, election: e };
+      stages: STAGES.map((s) => ({ ...s, ...fig(s.id), ...(s.id === 'act' ? { band: { ...BAND[0], ...fig('inact') } } : {}) })), band: BAND.map((s) => ({ ...s, ...fig(s.id) })), leaks: LEAKS.map((s) => ({ ...s, ...fig(s.id) })), reasons: reasons(agg), weight: w, election: e };
   }
   const flagOf = (st, y) => (data.state[String(y)][st] ? { n: data.state[String(y)][st].n } : null);
   return { aggregate, describe, itemOf, rateOf, countyRate, colourValue, weightFor, electionFor, reasons, eavsCode, basisOf, flagOf, data, years: YEARS, has: (f) => f in cPos, stateIds: () => Object.keys(data.state[String(YEARS[0])]).filter((st) => data.statePop['2020'][st]).sort() };

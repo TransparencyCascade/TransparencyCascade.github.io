@@ -223,10 +223,10 @@ export function createTable({ geo, el, state, model, house, history, funnelCols,
   const renderFunnel = () => {
     const cols = funnelCols();
     $('tableTitle').textContent = `Voter funnel, EAVS ${funnelYear()}: ${cols ? cols.map((c) => c.label).join(' against ') : ''}`;
-    $('tableNote').textContent = 'Each figure with its EAVS item code. A figure that jurisdictions did not report (EAVS codes -88, -99 or blank) is missing, never zero: the count is of those that did, and the last column says how many did not. Ballots cast is derived (counted plus rejected: a floor). A removal or a rejection is not a count of eligible voters turned away.';
+    $('tableNote').textContent = 'Each figure with its EAVS item code. A figure that jurisdictions did not report (EAVS codes -88, -99 or blank) is missing, never zero: the count is of those that did, and the last column says how many did not. Active registrations are the main registered figure; inactive records (registered less active) stay on the rolls until removed under the NVRA\'s notice-and-wait process, 52 U.S.C. 20507(d). Ballots cast is derived (counted plus rejected: a floor). A removal or a rejection is not a count of eligible voters turned away.';
     if (!cols) { table.innerHTML = '<tbody><tr><td>Loading the voter funnel…</td></tr></tbody>'; return; }
     const pc = (x) => (x == null ? '' : (x * 100).toFixed(1) + '%'), num = (x) => (x.v == null ? 'missing' : fmt(Math.round(x.v)));
-    const rowsOf = (D) => [...D.stages, ...D.leaks, ...D.reasons.rows.map((r) => ({ ...r, label: '   of removals: ' + r.label, share: null, rate: null }))];
+    const rowsOf = (D) => [...D.stages.flatMap((x) => (x.id === 'act' ? [x, ...D.band.map((b) => ({ ...b, label: b.id === 'inact' ? 'Inactive registrations (band beside the active bar)' : b.label }))] : [x])), ...D.leaks, ...D.reasons.rows.map((r) => ({ ...r, label: '   of removals: ' + r.label, share: null, rate: null }))];
     const base = rowsOf(cols[0]);
     const head = '<thead><tr><th>Figure</th><th>EAVS item</th>' + cols.map((c) => `<th>${esc(c.label)}: count</th><th>% of residents</th><th>Rate</th><th>Jur. missing</th>`).join('') + '</tr></thead>';
     const body = base.map((r, i) => '<tr>' + `<td>${esc(r.label)}</td><td>${esc(r.code || '')}</td>` + cols.map((c) => { const x = rowsOf(c)[i] || {};
