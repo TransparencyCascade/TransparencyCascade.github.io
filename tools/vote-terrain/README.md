@@ -21,8 +21,9 @@ checks it; Hugo does not publish `tools/`.
 | `terrain.js` | Smooth terrain (three.js), loaded only with WebGL |
 | `blocks.js` | Exact counties (three.js), loaded the first time it is shown |
 | `views2d/` | Circles, Arrows, Dots, Scatter, and for the House track Districts (`strips.js`) and Seats and votes (`seats.js`) (d3 + SVG), and what they share |
+| `views.js` | Saved views and tours (`views.json`): `?view=`, `?tour=`, the card with the caption, caption tokens resolved from the data |
 
-`window.__vt` exists only for the smoke test and console checks. When you change a module, bump the
+`window.__vt` exists only for the smoke test, `export.mjs` and console checks. When you change a module, bump the
 `?v=` on `js/main.js` in `index.html`; the other modules are not versioned, so a browser may need a hard
 reload during development.
 
@@ -54,7 +55,8 @@ the old shape: `node tools/vote-terrain/geometry_codec.mjs <old geometry.json> s
     node tools/vote-terrain/smoke.mjs            # compare with the baseline; exit 1 on any difference
     node tools/vote-terrain/smoke.mjs --record   # write the baseline (after a change you meant)
 
-Every tab, lens, office and shape (the House track's two views, the plausible swing and their tables included), elections with and without a baseline, selections by state,
+Every tab, lens, office and shape (the House track's two views, the plausible swing and their tables included), saved
+views and tours (every caption must resolve), one card export, elections with and without a baseline, selections by state,
 rule and click, the table, find, keys, play, reset, phone width, and WebGL off. For each it records the key,
 panels, balance box, notes, pressed buttons, a hash of every flat-view SVG and a screenshot (failing above
 0.2% of pixels changed). It needs playwright-core (`VT_PLAYWRIGHT`) and a Chromium (`VT_CHROME`; it uses
@@ -63,6 +65,33 @@ The baseline and CDN cache live in `tools/vote-terrain/.smoke/` (not committed):
 changing code. `--only <name>` runs a subset (and with `--record` updates just those); `--loose <prefix>`
 reports screenshot differences for those scenarios without failing. Which metro labels show is reported,
 not failed: labels that would collide are hidden by a check that runs every 30 frames.
+
+## Saved views, tours and exports
+
+`static/maps/vote-terrain/views.json` names views: a slug, a title, a typed file line, a caption, a sources
+line, the state (the address-hash keys; keys left out take the defaults) and optionally a snapshot. Tours are
+ordered lists of view slugs. Captions and sources hold **no typed numbers**: every figure is a token such as
+`{bal.elections.pres2024.smallest.president.votes|n}` or `{calc.house.2026.captured}`, resolved by the page
+from the data files (roots, filters and the derived `calc` figures are listed at the top of `js/views.js`). A
+token that does not resolve shows `[?]` and logs an error, which fails the smoke test.
+
+    …/maps/vote-terrain/?view=<slug>                  the view, still, with its caption card
+    …/maps/vote-terrain/?tour=<slug>                  Back, Next, Skip through the tour's views
+    …/maps/vote-terrain/?snapshot=<s>&view=<slug>     on frozen data (a view with "snapshot" goes there itself)
+
+A reader's own hash wins on reload, so changing the view and reloading keeps the change. Exports run offline
+in headless Chromium and write to `tools/vote-terrain/.export/` (not committed; `--out` may not point into
+`static/`):
+
+    node tools/vote-terrain/export.mjs --view <slug>                       card: master 2400 × 1500, link, square
+    node tools/vote-terrain/export.mjs --tour <slug> --gif --mp4           a card per step, then the animation
+    node tools/vote-terrain/export.mjs --sweep districts-2026 --from 2 --to 14 --step 1 --gif
+                                                                         a House view across plausible swings
+
+Cards follow the RAMM design system (article-images skill): onionskin ground, carbon-blue ink, a typed file
+line, the view, the caption, a foot with the sources and the tag. The link and square shapes are padded by
+that skill's `export_sizes.py`, never cropped. `--hold` sets seconds per step, `--scale` the map's pixel
+density. Needs python3 with Pillow, and ffmpeg for animations (without it, the frames and a note are written).
 
 ## Snapshots
 

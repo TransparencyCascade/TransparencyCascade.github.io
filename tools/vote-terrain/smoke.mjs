@@ -3,7 +3,7 @@
 
    Serves the page from disk, opens it in headless Chromium (playwright-core) with WebGL (SwiftShader)
    and again with WebGL off, walks a list of scenarios (tabs, lenses, offices, elections, shapes,
-   selections, table, find, keys, phone width) and records for each: the hash, the text of the key,
+   selections, table, find, keys, phone width, saved views and tours, one card export) and records for each: the hash, the text of the key,
    balance box, notes and panels, which buttons are pressed, a hash of every flat-view SVG, and a
    screenshot. Reduced motion is on, so every transition lands in one frame.
 
@@ -19,6 +19,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import crypto from 'node:crypto';
 import { createRequire } from 'node:module';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -175,6 +176,28 @@ const SCENARIOS = [
     await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.wheel(0, -600); await page.waitForTimeout(400); await settle(page);
     const zoomed = await t(); await page.keyboard.press('ArrowLeft'); await settle(page); const after = await t();
     return { zoomed, after, kept: zoomed[0] === after[0] && zoomed[1] === after[1] }; } })),
+  // Saved views and tours (views.json): ?view= opens still with its caption; every caption resolves from the data;
+  // ?tour= steps with Back, Next and Skip; a reader's own hash wins over the view's state on reload.
+  ...['effective-vote-by-state-2024', 'smallest-change-2024', 'districts-2026', 'texas-districts-2026'].map((v) => ({ name: `v-view-${v}`, query: `view=${v}`,
+    probe: (page) => page.evaluate(() => ({ card: document.getElementById('viewCard').innerText.replace(/\s+/g, ' '), hidden: document.getElementById('viewCard').hidden })) })),
+  { name: 'v-captions', query: 'tour=guide-1-4', probe: (page) => page.evaluate(async () => {
+    const reg = await (await fetch('views.json')).json(), S = window.__vt.saved();
+    const texts = reg.views.map((v) => S.text(v.slug)), all = JSON.stringify(texts);
+    const steps = reg.tours.every((t) => t.steps.every((st) => reg.views.some((v) => v.slug === st.view)));
+    return { n: texts.length, unresolved: (all.match(/\[\?\]|\{[a-z]/g) || []).length, steps, ok: !/\[\?\]/.test(all) && steps, captions: texts.map((t) => t.caption) }; }) },
+  { name: 'v-tour-next', query: 'tour=safe-seats', act: seq(click('.vc-next'), click('.vc-next')),
+    probe: (page) => page.evaluate(() => ({ card: document.getElementById('viewCard').innerText.replace(/\s+/g, ' '), view: window.__vt.effW(), e: window.__vt.state.e, sel: window.__vt.state.sel })) },
+  { name: 'v-tour-skip', query: 'tour=safe-seats', act: click('.vc-skip'), probe: (page) => page.evaluate(() => ({ hidden: document.getElementById('viewCard').hidden })) },
+  { name: 'v-view-own-hash', query: 'view=districts-2026', hash: 'e=house2024&w=seats', probe: (page) => page.evaluate(() => ({ e: window.__vt.state.e, w: window.__vt.effW(), card: !document.getElementById('viewCard').hidden })) },
+  { name: 'v-house-lenses', hash: 'e=house2024&w=seats', probe: (page) => page.evaluate(() => ({ lenses: getComputedStyle(document.querySelector('.lenses')).display, note: getComputedStyle(document.querySelector('.house-only')).display,
+    about: document.getElementById('aboutHouse').innerText.slice(0, 120) })) },
+  // One card export (tools/vote-terrain/export.mjs) into a scratch folder: master, link and square at their sizes.
+  { name: 'x-export', hash: 'e=house2026&w=strips', probe: () => {
+    const dir = path.join(OUT, 'export-check'); fs.rmSync(dir, { recursive: true, force: true });
+    execFileSync(process.execPath, [path.join(HERE, 'export.mjs'), '--view', 'districts-2026', '--out', dir, '--root', ROOT], { stdio: 'ignore' });
+    const dims = (f) => { const b = fs.readFileSync(path.join(dir, f)); return [b.readUInt32BE(16), b.readUInt32BE(20)]; };
+    const sizes = { master: dims('districts-2026.png'), link: dims('districts-2026.link.png'), square: dims('districts-2026.square.png') };
+    return { sizes, ok: sizes.master.join() === '2400,1500' && sizes.link.join() === '2400,1260' && sizes.square.join() === '2400,2400' }; } },
   { name: 'n-nogl-house', hash: 'e=house2026&w=seats', gl: false },
   { name: 'n-nogl', hash: 'w=terrain', gl: false },
   { name: 'n-nogl-blocks', hash: 's=blocks', gl: false },
@@ -247,7 +270,7 @@ for (const gl of [true, false]) {
       } catch (e) { /* redirects and aborted bodies */ }
     });
     const t0 = Date.now();
-    await page.goto(ORIGIN + (sc.hash ? '#' + sc.hash : ''), { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.goto(ORIGIN + (sc.query ? '?' + sc.query : '') + (sc.hash ? '#' + sc.hash : ''), { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForFunction(() => { const v = window.__vt; if (!v) return false; if (v.effW() !== 'terrain') return true;
       return v.state.s === 'terrain' ? !!v.terrain() : !!(v.blocks ? v.blocks() : v.deckgl()); }, null, { timeout: 30000 }).catch(() => errs.push('timeout: page never became ready'));
     await settle(page);
