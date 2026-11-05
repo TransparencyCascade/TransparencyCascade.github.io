@@ -10,7 +10,7 @@
 import { state, TABS, TAB_NAME, LENSES, fromHash, toHash } from './state.js';
 import { toward, towardW, buildRamp, GARNET, SAPPHIRE, NEUTRAL, NODATA, SWING_MAX, MARGIN_MAX, WEIGHT_MAX } from './colour.js';
 import { reduced, fmt, clamp, $ } from './util.js';
-import { getJSON, getBin } from './data.js';
+import { getJSON, getBin, SNAPSHOT } from './data.js';
 import { decodeGeometry } from './geometry.js';
 import { createModel } from './model.js';
 import { createTooltip } from './tooltip.js';
@@ -26,6 +26,8 @@ const hasGL = (() => { try { const c = document.createElement('canvas'); return 
 const terrainModule = hasGL ? import('./terrain.js') : null;   // three.js loads alongside the data
 const [geoHead, geoBytes, el, bal, eff] = await Promise.all([getJSON('geometry.json'), getBin('geometry.bin', Uint8Array), ...['elections.json', 'balance.json', 'effective.json'].map(getJSON)]);
 const geo = decodeGeometry(geoHead, geoBytes);
+// ?snapshot=<slug>: say so, with the date the data was frozen (snapshot.mjs writes the manifest).
+if (SNAPSHOT) getJSON('manifest.json').then((m) => { const n = $('snapNote'); n.textContent = `Frozen data: snapshot ${m.slug}, ${m.created.slice(0, 10)}.`; n.hidden = false; }).catch(() => {});
 const { meta, pieces, presets } = geo;
 const { order, tracks, sameOffice, elections, notes } = el;
 
