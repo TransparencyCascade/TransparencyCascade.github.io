@@ -114,6 +114,8 @@ const renderCard = async (x, file) => {
   const png = await mapPage.screenshot({ type: 'png', ...(crop ? { clip: { x: 0, y: 0, width: info.W, height: crop } } : {}) });
   await card.setContent(cardHtml(x, 'data:image/png;base64,' + png.toString('base64'), !!crop), { waitUntil: 'networkidle' });
   await card.evaluate(() => document.fonts.ready);
+  // A long sources line shrinks (to 20 px at the least) until it ends above the card's bottom margin, so it is never cut off.
+  await card.evaluate(() => { const e = document.querySelector('.src'); let px = 28; while (px > 20 && e.getBoundingClientRect().bottom > 1440) { px -= 1; e.style.fontSize = px + 'px'; e.style.lineHeight = (px + 2) + 'px'; } });
   await card.screenshot({ path: file });
   return file;
 };

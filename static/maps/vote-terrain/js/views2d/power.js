@@ -43,9 +43,9 @@ export function powerView({ ctx, head, body, foot, place, shiftOf, DUR }) {
     // The chart's own controls go in before the drawing is measured: they can add a line to the head.
     if (ctl) ctl.innerHTML = exporting ? '' : ctlHtml(P);
     const note = head.querySelector('.pw-note');
-    const { w, h: h0 } = (() => { note.textContent = noteFor(P, e); foot.textContent = footFor(P); return place(); })();
+    const { w, h: h0 } = (() => { note.textContent = exporting && P.pc === 'tiles' ? '' : noteFor(P, e); foot.textContent = footFor(P); return place(); })();
     // A short space (a phone, under the head's controls) scrolls instead of squeezing the chart.
-    const h = Math.max(h0, { rank: 300, tiles: Math.min(520, w * 0.72 + 30), conc: Math.min(520, w * 0.8) }[P.pc]);
+    const h = exporting && P.pc === 'tiles' ? h0 : Math.max(h0, { rank: 300, tiles: Math.min(520, w * 0.72 + 30), conc: Math.min(520, w * 0.8) }[P.pc]);
     svg.attr('width', w).attr('height', h).selectAll('*').remove();
     if (P.pc === 'tiles') drawTilesChart(P, e, w, h);
     else if (P.pc === 'conc') drawConc(P, e, w, h);

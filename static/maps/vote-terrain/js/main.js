@@ -316,7 +316,7 @@ const circlesFor = () => {
 const region = () => {
   const W = window.innerWidth, box = (q) => document.querySelector(q).getBoundingClientRect();
   // Export: the controls are hidden, so the view takes the window, beside the key.
-  if (ASK.exporting) return { left: 16, right: box('.key').left - 16, top: 16, bottom: window.innerHeight - 16 };
+  if (ASK.exporting) return { left: 16, right: box('.key').left - 16, top: 4, bottom: window.innerHeight - 4 };   // a card: the map takes the whole image box
   const tw = $('tabWhy'), vc = $('viewCard');
   const top = Math.max((tw.hidden ? box('#tabs') : tw.getBoundingClientRect()).bottom + 10, vc.hidden ? 0 : vc.getBoundingClientRect().bottom + 10);
   if (W <= 640) return { left: 10, right: W - 10, top: Math.max(top, box('.key').bottom + 8, box('#bop').bottom + 8), bottom: box('.panel').top - 8 };

@@ -69,7 +69,7 @@ export function simView({ ctx, head, body, foot, place, shiftOf }) {
 
     const { w: W, h } = place(), narrow = W < 760;
     // A wide, short space (a card) puts the tile map to the right of everything else, at full height.
-    const wide = !narrow && W / h > 2, tilesW = wide ? Math.min(h * 1.5, W * 0.36) : 0, w = W - (wide ? tilesW + 16 : 0);
+    const wide = !narrow && W / h > 2, tilesW = wide ? Math.min(h * 1.5, W * (exporting ? 0.44 : 0.36)) : 0, w = W - (wide ? tilesW + 16 : 0);
     top.style('width', wide ? w + 'px' : null);
     // Ticks under the slider: where control of a body changes, staggered so labels do not collide.
     const pad = 9, x = d3.scaleLinear().domain([-RANGE, RANGE]).range([pad, w - pad]);
@@ -96,7 +96,7 @@ export function simView({ ctx, head, body, foot, place, shiftOf }) {
     lines.push({ b: 'sen', D: t.sen.D, R: t.sen.R, other: t.sen.other, total: 100, need: 51, control: t.sen.control, vp: t.sen.vp });
     if (t.house) lines.push({ b: 'house', D: t.house.D, R: t.house.R, other: t.house.undecided, total: 435, need: 218, control: t.house.control });
     else if (held.house) lines.push({ b: 'house', D: held.house.D, R: held.house.R, total: 435, need: 218, control: held.house.D >= 218 ? 'D' : 'R', held: held.house.why });
-    const BH = 30, labW = narrow ? 0 : 200, bx = d3.scaleLinear().domain([0, 1]).range([labW, w - 4]);
+    const short = narrow || (exporting && w < 560), BH = 30, labW = narrow ? 0 : 200, bx = d3.scaleLinear().domain([0, 1]).range([labW, w - 4]);
     barsSvg.attr('width', w).attr('height', lines.length * (narrow ? BH + 14 : BH) + 4).selectAll('*').remove();
     lines.forEach((L, i) => {
       const g = barsSvg.append('g').attr('transform', `translate(0,${i * (narrow ? BH + 14 : BH) + (narrow ? 12 : 0)})`).attr('opacity', L.held ? 0.55 : 1);
@@ -109,7 +109,7 @@ export function simView({ ctx, head, body, foot, place, shiftOf }) {
       const changed = !L.held && base[L.b] && L.control !== base[L.b].control;
       const ctl = L.held ? `held at the actual result: ${L.held}` : L.control === 'tie' ? 'a 269-269 tie' : L.control === 'none' ? 'no majority' : `${narrow ? L.control : PARTY[L.control]} control${changed ? ', changed' : ''}`;
       g.append('text').attr('x', bx(0) + 4).attr('y', 30).attr('class', 'sim-bar-lab')
-        .text(`${narrow ? 'D' : PARTY.D} ${L.D}, ${narrow ? 'R' : PARTY.R} ${L.R}${L.other ? `, ${L.other} ${L.b === 'house' ? 'undecided' : 'other'}` : ''}: ${ctl}${narrow ? ` (${L.need} to control)` : ''}`);
+        .text(`${short ? 'D' : PARTY.D} ${L.D}, ${short ? 'R' : PARTY.R} ${L.R}${L.other ? `, ${L.other} ${L.b === 'house' ? 'undecided' : 'other'}` : ''}: ${ctl}${narrow ? ` (${L.need} to control)` : ''}`);
     });
     barsSvg.attr('height', lines.length * (narrow ? BH + 14 : BH) + 18);
 

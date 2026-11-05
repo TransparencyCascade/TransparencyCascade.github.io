@@ -337,7 +337,7 @@ export async function initTerrain({ container, geo, ramp, ramp2, onHover, labels
       const hfov = 2 * Math.atan(Math.tan(fov / 2) * camera.aspect);
       dist = (cols * CELL * 0.5) / Math.tan(hfov / 2) / usable * 1.04; polar = 48;
       // Export (a wide, short window): also fit the north-south extent, seen at this tilt.
-      if (side.fitHeight) dist = Math.max(dist, (rows * CELL * 0.5 * Math.cos(THREE.MathUtils.degToRad(polar)) + rows * CELL * 0.2) / Math.tan(fov / 2));   // the near (southern) edge projects lower than the far one
+      if (side.fitHeight) dist = Math.max(dist, (rows * CELL * 0.5 * Math.cos(THREE.MathUtils.degToRad(polar)) + rows * CELL * 0.17) / Math.tan(fov / 2));   // the near (southern) edge projects lower than the far one
       const unitsPerPx = 2 * dist * Math.tan(fov / 2) / Hh;
       tx -= (side.left - side.right) / 2 * unitsPerPx;
     } else {

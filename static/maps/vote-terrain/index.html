@@ -194,6 +194,13 @@
   body.export #locator, body.export .view-card, body.export .tour-caption, body.export #grain, body.export .key .lens-i, body.export #rankBtn,
   body.export .v2d-head .v2d-seg, body.export .v2d-head .lens-i, body.export .v2d-sort, body.export .v2d-showall, body.export .v2d-foot { display:none !important; }
 
+  /* Cards: a flat map takes the whole image box. The head's note and controls are not drawn (the caption and sources say it); a map's size
+     reference sits over its empty bottom-left corner instead of taking a row. */
+  body.export .v2d-root { gap:0; }
+  body.export .v2d-root[data-view=people] .v2d-head { display:none !important; }
+  body.export .v2d-root[data-view=circles] .v2d-head, body.export .v2d-root[data-view=arrows] .v2d-head, body.export .v2d-root[data-view=dots] .v2d-head { position:absolute; left:4px; bottom:2px; z-index:2; min-height:0; }
+  body.export .v2d-root[data-view=power] .v2d-head { min-height:0; }
+
   /* County history card (pinned in the panel), the side drawer (close-up; the state's two races in Ticket splitting), Turnout drop-off and Ticket splitting */
   .vt-tip .tip-hist { pointer-events:auto; font:inherit; font-size:12px; color:var(--ink); background:transparent; border:1px solid var(--rule); padding:2px 8px; margin-top:6px; cursor:pointer; }
   .vt-tip:has(.tip-hist) { pointer-events:auto; }
@@ -543,6 +550,6 @@
 <div class="offices" id="offices" role="group" aria-label="Office"></div>
 <nav class="timeline" id="timeline" aria-label="Election"></nav>
 <canvas id="locator" aria-label="Locator: the whole country from above, with the part in view marked. Click to move the view there." role="button" tabindex="0"></canvas>
-<script type="module" src="js/main.js?v=94"></script>
+<script type="module" src="js/main.js?v=95"></script>
 </body>
 </html>

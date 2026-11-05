@@ -414,8 +414,8 @@
       "slug": "people-2024-president",
       "title": "Where the votes were cast, 2024",
       "file": "One dot per {calc.people.pres2024.per|n} votes, by party; President {elections.pres2024.year|raw}",
-      "caption": "Each dot stands for {calc.people.pres2024.per|n} votes: {calc.people.pres2024.dots|n} dots for {calc.people.pres2024.votes|n} votes, {calc.people.pres2024.D|n} Democratic and {calc.people.pres2024.R|n} Republican. Dots sit in each county where people live (2020 census tracts), so cities fill in and empty land stays empty. Within a county the party of each dot is drawn at random in the county's shares: the map shows how many votes a county holds, not where its Democrats or Republicans live.",
-      "sources": "{elections.pres2024.source} Where people live: 2020 census tract centres of population and land area, Census Bureau.",
+      "caption": "One dot per {calc.people.pres2024.per|n} votes: {calc.people.pres2024.D|n} Democratic and {calc.people.pres2024.R|n} Republican, placed where people live in each county.",
+      "sources": "{elections.pres2024.source} Where people live: 2020 census tract centres of population and land area, Census Bureau. {calc.people.pres2024.dots|n} dots for {calc.people.pres2024.votes|n} votes. Within a county each dot's party is drawn at random in the county's shares: the map shows how many votes a county holds, not where its Democrats or Republicans live.",
       "state": {
         "e": "pres2024",
         "w": "people",
@@ -426,8 +426,8 @@
       "slug": "people-2026-senate",
       "title": "Where the Senate votes were cast, 2026 (unofficial)",
       "file": "One dot per {calc.people.sen2026.per|n} votes, by party; Senate {elections.sen2026.year|raw}, unofficial",
-      "caption": "Unofficial 2026 results: each dot stands for {calc.people.sen2026.per|n} votes, {calc.people.sen2026.dots|n} dots for the {calc.people.sen2026.votes|n} votes counted in {calc.people.sen2026.counties|n} counties with a Democrat-against-Republican Senate result, {calc.people.sen2026.D|n} Democratic and {calc.people.sen2026.R|n} Republican. Blank land is a state with no such race. Dots sit where people live in each county; the party of each dot within a county is drawn at random in the county's shares.",
-      "sources": "{elections.sen2026.source} Where people live: 2020 census tract centres of population and land area, Census Bureau.",
+      "caption": "Unofficial 2026 results: one dot per {calc.people.sen2026.per|n} votes, {calc.people.sen2026.D|n} Democratic and {calc.people.sen2026.R|n} Republican. Blank land is a state with no such Senate race.",
+      "sources": "{elections.sen2026.source} {calc.people.sen2026.counties|n} counties counted. Where people live: 2020 census tract centres of population and land area, Census Bureau. Within a county each dot's party is drawn at random in the county's shares.",
       "state": {
         "e": "sen2026",
         "w": "people",
