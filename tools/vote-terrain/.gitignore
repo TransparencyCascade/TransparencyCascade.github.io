@@ -1,3 +1,4 @@
 .smoke/
 .export/
 .fec-cache/
+.census-cache/
