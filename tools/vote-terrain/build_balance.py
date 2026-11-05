@@ -246,7 +246,7 @@ def medsl_2024_senate():
             continue
         p = {"DEMOCRAT": "D", "REPUBLICAN": "R"}.get(r["party_simplified"], "I")
         races[(r["state_po"], "S" + ("-special" if r["special"] == "TRUE" else ""))].append({"name": r["candidate"], "party": p, "votes": int(r["votes"])})
-    for k, cs in races.items():
+    for cs in races.values():
         top = max(cs, key=lambda c: c["votes"])
         for c in cs:
             c["won"] = c is top
@@ -300,7 +300,7 @@ def smallest_house_2024(k):
 def class_ii():
     t = text("classII.html")
     out = {}
-    for name, p, st in re.findall(r"([A-ZÀ-ÿ][\w.\-' À-ÿ]+?, [\w.\-' À-ÿ]+?)\s*\(([RDI])\s*-\s*([A-Z]{2})\)", t):
+    for _name, p, st in re.findall(r"([A-ZÀ-ÿ][\w.\-' À-ÿ]+?, [\w.\-' À-ÿ]+?)\s*\(([RDI])\s*-\s*([A-Z]{2})\)", t):
         out[st] = p
     return out
 
