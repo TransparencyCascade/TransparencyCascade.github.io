@@ -3,14 +3,24 @@
    election in the link (k: the Power tab's concentration marker; o: an overlay's counties). */
 import { fmt, list, countyLabelOf } from './util.js';
 
-export function createSelectionCodec({ geo, el, state, model, stName, house, power, overlays }) {
+export function createSelectionCodec({ geo, el, state, model, stName, house, power, overlays, flips, ms }) {
   const { meta } = geo, { elections } = el;
   const ALL_ST = new Set(Object.values(meta).map((m) => m.st));
   const countiesOf = (states) => { const S = new Set(states); return Object.keys(meta).filter((f) => S.has(meta[f].st)); };
   const pctCh = (a, b) => (a - b) / b * 100;
   const QUAD = { ne: (x, y) => x > 0 && y > 0, sw: (x, y) => x < 0 && y < 0, nw: (x, y) => x <= 0 && y > 0, se: (x, y) => x > 0 && y <= 0 };
   const changeRows = () => model.rowsNow().filter((r) => r.v && r.b && r.b[1] > 0 && r.b[2] > 0);
+  // Margin against swing (swingview.js): the counties with a result now and in the baseline.
+  const msNow = () => ms.msRows(model.rowsNow(), model.margin);
   const RULES = {
+    // f:<from>:<to>: the counties that changed party between two elections; w: the bellwethers (flips.js). Either may be
+    // narrowed to a selection: f:<from>:<to>/<the selection's own text> (see decode).
+    f: ([a, b]) => (flips ? flips.flipped(a, b).list : []),
+    w: () => (flips ? flips.bell().list : []),
+    // g:<x0>,<x1>,<y0>,<y1>: a box on margin against swing, in points; n:<quadrant>: one of its four corners.
+    g: ([box]) => { const [x0, x1, y0, y1] = (box || '').split(',').map(Number);
+      return msNow().filter((r) => r.x >= x0 && r.x <= x1 && r.y >= y0 && r.y <= y1); },
+    n: ([k]) => (ms.QUADS[k] ? msNow().filter((r) => ms.QUADS[k](r.x, r.y)) : []),
     // k:<d|r>:<q>: the counties holding q percent of one party's votes, biggest first (the Power tab's marker).
     // o:<layer>: the counties an overlay marks (overlays.js), as the comparison card's "Select these places" makes them.
     o: ([k]) => (overlays && overlays.sets[k] ? [...overlays.sets[k]].map((f) => ({ f })) : []),
@@ -24,12 +34,19 @@ export function createSelectionCodec({ geo, el, state, model, stName, house, pow
     : sel.counties.size <= 300 ? 'c:' + [...sel.counties].join(',') : '');
   const decode = (text) => {
     if (!text) return null;
+    // A flips rule narrowed to a selection: everything after the first "/" is that selection's own text.
+    let scope = null; const full = text;
+    if (/^[fw][:/]|^w$/.test(text) && text.includes('/')) {
+      const at = text.indexOf('/'); scope = decode(text.slice(at + 1)); text = text.slice(0, at);
+      if (!scope) return null;
+    }
     const [kind, ...p] = text.split(':');
     let states = null, cs = [];
     if (kind === 's') { states = p.join(':').split(',').filter((st) => ALL_ST.has(st)); cs = countiesOf(states); }
     else if (kind === 'c') cs = p.join(':').split(',').filter((f) => meta[f]);
     else if (RULES[kind]) cs = RULES[kind](p).map((r) => r.f);
-    return cs.length ? { states: states && states.length ? states : null, counties: new Set(cs), rule: RULES[kind] ? text : null } : null;
+    if (scope) cs = cs.filter((f) => scope.counties.has(f));
+    return cs.length ? { states: states && states.length ? states : null, counties: new Set(cs), rule: RULES[kind] ? full : null } : null;
   };
   // spec: { states } or { counties, rule }; opts.add merges (shift-click, long press), opts.toggle lets a second
   // click on the same thing clear it.

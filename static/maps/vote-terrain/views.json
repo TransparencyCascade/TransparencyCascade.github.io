@@ -234,6 +234,54 @@
         "c": "swing",
         "ov": "detention"
       }
+    },
+    {
+      "slug": "road-to-270-2024",
+      "title": "Road to 270, 2024",
+      "file": "Electoral votes by state, President 2024, by margin",
+      "caption": "{calc.road.y2024.pres.winName} reached 270 electoral votes at {calc.road.y2024.pres.tip.name}, the tipping point: {calc.road.y2024.pres.tip.votes|n} votes ({calc.road.y2024.pres.tip.points|pt} points of the two-party vote) separated the candidates among its {calc.road.y2024.pres.tip.size} electoral votes, and {calc.road.y2024.pres.tip.flip|n} voters switching would have changed its result. The final count was {calc.road.y2024.pres.evW} to {calc.road.y2024.pres.evL}. By votes to flip, the closest states were {calc.road.y2024.pres.c1.name} ({calc.road.y2024.pres.c1.flip|n}), {calc.road.y2024.pres.c2.name} ({calc.road.y2024.pres.c2.flip|n}) and {calc.road.y2024.pres.c3.name} ({calc.road.y2024.pres.c3.flip|n}).",
+      "sources": "{bal.elections.pres2024.smallest.president.source} Order: two-party margin, the two candidates' votes; votes to flip: half the margin plus one. Maine's and Nebraska's district electors are held as cast, at the ends of the bar.",
+      "state": {
+        "e": "pres2024",
+        "w": "road",
+        "rb": "pres"
+      }
+    },
+    {
+      "slug": "closest-races-2024",
+      "title": "Closest races, 2024",
+      "file": "Races on the 2024 ballot, fewest votes to flip first",
+      "caption": "Of the {calc.closest.y2024.n} races on the 2024 ballot in the data, the closest by votes were {calc.closest.y2024.first.place} ({calc.closest.y2024.first.office}, {calc.closest.y2024.first.votes|n} votes, {calc.closest.y2024.first.win}), {calc.closest.y2024.second.place} ({calc.closest.y2024.second.office}, {calc.closest.y2024.second.votes|n}, {calc.closest.y2024.second.win}) and {calc.closest.y2024.third.place} ({calc.closest.y2024.third.office}, {calc.closest.y2024.third.votes|n}, {calc.closest.y2024.third.win}). Of the {calc.closest.y2024.compared} seats with an earlier race on the same lines in the data, {calc.closest.y2024.changed} changed hands.",
+      "sources": "President and Senate: {bal.elections.pres2024.smallest.president.source} House: {house.sources.2024}. Votes to flip: half the margin plus one. Changed hands: the winner against the previous race for the same office and seat in the data.",
+      "state": {
+        "e": "pres2024",
+        "w": "closest"
+      }
+    },
+    {
+      "slug": "flips-2020-2024",
+      "title": "Counties that changed party, 2020 to 2024",
+      "file": "Counties that changed party, President 2020 to 2024",
+      "caption": "{calc.flips.pres2020-pres2024.n|n} of the {calc.flips.pres2020-pres2024.both|n} counties with a Democratic or Republican winner in both elections voted for a different party in 2024 than in 2020: {calc.flips.pres2020-pres2024.rToD|n} from Republican to Democratic and {calc.flips.pres2020-pres2024.dToR|n} from Democratic to Republican. They cast {calc.flips.pres2020-pres2024.votes|n} votes in 2024. Colour is the swing since 2020.",
+      "sources": "{elections.pres2024.source} A county's party is the side with more of the Democratic and Republican votes there.",
+      "state": {
+        "e": "pres2024",
+        "w": "circles",
+        "c": "swing",
+        "sel": "f:pres2020:pres2024"
+      }
+    },
+    {
+      "slug": "margin-against-swing-2024",
+      "title": "Margin against swing, 2024",
+      "file": "County margin in 2020 against swing to 2024, President",
+      "caption": "Since {elections.pres2020.year|raw}, the median county swung {calc.ms.pres2024.medR|toward} among the {calc.ms.pres2024.nR|n} counties that were Republican in 2020 and {calc.ms.pres2024.medD|toward} among the {calc.ms.pres2024.nD|n} that were Democratic; {calc.ms.pres2024.toR|n} of {calc.ms.pres2024.n|n} counties moved toward Republicans. The line is the median swing of the {calc.ms.pres2024.window|n} counties nearest in margin; circle area is votes.",
+      "sources": "{elections.pres2024.source} Margin: Democratic minus Republican votes over the county's votes; swing: the margin in 2024 minus the margin in 2020.",
+      "state": {
+        "e": "pres2024",
+        "w": "scatter",
+        "sx": "ms"
+      }
     }
   ],
   "tours": [

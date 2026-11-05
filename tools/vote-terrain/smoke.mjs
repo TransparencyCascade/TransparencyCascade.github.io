@@ -352,6 +352,122 @@ const SCENARIOS = [
   { name: 'n-nogl', hash: 'w=terrain', gl: false },
   { name: 'n-nogl-blocks', hash: 's=blocks', gl: false },
   { name: 'n-nogl-dots', hash: 'w=dots', gl: false },
+  // Road to 270 (and 51), Closest races, flips and bellwethers, and Scatter's margin-against-swing chart.
+  { name: 'r-road-2024', hash: 'e=pres2024&w=road' },
+  { name: 'r-road-2016', hash: 'e=pres2016&w=road' },
+  { name: 'r-road-sen2024', hash: 'e=sen2024&w=road' },
+  { name: 'r-road-sen2026', hash: 'e=sen2026&w=road&rb=sen' },
+  { name: 'r-road-house2026', hash: 'e=house2026&w=road' },
+  { name: 'r-road-sel', hash: 'e=pres2024&w=road&sel=s:PA,WI' },
+  { name: 'r-road-switch', hash: 'e=pres2024&w=road', act: click('[data-rb=sen]') },
+  { name: 'r-road-hover', hash: 'e=pres2024&w=road', act: async (page) => { const b = await page.locator('#v2d .rd-seg[data-st=PA]').boundingBox(); await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.waitForTimeout(250); }, tip: true },
+  { name: 'r-road-click', hash: 'e=pres2024&w=road', act: async (page) => { const b = await page.locator('#v2d .rd-seg[data-st=GA]').boundingBox(); await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2); },
+    probe: (page) => page.evaluate(() => ({ sel: window.__vt.state.sel, n: window.__vt.sel() && window.__vt.sel().counties.size })) },
+  { name: 'r-road-table', hash: 'e=pres2024&w=road&sel=s:PA', act: key('t') },
+  { name: 'r-road-table-sen', hash: 'e=sen2026&w=road&rb=sen', act: key('t') },
+  { name: 'r-road-phone', hash: 'e=pres2024&w=road', viewport: { width: 390, height: 844 } },
+  // The bar against balance.json: the same votes to flip for the smallest-change states of each presidential election and
+  // the 2024 Senate races, the totals, and the line and the tipping state counted again from the segments.
+  { name: 'r-road-data', hash: 'e=pres2024&w=road', probe: (page) => page.evaluate(async () => {
+    const v = window.__vt, bal = await (await fetch('balance.json')).json(), out = {};
+    for (const y of ['2016', '2020', '2024']) {
+      const r = v.races.road(y, 'pres'), sm = bal.elections['pres' + y].smallest.president, st = r.segs.filter((s) => s.kind === 'state');
+      const win = r.D > r.R ? 'D' : 'R', order = win === 'D' ? r.segs : r.segs.slice().reverse();
+      let c = 0, tip = null; for (const s of order) { if (s.win === win) c += s.size; if (c >= 270) { tip = s; break; } }
+      out[y] = { total: r.total, evD: r.D, evR: r.R, states: st.length, flips: Object.entries(sm.per_state).every(([k, n]) => st.find((s) => s.st === k).flip === n),
+        tip: r.tip && r.tip.st, tipAgain: tip.st, tipInSmallest: sm.states.includes(r.tip.st), ordered: st.every((s, i) => !i || st[i - 1].points >= s.points), line: r.lineAt, winner: bal.elections['pres' + y].president.party === win };
+    }
+    const s = v.races.road('2024', 'sen'), sm = bal.elections.pres2024.smallest.senate;
+    out.sen = { total: s.total, seats: s.counts.D + s.counts.R, flips: sm.races.every((x) => s.segs.find((q) => q.st === x.state && q.kind === 'race').flip === x.cost), tip: s.tip && s.tip.st, control: s.control, caucus: [bal.elections.pres2024.senate.R, bal.elections.pres2024.senate.caucusD] };
+    return out; }) },
+  { name: 'k-closest-2024', hash: 'e=pres2024&w=closest' },
+  { name: 'k-closest-sen2026', hash: 'e=sen2026&w=closest&ro=sen' },
+  { name: 'k-closest-house', hash: 'e=house2026&w=closest&ro=house' },
+  { name: 'k-closest-gov2022', hash: 'e=gov2022&w=closest&ro=gov' },
+  { name: 'k-closest-pres', hash: 'e=pres2020&w=closest&ro=pres' },
+  { name: 'k-closest-filter', hash: 'e=pres2024&w=closest', act: click('[data-ro=sen]') },
+  { name: 'k-closest-sort', hash: 'e=pres2024&w=closest', act: seq(click('.cl th[data-k="3"]'), click('.cl th[data-k="3"]')) },
+  { name: 'k-closest-sel', hash: 'e=pres2024&w=closest&sel=s:PA,CA' },
+  { name: 'k-closest-click', hash: 'e=pres2024&w=closest&ro=pres', act: click('.cl tbody tr:nth-child(3)'),
+    probe: (page) => page.evaluate(() => ({ sel: window.__vt.state.sel, n: window.__vt.sel() && window.__vt.sel().counties.size, on: document.querySelectorAll('.cl tr.on').length })) },
+  { name: 'k-closest-table', hash: 'e=pres2024&w=closest&ro=house', act: key('t') },
+  { name: 'k-closest-phone', hash: 'e=pres2024&w=closest', viewport: { width: 390, height: 844 } },
+  // Against balance.json's House and Senate smallest changes and the House file: the same margins and votes to flip.
+  { name: 'k-closest-data', hash: 'e=pres2024&w=closest', probe: (page) => page.evaluate(async () => {
+    const v = window.__vt, bal = await (await fetch('balance.json')).json(), C = v.closest(), rows = C.rows, sm = bal.elections.pres2024.smallest, out = {};
+    const row = (o, p) => rows.find((r) => r.office === o && r.place === p);
+    out.n = rows.length; out.offices = Object.fromEntries(['pres', 'sen', 'house', 'gov'].map((o) => [o, rows.filter((r) => r.office === o).length]));
+    out.house = sm.house.districts.map((d) => { const r = row('house', d.district.replace('AK-1', 'AK-AL')); return r && r.votes === d.margin && r.flip === d.cost; });
+    out.sen = sm.senate.races.map((x) => { const r = rows.find((q) => q.office === 'sen' && q.st === x.state); return r && r.votes === x.margin && r.flip === x.cost; });
+    out.pres = Object.entries(sm.president.per_state).map(([st, n]) => rows.find((q) => q.office === 'pres' && q.st === st).flip === n);
+    const ch = rows.filter((r) => r.ctl.changed), pa = row('pres', 'Pennsylvania');
+    out.changed = { n: ch.length, pres: ch.filter((r) => r.office === 'pres').map((r) => r.st).join(','), pa: pa.ctl };
+    out.ranked = rows.filter((r) => r.flip != null).length; out.noFlip = rows.filter((r) => r.flip == null).map((r) => r.place).join(',');
+    return out; }) },
+  { name: 'k-closest-data-gov', hash: 'e=gov2022&w=closest&ro=gov', probe: (page) => page.evaluate(() => { const rows = window.__vt.closest().rows;
+    return { n: rows.length, first: rows.slice().sort((a, b) => a.flip - b.flip).slice(0, 3).map((r) => [r.st, r.votes, r.win, r.ctl.changed]) }; }) },
+  { name: 'f-flips-panel', hash: 'e=pres2024&w=circles', act: click('#flipsBox summary'),
+    probe: (page) => page.evaluate(() => ({ flip: document.getElementById('flipText').textContent, bell: document.getElementById('bellText').textContent, opts: document.getElementById('flipA').options.length })) },
+  { name: 'f-flips-select', hash: 'e=pres2024&w=circles', act: seq(click('#flipsBox summary'), click('#flipGo')),
+    probe: (page) => page.evaluate(() => { const v = window.__vt, F = v.flips.flipped('pres2020', 'pres2024'); return { sel: v.state.sel, n: v.sel().counties.size, ok: v.sel().counties.size === F.n && F.list.every((x) => v.sel().counties.has(x.f)), text: document.getElementById('selText').textContent }; }) },
+  { name: 'f-flips-rule', hash: 'e=pres2024&w=circles&sel=f:pres2016:pres2020&c=swing' },
+  { name: 'f-flips-pick', hash: 'e=pres2024&w=circles', act: async (page) => { await page.click('#flipsBox summary'); await page.selectOption('#flipA', 'pres2016'); await page.selectOption('#flipB', 'pres2020'); await page.click('#flipGo'); },
+    probe: (page) => page.evaluate(() => ({ sel: window.__vt.state.sel, n: window.__vt.sel().counties.size, text: document.getElementById('flipText').textContent })) },
+  { name: 'f-flips-scope', hash: 'e=pres2024&w=circles&sel=s:TX,FL', act: seq(click('#flipsBox summary'), click('#flipGo')),
+    probe: async (page) => { const a = await page.evaluate(() => ({ sel: window.__vt.state.sel, n: window.__vt.sel().counties.size, st: [...new Set([...window.__vt.sel().counties].map((f) => window.__vt.meta[f].st))].join(',') }));
+      await page.reload(); await page.waitForFunction(() => window.__vt && window.__vt.sel()); await settle(page);
+      return { ...a, reloaded: await page.evaluate(() => window.__vt.sel().counties.size) }; } },
+  { name: 'f-bell', hash: 'e=pres2024&w=circles', act: seq(click('#flipsBox summary'), click('#bellGo')),
+    probe: (page) => page.evaluate(() => { const v = window.__vt, B = v.flips.bell(); return { sel: v.state.sel, n: v.sel().counties.size, ok: v.sel().counties.size === B.n, ids: B.ids.join(','), win: B.win.join('') }; }) },
+  { name: 'f-bell-rule', hash: 'e=pres2024&w=terrain&sel=w' },
+  { name: 'f-flips-house', hash: 'e=house2026&w=strips', probe: (page) => page.evaluate(() => ({ box: getComputedStyle(document.getElementById('flipsBox')).display })) },
+  // Recounted from elections.json with its own loops: which counties changed party, and the bellwethers.
+  { name: 'f-flips-data', hash: 'e=pres2024&w=circles', probe: (page) => page.evaluate(async () => {
+    const v = window.__vt, el = (await (await fetch('elections.json')).json()).elections, bal = await (await fetch('balance.json')).json(), fs = Object.keys(v.meta), out = {};
+    const win = (x) => (x[2] > x[1] ? 'D' : x[2] < x[1] ? 'R' : '');
+    for (const [a, b] of [['pres2016', 'pres2020'], ['pres2020', 'pres2024'], ['pres2016', 'pres2024'], ['sen2018', 'sen2024'], ['gov2018', 'gov2022']]) {
+      let both = 0, dr = 0, rd = 0;
+      for (const f of fs) { const x = el[a].data[f], y = el[b].data[f]; if (!x || !y) continue; const p = win(x), q = win(y); if (!p || !q) continue; both++; if (p !== q) (p === 'D' ? dr++ : rd++); }
+      const F = v.flips.flipped(a, b); out[a + '-' + b] = { both, dr, rd, same: F.both === both && F.dToR === dr && F.rToD === rd && F.n === dr + rd };
+    }
+    const ids = ['pres2016', 'pres2020', 'pres2024'], nat = ids.map((e) => bal.elections[e].president.party); let n = 0, of = 0;
+    for (const f of fs) { const s = ids.map((e) => (el[e].data[f] ? win(el[e].data[f]) : '')); if (s.some((x) => !x)) continue; of++; if (s.every((x, i) => x === nat[i])) n++; }
+    out.bell = { n, of, nat: nat.join(''), same: v.flips.bell().n === n && v.flips.bell().of === of };
+    return out; }) },
+  { name: 's-ms', hash: 'w=scatter&sx=ms' },
+  { name: 's-ms-toggle', hash: 'w=scatter', act: click('[data-sx=ms]') },
+  { name: 's-ms-back', hash: 'w=scatter&sx=ms', act: click('[data-sx=""]') },
+  { name: 's-ms-sen2026', hash: 'e=sen2026&w=scatter&sx=ms' },
+  { name: 's-ms-gov2026', hash: 'e=gov2026&w=scatter&sx=ms&c=swing' },
+  { name: 's-ms-quad', hash: 'w=scatter&sx=ms&sel=n:se' },
+  { name: 's-ms-box', hash: 'w=scatter&sx=ms&sel=g:-30.0,10.0,-8.0,-2.0' },
+  { name: 's-ms-sel', hash: 'w=scatter&sx=ms&sel=s:TX' },
+  { name: 's-ms-hover', hash: 'w=scatter&sx=ms', act: async (page) => { const b = await page.evaluate(() => { const c = d3.selectAll('#v2d circle').filter((d) => d.f === '06037').node().getBoundingClientRect(); return { x: c.x + c.width / 2, y: c.y + c.height / 2 }; });
+    await page.mouse.move(b.x - 30, b.y - 30); await page.mouse.move(b.x, b.y); await page.waitForTimeout(250); }, tip: true },
+  { name: 's-ms-click', hash: 'w=scatter&sx=ms', act: async (page) => { const b = await page.evaluate(() => { const c = d3.selectAll('#v2d circle').filter((d) => d.f === '06037').node().getBoundingClientRect(); return { x: c.x + c.width / 2, y: c.y + c.height / 2 }; });
+    await page.mouse.click(b.x, b.y); }, probe: (page) => page.evaluate(() => ({ sel: window.__vt.state.sel, n: window.__vt.sel() && window.__vt.sel().counties.size })) },
+  { name: 's-ms-drag', hash: 'w=scatter&sx=ms', act: async (page) => { await page.mouse.move(700, 420); await page.mouse.down(); await page.mouse.move(900, 540, { steps: 8 }); await page.mouse.up(); },
+    probe: (page) => page.evaluate(() => { const v = window.__vt, R = v.views(); return { sel: v.state.sel, n: v.sel() && v.sel().counties.size, rule: /^g:/.test(v.state.sel) }; }) },
+  { name: 's-ms-table', hash: 'w=scatter&sx=ms&sel=s:RI', act: key('t') },
+  { name: 's-ms-phone', hash: 'w=scatter&sx=ms', viewport: { width: 390, height: 844 } },
+  // The chart against elections.json: each county's earlier margin and swing, the quadrants, the medians and the running line.
+  { name: 's-ms-data', hash: 'w=scatter&sx=ms', probe: (page) => page.evaluate(async () => {
+    const v = window.__vt, el = (await (await fetch('elections.json')).json()), E = el.elections, fs = Object.keys(v.meta), out = {};
+    const mg = (x) => (x[2] - x[1]) / x[0] * 100, med = (a) => { a = a.slice().sort((p, q) => p - q); const n = a.length; return n % 2 ? a[(n - 1) / 2] : (a[n / 2 - 1] + a[n / 2]) / 2; };
+    const P = []; for (const f of fs) { const x = E.pres2024.data[f], b = E.pres2020.data[f]; if (!x || !b || !b[0] || !x[0]) continue; P.push({ f, x: mg(b), y: mg(x) - mg(b) }); }
+    const rows = fs.map((f) => { const a = E.pres2024.data[f] || null, b = E.pres2020.data[f] || null; return { f, v: a, b, s: a && b && a[0] && b[0] ? mg(a) - mg(b) : null }; });
+    const R = v.ms.msRows(rows, mg), S = v.ms.summarize(R), run = v.ms.running(R);
+    const rep = P.filter((p) => p.x <= 0), dem = P.filter((p) => p.x > 0);
+    out.counts = { n: P.length, same: S.n === P.length, nR: S.nR === rep.length, nD: S.nD === dem.length, medR: Math.abs(S.medR - med(rep.map((p) => p.y))) < 1e-9, medD: Math.abs(S.medD - med(dem.map((p) => p.y))) < 1e-9,
+      toR: S.toR === P.filter((p) => p.y <= 0).length, quads: ['ne', 'se', 'nw', 'sw'].map((k) => P.filter((p) => v.ms.QUADS[k](p.x, p.y)).length).reduce((a, b) => a + b, 0) === P.length };
+    out.run = { n: run.line.length === P.length, window: run.window, sorted: run.line.every((p, i) => !i || run.line[i - 1].x <= p.x), inRange: run.line.every((p) => p.y >= Math.min(...P.map((q) => q.y)) && p.y <= Math.max(...P.map((q) => q.y))) };
+    out.svg = { circles: document.querySelectorAll('#v2d svg.v2d-scatter circle').length === P.length };
+    return out; }) },
+  ...['road-to-270-2024', 'closest-races-2024', 'flips-2020-2024', 'margin-against-swing-2024'].map((v) => ({ name: `v-view-${v}`, query: `view=${v}`,
+    probe: (page) => page.evaluate(() => ({ card: document.getElementById('viewCard').innerText.replace(/\s+/g, ' '), w: window.__vt.effW(), sel: window.__vt.state.sel, n: window.__vt.sel() && window.__vt.sel().counties.size })) })),
+  { name: 'n-nogl-road', hash: 'e=pres2024&w=road', gl: false },
+  { name: 'n-nogl-closest', hash: 'e=sen2026&w=closest', gl: false },
+  { name: 'n-nogl-ms', hash: 'w=scatter&sx=ms', gl: false },
 ].filter((s) => !ONLY || s.name.includes(ONLY));
 
 // ---------- the record kept for each scenario ----------

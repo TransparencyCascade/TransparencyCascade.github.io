@@ -5,7 +5,7 @@
    vote by state; votes, electoral votes and Senate seats by state; or each party's concentration at fixed shares). */
 import { fmt, esc, countyLabelOf, $ } from './util.js';
 
-export function createTable({ geo, el, state, model, house, history, selection, effW, pctCh, OFFICE_NAME, stName, simCtx, power, overlays, ovSet, ovSummary }) {
+export function createTable({ geo, el, state, model, house, history, selection, effW, pctCh, OFFICE_NAME, stName, simCtx, power, roadCtx, closestCtx, overlays, ovSet, ovSummary }) {
   const { meta } = geo, { elections } = el;
   const wrap = $('tableWrap'), table = $('table');
   let sort = { k: 2, dir: -1 };
@@ -113,7 +113,43 @@ export function createTable({ geo, el, state, model, house, history, selection, 
     table.innerHTML = '<thead><tr>' + cols.map((c, i) => `<th data-k="${i}"${i === sort.k ? ` aria-sort="${sort.dir > 0 ? 'ascending' : 'descending'}"` : ''}>${c[0]}</th>`).join('') + '</tr></thead><tbody>' +
       rs.map((r) => '<tr>' + cols.map((c) => { const v = c[1](r); return `<td>${esc(v == null ? '' : c[2](v))}</td>`; }).join('') + '</tr>').join('') + '</tbody>';
   };
+  // Road to 270: the bar as rows, from the most Democratic result to the most Republican.
+  const party = (x) => ({ D: 'Democratic', R: 'Republican' }[x] || '');
+  const sRoad = { k: 0, dir: 1 }, sClosest = { k: 5, dir: 1 };
+  const sortRows = (rs, cols, s) => rs.sort((x, y) => { const a = cols[s.k][1](x), c = cols[s.k][1](y); if (a == null) return 1; if (c == null) return -1; return (typeof a === 'string' ? a.localeCompare(c, 'en', { numeric: true }) : a - c) * s.dir; });
+  const head = (cols, s) => '<thead><tr>' + cols.map((c, i) => `<th data-k="${i}"${i === s.k ? ` aria-sort="${s.dir > 0 ? 'ascending' : 'descending'}"` : ''}>${c[0]}</th>`).join('') + '</tr></thead>';
+  const renderRoad = () => {
+    const R = roadCtx(), sel = selection();
+    if (!R || !R.road) { $('tableTitle').textContent = 'Road to 270'; $('tableNote').textContent = R ? `No ${R.body === 'pres' ? 'presidential' : 'Senate'} result for ${R.label} in the page.` : 'Loading…'; table.innerHTML = ''; return; }
+    const r = R.road, evw = r.body === 'pres', sts = sel ? new Set(sel.states || [...sel.counties].map((f) => meta[f].st)) : null;
+    let rs = r.segs.map((x, i) => ({ ...x, order: i + 1 }));
+    if (sts) rs = rs.filter((x) => x.st && sts.has(x.st));
+    const cols = [['Order', (x) => x.order, fmt], ['Place', (x) => x.name, String], [evw ? 'Electoral votes' : 'Seats', (x) => x.size, fmt], ['Winner', (x) => x.win, party],
+      ['Margin, votes', (x) => x.votes, fmt], ['Margin, points', (x) => (x.points == null || x.kind === 'held' ? null : Math.abs(x.points)), (v) => v.toFixed(1)], ['Votes to flip', (x) => x.flip, fmt],
+      ['Running total from the Democratic end', (x) => x.x1, fmt], ['Note', (x) => (x === r.tip ? 'tipping point' : x.kind === 'held' ? 'held' : x.fixed ? 'held at its result' : x.called === false ? 'leading, not called' : null), String]];
+    sortRows(rs, cols, sRoad);
+    $('tableTitle').textContent = `${evw ? 'Road to 270' : 'Road to 51'}, ${R.label}`;
+    $('tableNote').textContent = `${fmt(rs.length)} rows, from the most Democratic result to the most Republican by two-party margin. ${evw ? `${r.need} electoral votes win.` : `${r.need} seats are a majority.`} Votes to flip: half the margin plus one. ${R.unofficial} Click a heading to sort.`;
+    table.innerHTML = head(cols, sRoad) + '<tbody>' + rs.map((x) => '<tr>' + cols.map((c) => { const v = c[1](x); return `<td>${esc(v == null ? '' : c[2](v))}</td>`; }).join('') + '</tr>').join('') + '</tbody>';
+  };
+  // Closest races: the view's rows, with the same columns.
+  const renderClosest = () => {
+    const C = closestCtx(), sel = selection();
+    if (!C || !C.rows) { $('tableTitle').textContent = 'Closest races'; $('tableNote').textContent = C ? `No races for ${C.label} in the page.` : 'Loading…'; table.innerHTML = ''; return; }
+    const sts = sel ? new Set(sel.states || [...sel.counties].map((f) => meta[f].st)) : null;
+    let rs = C.rows.slice(); if (sts) rs = rs.filter((x) => sts.has(x.st));
+    const OFF = { pres: 'President', sen: 'Senate', house: 'House', gov: 'Governor' };
+    const cols = [['Office', (x) => OFF[x.office], String], ['Place', (x) => x.place, String], ['Winner', (x) => x.win, party], ['Margin, votes', (x) => x.votes, fmt],
+      ['Margin, points', (x) => (x.points == null ? null : Math.abs(x.points)), (v) => v.toFixed(1)], ['Votes to flip', (x) => x.flip, fmt],
+      ['Changed hands', (x) => C.races.label(x) || null, String], ['Note', (x) => x.note || null, String]];
+    sortRows(rs, cols, sClosest);
+    $('tableTitle').textContent = `Closest races, ${C.label}${C.office ? `: ${OFF[C.office]}` : ''}`;
+    $('tableNote').textContent = `${fmt(rs.length)} races. Votes to flip: half the margin plus one. Changed hands: the winner against the previous race for the same office and seat in the data. ${C.unofficial} Click a heading to sort.`;
+    table.innerHTML = head(cols, sClosest) + '<tbody>' + rs.map((x) => '<tr>' + cols.map((c) => { const v = c[1](x); return `<td>${esc(v == null ? '' : c[2](v))}</td>`; }).join('') + '</tr>').join('') + '</tbody>';
+  };
   const render = () => {
+    if (effW() === 'road') return renderRoad();
+    if (effW() === 'closest') return renderClosest();
     if (effW() === 'power') return renderPower();
     if (effW() === 'sim') return renderSim();
     if (effW() === 'history') return renderHistory();
@@ -127,7 +163,8 @@ export function createTable({ geo, el, state, model, house, history, selection, 
       ['Votes', (r) => r.v[0], fmt], ['Republican', (r) => r.v[1], fmt], ['Democratic', (r) => r.v[2], fmt],
       ['Margin', (r) => r.m, lead],
       ...(b ? [['Swing', (r) => r.s, (s) => (s == null ? '' : `${Math.abs(s).toFixed(1)} to ${s >= 0 ? 'D' : 'R'}`)]] : []),
-      ...(b && w === 'scatter' ? [['Rep. votes', (r) => (r.b && r.b[1] > 0 ? pctCh(r.v[1], r.b[1]) : null), signedPct],
+      ...(b && w === 'scatter' && state.sx === 'ms' ? [['Margin in the earlier race', (r) => (r.b && r.b[0] > 0 ? model.margin(r.b) : null), lead]] : []),
+      ...(b && w === 'scatter' && state.sx !== 'ms' ? [['Rep. votes', (r) => (r.b && r.b[1] > 0 ? pctCh(r.v[1], r.b[1]) : null), signedPct],
         ['Dem. votes', (r) => (r.b && r.b[2] > 0 ? pctCh(r.v[2], r.b[2]) : null), signedPct]] : []),
       ...(model.effShown() ? [['Residents per vote', (r) => (effOf(r.f) || {}).ppv, (x) => (x == null ? '' : x.toFixed(2))],
         ...[['Weight per vote', 'r'], ['State EV per resident', 'B'], ['Residents per eligible', 'N'], ['Eligible per vote', 'T']]
@@ -141,7 +178,7 @@ export function createTable({ geo, el, state, model, house, history, selection, 
     rs = rs.slice().sort((x, y) => { const a = get(x), c = get(y); if (a == null) return 1; if (c == null) return -1; return (typeof a === 'string' ? a.localeCompare(c) : a - c) * sort.dir; });
     $('tableTitle').textContent = `${sel ? 'Selected counties' : 'Every county'}, ${elections[state.e].label}`;
     $('tableNote').textContent = `${fmt(rs.length)} ${rs.length === 1 ? 'county' : 'counties'}` + (b ? `. Swing in points since ${model.baselineLabel()}` : '') +
-      (b && w === 'scatter' ? '; vote changes in percent since the same race' : '') + '. Click a heading to sort.' +
+      (b && w === 'scatter' && state.sx !== 'ms' ? '; vote changes in percent since the same race' : '') + (b && w === 'scatter' && state.sx === 'ms' ? '; margin in the earlier race, then swing since it' : '') + '. Click a heading to sort.' +
       (ovSet && ovSet() ? ' ' + ovSummary() : '');
     table.innerHTML = '<thead><tr>' + cols.map((c, i) => `<th data-k="${i}"${i === sort.k ? ` aria-sort="${sort.dir > 0 ? 'ascending' : 'descending'}"` : ''}>${c[0]}</th>`).join('') + '</tr></thead><tbody>' +
       (rs.length ? rs.map((r) => '<tr>' + cols.map((c) => `<td>${esc(c[2](c[1](r)))}</td>`).join('') + '</tr>').join('')
@@ -149,7 +186,9 @@ export function createTable({ geo, el, state, model, house, history, selection, 
   };
   table.addEventListener('click', (ev) => {
     const th = ev.target.closest('th'); if (!th) return;
-    const k = +th.dataset.k; sort = { k, dir: sort.k === k ? -sort.dir : k < 2 ? 1 : -1 }; render();
+    const k = +th.dataset.k;
+    if (effW() === 'road' || effW() === 'closest') { const o = effW() === 'road' ? sRoad : sClosest; Object.assign(o, { k, dir: o.k === k ? -o.dir : 1 }); return render(); }
+    sort = { k, dir: sort.k === k ? -sort.dir : k < 2 ? 1 : -1 }; render();
   });
   const open = () => { wrap.hidden = false; render(); $('tableClose').focus(); };
   const close = () => { wrap.hidden = true; };

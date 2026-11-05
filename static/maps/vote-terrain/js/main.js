@@ -34,6 +34,9 @@ import { createSavedViews, askedFor } from './views.js';
 import { createSim } from './sim.js';
 import { createPower } from './power.js';
 import { createOverlays } from './overlays.js';
+import { createRaces } from './races.js';
+import { createFlips } from './flips.js';
+import * as ms from './swingview.js';
 
 // Without WebGL the 3D views cannot draw: the page falls back to a flat view (see noGL) and keeps everything else.
 const hasGL = (() => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return false; } })();
@@ -114,7 +117,7 @@ const terrainState = () => {
 };
 // Why a tab cannot be used for the election in view ('' when it can).
 const HOUSE_TABS = ['strips', 'seats'];
-const tabWhy = (w) => (w === 'history' || w === 'sim' ? ''
+const tabWhy = (w) => (w === 'history' || w === 'sim' || w === 'road' || w === 'closest' ? ''
   : isHouse() && !HOUSE_TABS.includes(w) ? 'needs county results, and House results are by district'
   : !isHouse() && HOUSE_TABS.includes(w) ? 'draws the House by district: choose House above the timeline'
   : w === 'terrain' && glFailed ? 'needs WebGL, which this browser is not providing'
@@ -222,7 +225,8 @@ const balance = createBalance({ el, bal, state, house, selection: () => sel, onR
 const stName = balance.stName;
 
 // ---------- selection: one set of counties shared by every view, kept across elections and tabs ----------
-const codec = createSelectionCodec({ geo, el, state, model, stName, house, power, overlays });
+const flips = createFlips({ elections, meta, bal });
+const codec = createSelectionCodec({ geo, el, state, model, stName, house, power, overlays, flips, ms });
 // spec: { states } or { counties, rule }; opts.add merges, opts.toggle lets a second click clear it, opts.frame moves the camera to it.
 const setSelection = (spec, opts = {}) => {
   sel = codec.next(sel, spec, opts); selVersion++;
@@ -239,6 +243,7 @@ const applySelection = ({ frame = false, fit } = {}) => {
   if (views) { views.redraw(false); if (frame && sel) views.frame([...sel.counties]); }
   const key = sel && sel.states ? sel.states.join(',') : null;
   document.querySelectorAll('.flip').forEach((b) => b.setAttribute('aria-pressed', b.dataset.states === key));
+  renderFlips();
   table.refresh();
 };
 $('bopBody').addEventListener('click', (ev) => {
@@ -291,7 +296,7 @@ const region = () => {
 const sim = () => (simData ? (sim.o ||= createSim(simData)) : null);
 const ensureSim = () => {
   if (simData || simLoading) return;
-  simLoading = getJSON('simulator.json').then((d) => { simData = d; if (effW() === 'sim') { views.redraw(false); table.refresh(); } });
+  simLoading = getJSON('simulator.json').then((d) => { simData = d; if (['sim', 'road', 'closest'].includes(effW())) { views.redraw(false); table.refresh(); } });
 };
 const houseCache = {};
 const houseFor = (y) => { const k = y + '|' + state.ps; return (houseCache[k] ||= createHouse({ data: houseData, state: { e: 'house' + y, ps: state.ps }, elections }).now()); };
@@ -322,6 +327,20 @@ const toggleLock = (sts, on) => {
   for (const st of sts) { if (on === true || !L.has(st)) L.add(st); else L.delete(st); }
   setSim({ lock: [...L].sort().join(',') });
 };
+// ---------- Road to 270 and Closest races (views2d/road.js, closest.js; arithmetic in races.js) ----------
+const races = createRaces({ simData: () => simData, elections, sameOffice, meta, houseNowFor: (y) => (houseData.years.includes(String(y)) ? houseFor(y) : null), stName });
+const roadCtx = () => {
+  const S = simCtx(); if (!S) return null;
+  const d = simData.days[S.year], bodies = [...(d.pres ? ['pres'] : []), 'sen'];
+  const body = bodies.includes(state.rb) ? state.rb : officeOf(state.e) === 'president' && d.pres ? 'pres' : 'sen';
+  return { label: S.label, year: S.year, body, bodies, road: races.road(S.year, body), unofficial: S.unofficial, sources: S.sources };
+};
+const closestCache = {};
+const closestCtx = () => {
+  const S = simCtx(); if (!S) return null;
+  const k = S.year + '|' + state.ps, all = (closestCache[k] ||= races.closest(S.year));
+  return { label: S.label, year: S.year, races, office: state.ro, rows: all && (state.ro ? all.filter((r) => r.office === state.ro) : all), unofficial: S.unofficial, sources: S.sources };
+};
 views = createViews2d({
   el: $('v2d'), geo, meta, fmt, region,
   rows: model.rowsNow, mode: () => (baselineOf() ? 'swing' : 'margin'),
@@ -329,7 +348,7 @@ views = createViews2d({
   label: () => elections[state.e].label, baselineLabel,
   hover: tip.hoverCounty, hoverHtml: tip.place,
   tipHtml: tip.countyHtml,
-  select: (spec, o = {}) => setSelection(spec && (spec.kind === 'states' ? { states: spec.states } : { counties: spec.counties, rule: spec.rule }), { add: o.add, toggle: true }),
+  select: (spec, o = {}) => setSelection(spec && (spec.kind === 'states' ? { states: spec.states } : { counties: spec.counties, rule: spec.rule }), { add: o.add, toggle: true, frame: o.frame }),
   selection: () => sel,
   viewNote: (t) => { const n = $('viewNote'); n.textContent = t; n.hidden = !t; },
   stateName: stName, key: () => state.e + '|' + baselineOf(),
@@ -356,6 +375,10 @@ views = createViews2d({
   power: () => ({ pc: state.pc, pm: state.pm, pk: state.pk, pa: state.pa, pq: state.pq, calc: power }),
   setPower: (patch) => { Object.assign(state, patch); render({ animate: false }); },
   overlay: ovSet,
+  // Road to 270 and Closest races (state.rb, state.ro), and Scatter's second chart (state.sx).
+  road: roadCtx, closest: closestCtx, setRoad: (patch) => { Object.assign(state, patch); render(); },
+  sx: () => state.sx, setSx: (v) => { state.sx = v; render(); },
+  ms: { rows: () => ms.msRows(model.rowsNow(), model.margin), running: ms.running, summarize: ms.summarize, QUADS: ms.QUADS },
 });
 window.addEventListener('resize', () => { if (effW() !== 'terrain') views.redraw(false); });
 $('tabs').addEventListener('click', (ev) => {
@@ -371,7 +394,7 @@ const switchTab = (w) => {
 
 // ---------- find, table, read-once text ----------
 const find = createFind({ geo, el, ALL_ST: codec.ALL_ST, stName, choose: (spec) => setSelection(spec, { frame: true }) });
-const table = createTable({ geo, el, state, model, house, history: histData, selection: () => sel, effW, pctCh: codec.pctCh, OFFICE_NAME, stName, simCtx: () => simCtx(), power,
+const table = createTable({ geo, el, state, model, house, history: histData, selection: () => sel, effW, pctCh: codec.pctCh, OFFICE_NAME, stName, simCtx: () => simCtx(), power, roadCtx: () => roadCtx(), closestCtx: () => closestCtx(),
   overlays, ovSet, ovSummary: () => $('ovText').textContent });
 const about = createAbout({ el, eff, state, tip, selection: () => sel, select: setSelection, stName, house });
 // The comparison's method, one click away: the matching, then the unmatched medians for reference.
@@ -453,8 +476,8 @@ function render(opts = {}) {
   $('worthRow').hidden = state.l !== 'worth';
   document.querySelectorAll('[data-wh]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.wh === state.h));
   const per = state.n === 'county' ? 'per county' : 'per sq mi', vw = effW();
-  if (vw === 'sim') ensureSim();
-  $('keyHeight').textContent = vw === 'power' ? { rank: 'Bars: three parts on a doubling scale; black tick: their product', tiles: 'Square area: share of ' + { votes: 'votes cast', ev: 'electoral votes', sen: 'Senate seats' }[state.pm], conc: 'Lines: each party\'s votes, biggest counties first' }[state.pc] : vw === 'sim' ? 'Tiles: margin after the swing; outlined: flipped; dashed: locked' : vw === 'history' ? { seats: 'Dots: each state; line: the national average', small: 'Dots: each election, on a log scale', weight: 'Lines: largest against smallest, as a ratio' }[state.hc] : vw === 'strips' ? 'Tick: one district; shading: at risk and contestable' : vw === 'seats' ? 'Point area: districts in the state' : vw === 'dots' ? 'Dot area: votes' : vw === 'scatter' ? 'Circle area: votes' : vw === 'arrows' ? 'Arrow length: swing'
+  if (vw === 'sim' || vw === 'road' || vw === 'closest') ensureSim();
+  $('keyHeight').textContent = vw === 'power' ? { rank: 'Bars: three parts on a doubling scale; black tick: their product', tiles: 'Square area: share of ' + { votes: 'votes cast', ev: 'electoral votes', sen: 'Senate seats' }[state.pm], conc: 'Lines: each party\'s votes, biggest counties first' }[state.pc] : vw === 'sim' ? 'Tiles: margin after the swing; outlined: flipped; dashed: locked' : vw === 'road' ? ((r0) => (r0 && r0.body === 'sen' ? 'Segment width: one seat per race; the wide blocks are seats not on the ballot' : 'Segment width: electoral votes'))(roadCtx()) : vw === 'closest' ? 'Rows: races; click a heading to sort' : vw === 'history' ? { seats: 'Dots: each state; line: the national average', small: 'Dots: each election, on a log scale', weight: 'Lines: largest against smallest, as a ratio' }[state.hc] : vw === 'strips' ? 'Tick: one district; shading: at risk and contestable' : vw === 'seats' ? 'Point area: districts in the state' : vw === 'dots' ? 'Dot area: votes' : vw === 'scatter' ? 'Circle area: votes' : vw === 'arrows' ? 'Arrow length: swing'
     : vw === 'circles' ? (state.h === 'pop' ? 'Area: represented people' : 'Circle area: votes')
     : state.d === '2d' ? 'Flat map: colour only' : state.h === 'pop' ? 'Height: represented people'
     : state.h === 'net' ? `Height: net margin ${per}` : state.h === 'ev' || state.h === 'sen' ? `Height: votes × ${state.h === 'ev' ? 'electoral' : 'Senate'} weight`
@@ -489,10 +512,11 @@ function render(opts = {}) {
     kw.title = aw.textContent = `A vote in ${stName(w.hi)} carries ${(w.factor[w.hi] / w.factor[w.lo]).toFixed(1)} times the ${state.h === 'ev' ? 'electoral' : 'Senate'} weight of one in ${stName(w.lo)} (${yr}, votes cast in this election).`;
   }
   balance.render();
+  renderFlips();
 
   // Key: it follows the view drawn. Dots and Arrows colour by swing when there is a baseline, Scatter by margin.
   const panelColour = vw === 'terrain' || vw === 'circles', wt = panelColour && isWeight();
-  const m = panelColour ? isMargin() : vw === 'scatter' || vw === 'sim' || vw === 'power' || !baselineOf(), max = m ? MARGIN_MAX : SWING_MAX;
+  const m = panelColour ? isMargin() : vw === 'scatter' || vw === 'sim' || vw === 'power' || vw === 'road' || vw === 'closest' || !baselineOf(), max = m ? MARGIN_MAX : SWING_MAX;
   $('keyTitle').textContent = wt ? 'Weight per vote' : m ? `Margin, ${elections[state.e].label}` : `Swing since ${baselineLabel()}`;
   $('ramp').innerHTML = wt ? d3.range(-WEIGHT_MAX, WEIGHT_MAX + 0.001, WEIGHT_MAX / 6).map((x) => `<i style="background:${towardW(x, WEIGHT_MAX)}"></i>`).join('')
     : d3.range(-max, max + 0.001, max / 6).map((x) => `<i style="background:${toward(x, max)}"></i>`).join('');
@@ -500,6 +524,7 @@ function render(opts = {}) {
     ? `<span>R+${max}</span><span>even</span><span>D+${max}</span>`
     : `<span>${max} R</span><span>no change</span><span>${max} D</span>`;
   if (vw === 'sim') $('keyTitle').textContent = 'Margin after the swing';
+  if (vw === 'road' || vw === 'closest') $('keyTitle').textContent = 'Two-party margin';
   if (vw === 'history' && state.hc === 'small') {   // the dots' colour is the winning party, not a margin
     $('keyTitle').textContent = 'Dots: the winner\'s party';
     $('ramp').innerHTML = `<i style="background:${toward(-40, MARGIN_MAX)}"></i><i style="background:${toward(40, MARGIN_MAX)}"></i>`;
@@ -533,7 +558,7 @@ function render(opts = {}) {
   nt.textContent = 'This browser is not drawing 3D (WebGL is off or unavailable), so the map is shown as Circles. Everything else works.';
   tourBtn.disabled = vw !== 'terrain';
   $('flat').disabled = vw !== 'terrain';
-  $('reset').disabled = vw === 'dots' || vw === 'scatter' || vw === 'history' || vw === 'sim' || vw === 'power' || HOUSE_TABS.includes(vw);
+  $('reset').disabled = vw === 'dots' || vw === 'scatter' || vw === 'road' || vw === 'closest' || vw === 'history' || vw === 'sim' || vw === 'power' || HOUSE_TABS.includes(vw);
   if (sel) $('selText').textContent = codec.summary(sel);
   showView();
   if (vw === 'terrain') {
@@ -558,6 +583,33 @@ timeline.addEventListener('click', (ev) => {
   else if (b.id === 'next') go(trk().indexOf(state.e) + 1);
   else if (b.dataset.e) go(trk().indexOf(b.dataset.e));
 });
+// ---------- flips and bellwethers: the panel's filter over the selection (flips.js; rules f: and w:) ----------
+const flipPick = { a: 'pres2020', b: 'pres2024' };
+const flipChoices = flips.choices(order);
+for (const id of ['flipA', 'flipB']) $(id).innerHTML = flipChoices.map((e) => `<option value="${e}">${elections[e].label}</option>`).join('');
+$('flipA').addEventListener('change', (ev) => { flipPick.a = ev.target.value; renderFlips(); });
+$('flipB').addEventListener('change', (ev) => { flipPick.b = ev.target.value; renderFlips(); });
+// The counties a flips result covers: inside the selection when there is one (the filter turns the selection into its flips).
+const within = (list) => (sel ? list.filter((x) => sel.counties.has(x.f)) : list);
+const pcn = (n) => `${fmt(n)} ${n === 1 ? 'county' : 'counties'}`;
+function renderFlips() {
+  if (!$('flipText')) return;
+  $('flipA').value = flipPick.a; $('flipB').value = flipPick.b;
+  const F = flips.flipped(flipPick.a, flipPick.b), L = within(F.list), same = flipPick.a === flipPick.b;
+  const dR = L.filter((x) => x.from === 'D').length, rD = L.length - dR, votes = L.reduce((a, x) => a + elections[flipPick.b].data[x.f][0], 0);
+  $('flipText').textContent = same ? 'Choose two different elections.'
+    : `${sel ? `Among the ${fmt(sel.counties.size)} selected counties, ${pcn(L.length)}` : `${fmt(L.length)} of ${fmt(F.both)} counties with a Democratic or Republican winner in both elections`} voted for a different party in ${elections[flipPick.b].label} than in ${elections[flipPick.a].label}: ${fmt(rD)} from Republican to Democratic, ${fmt(dR)} from Democratic to Republican; ${fmt(votes)} votes cast in them in ${elections[flipPick.b].label}.`;
+  $('flipGo').disabled = same || !L.length;
+  const B = flips.bell(), BL = within(B.list);
+  $('bellText').textContent = `${sel ? `Among the selected counties, ${pcn(BL.length)}` : `${fmt(BL.length)} of ${fmt(B.of)} counties`} voted with the national presidential winner in every presidential election in the data (${B.ids.map((e, i) => `${elections[e].year} ${B.win[i] === 'D' ? 'Democratic' : 'Republican'}`).join(', ')}).`;
+  $('bellGo').disabled = !BL.length;
+}
+const chooseRule = (kind, list) => {
+  const scope = sel ? codec.encode(sel) : '', rule = !sel ? kind : scope ? kind + '/' + scope : null;   // a selection too big to write down leaves the result a plain county list
+  setSelection({ counties: list.map((x) => x.f), rule }, { frame: true });
+};
+$('flipGo').addEventListener('click', () => chooseRule(`f:${flipPick.a}:${flipPick.b}`, within(flips.flipped(flipPick.a, flipPick.b).list)));
+$('bellGo').addEventListener('click', () => chooseRule('w', within(flips.bell().list)));
 // Keyboard: ← → elections, 1–4 lenses, V next view, Space play, Esc clear, / find, T table.
 document.addEventListener('keydown', (ev) => {
   if (ev.target.closest('select, input, textarea') || ev.metaKey || ev.ctrlKey || ev.altKey) return;
@@ -628,7 +680,7 @@ const followHash = (forceCamera = false) => {
 };
 window.addEventListener('hashchange', () => followHash());
 // Saved views and tours: the card with the caption; a tour step sets the whole state, as a link would.
-const savedViews = registry ? createSavedViews({ registry, bal, eff, houseData, histData, simData, elections, stName, power, overlays,
+const savedViews = registry ? createSavedViews({ registry, bal, eff, houseData, histData, simData, elections, stName, power, overlays, flips, meta, ms, sameOffice,
   apply: (st) => { if (terrain) terrain.stopMotion(); history.replaceState(null, '', location.search + '#' + hashFor(st)); followHash(true); if (st.sel && sel) applySelection({ frame: true, fit: 1.15 }); } }) : null;
 if (savedViews) {
   savedViews.setOnResize(() => { if (views && effW() !== 'terrain') views.redraw(false); });
@@ -642,7 +694,7 @@ const fitHeights = () => {
   if (f < 1) kh.textContent += `; heights drawn at ${Math.round(f * 100)}% to fit the card`;
   return f;
 };
-window.__vt = { state, elections, power, overlays, sim: () => simCtx(), fitHeights, saved: () => savedViews, meta, house: () => house.now(), terrain: () => terrain, blocks: () => blocks, views: () => views, sel: () => sel, setSelection, effW, tipHtml: tip.countyHtml,
+window.__vt = { state, elections, power, overlays, flips, races, ms, road: () => roadCtx(), closest: () => closestCtx(), sim: () => simCtx(), fitHeights, saved: () => savedViews, meta, house: () => house.now(), terrain: () => terrain, blocks: () => blocks, views: () => views, sel: () => sel, setSelection, effW, tipHtml: tip.countyHtml,
   colours: { GARNET: GARNET + '', SAPPHIRE: SAPPHIRE + '', NEUTRAL: NEUTRAL + '' } };
 sel = codec.decode(state.sel); state.sel = codec.encode(sel);
 ready = true;
