@@ -131,7 +131,7 @@ export function historyView({ ctx, head, body, foot, place, shiftOf }) {
   // The tipping state against the nation: one bar and dot per election from the zero line (a linear scale, so a bar's
   // length is its value). Above zero the tipping state voted more Democratic than the nation, below more Republican.
   function drawBias(H, w, hh) {
-    const B = H.bias, pad = { l: 72, r: 24, t: exporting ? 52 : 66, b: 46 };
+    const B = H.bias, pad = { l: 72, r: 24, t: exporting ? 66 : 82, b: 46 };
     const x = d3.scalePoint().domain(B.map((b) => b.year)).range([pad.l, w - pad.r]).padding(0.5), step = x.step();
     const m = d3.max(B, (b) => Math.abs(b.gap)), lim = Math.max(1, Math.ceil(m * 1.45));
     const y = d3.scaleLinear().domain([-lim, lim]).range([hh - pad.b, pad.t]);
@@ -141,8 +141,9 @@ export function historyView({ ctx, head, body, foot, place, shiftOf }) {
       svg.append('text').attr('x', pad.l - 6).attr('y', y(t) + 4).attr('text-anchor', 'end').text(tickText(t));
     }
     svg.append('text').attr('class', 'axis-title').attr('x', pad.l).attr('y', 13).text('The tipping state\'s two-party margin minus the national two-party margin, in points');
-    svg.append('text').attr('x', pad.l).attr('y', 30).attr('fill', INK).text('The standard "Electoral College bias". Above zero: more Democratic than the nation; below: more Republican.');
-    if (!exporting) svg.append('text').attr('x', pad.l).attr('y', 46).attr('fill', GRAPHITE).text('Colour: that party. Click 2016, 2020 or 2024 to open it in Road to 270.');
+    svg.append('text').attr('x', pad.l).attr('y', 30).attr('fill', INK).text('Above zero: more Democratic than the nation; below: more Republican.');
+    svg.append('text').attr('x', pad.l).attr('y', 46).attr('fill', GRAPHITE).text('Political scientists measure Electoral College bias in related ways (Erikson, Sigman and Yao, PNAS 117(45), 2020, doi:10.1073/pnas.2013581117); this is a related measure, not their definition.');
+    if (!exporting) svg.append('text').attr('x', pad.l).attr('y', 62).attr('fill', GRAPHITE).text('Colour: that party. Click 2016, 2020 or 2024 to open it in Road to 270.');
     const g = svg.append('g').selectAll('g').data(B).join('g').style('cursor', 'pointer')
       .on('click', (ev, b) => (b.election ? ctx.openRoad(b.election) : ctx.select({ kind: 'states', states: [b.tip.st] }, { add: shiftOf(ev) })))
       .on('mousemove', (ev, b) => ctx.hoverHtml(`<b>${b.year}</b>: ${SIDE[b.winner]} won the Electoral College ${b.winner === 'D' ? b.evD : b.evR} to ${b.winner === 'D' ? b.evR : b.evD}<br>` +

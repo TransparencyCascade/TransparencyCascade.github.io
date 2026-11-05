@@ -103,6 +103,8 @@ export function roadView({ ctx, head, body, foot, place, shiftOf, DUR }) {
       const ey = wrap([natLine(B), tipLine(B), `${gapSentence(B)} ${ratioLine(B)}`], top + 4, 'rd-row rd-bias', 15, 18);
       svg.selectAll('.rd-bias').attr('data-bias', B.year);
       top = ey + 2;
+      // A card drops the rows below, so the readout must fit: grow the drawing to hold it.
+      if (exporting && top + 6 > +svg.attr('height')) svg.attr('height', Math.ceil(top + 6));
     }
     // Under the bar: the closest results by votes to flip, each a row that selects its state.
     const near = r.byFlip.slice(0, Math.max(0, Math.min(narrow ? 5 : 8, Math.floor((Math.max(h0, 330) - top - 28) / 20))));

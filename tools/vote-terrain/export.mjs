@@ -31,7 +31,8 @@ const OUT = path.resolve(opt('--out', path.join(HERE, '.export')));
 if (OUT.startsWith(path.resolve(HERE, '../../static'))) { console.error('export.mjs: --out must be outside the published folder (static/).'); process.exit(2); }
 const VIEW = opt('--view'), TOUR = opt('--tour'), SWEEP = opt('--sweep');
 if (!VIEW && !TOUR && !SWEEP) { console.error('usage: export.mjs --view <slug> | --tour <slug> [--gif] [--mp4] | --sweep <slug> [--gif] [--mp4]'); process.exit(2); }
-const HOLD = +opt('--hold', 3), SCALE = +opt('--scale', 2);
+const HOLD = +opt('--hold', 3);
+let SCALE = +opt('--scale', 2);
 const ART = path.join(process.env.HOME, 'tcp-skills/plugins/tcp-skills/skills/article-images/scripts');
 const PW = process.env.VT_PLAYWRIGHT || path.join(ART, 'node_modules/playwright-core');
 const { chromium } = createRequire(PW + '/')(PW);
@@ -135,6 +136,10 @@ if (VIEW) {
   await openMap(VIEW, { w: 2040, h: 600 });               // first load: read the text, then size the map to its box
   const x = await textOf(VIEW), box = await boxFor(x);
   await openMap(VIEW, box);
+  // A flat view whose drawing is taller than its box (Road to 270 with its readout) would be clipped: lay it out at a
+  // smaller scale (its text comes out a little smaller on the card) until it fits, but not below 1.3.
+  const clipped = () => mapPage.evaluate(() => { const b = document.querySelector('.v2d-root:not([hidden]) .v2d-body'); return !!b && b.getClientRects().length > 0 && b.scrollHeight > b.clientHeight + 1; });
+  while (SCALE > 1.3 && (await clipped())) { SCALE = Math.round((SCALE - 0.1) * 10) / 10; console.log(`export: drawing taller than its box, laying out at scale ${SCALE}`); await openMap(VIEW, box); }
   const f = await renderCard(x, path.join(OUT, `${VIEW}.png`)); shapes(f);
   written.push(f, f.replace(/\.png$/, '.link.png'), f.replace(/\.png$/, '.square.png'));
 }

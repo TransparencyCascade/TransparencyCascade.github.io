@@ -335,7 +335,7 @@
       "title": "Road to 270, 2016",
       "file": "Electoral votes by state, President 2016, by margin; the tipping state against the nation",
       "caption": "{calc.road.y2016.pres.winName} reached 270 electoral votes at {calc.bias.y2016.tipName}, the tipping point, and won the Electoral College {calc.bias.y2016.evW} to {calc.bias.y2016.evL}. In the national popular vote {calc.bias.y2016.natName} were ahead by {calc.bias.y2016.natVotes|n} votes ({calc.bias.y2016.natPts|pt} points of the two-party vote). {calc.bias.y2016.tipName} was decided by {calc.bias.y2016.tipVotes|n} votes ({calc.bias.y2016.tipPts|pt} points), {calc.bias.y2016.tipParty}. {calc.bias.y2016.sentence} The national vote margin was {calc.bias.y2016.ratio|ratio} times the tipping state's.",
-      "sources": "{hist.sources.bias} Order: two-party margin; Maine's and Nebraska's district electors are held as cast, at the ends of the bar.",
+      "sources": "{hist.sources.bias}",
       "state": {
         "e": "pres2016",
         "w": "road",
@@ -346,7 +346,7 @@
       "slug": "tipping-vs-nation-1976-2024",
       "title": "The tipping state against the nation, 1976 to 2024",
       "file": "Tipping state's two-party margin minus the national two-party margin, {calc.bias.first.year|raw} to {calc.bias.last.year|raw}",
-      "caption": "In {calc.bias.n|raw} presidential elections from {calc.bias.first.year|raw} to {calc.bias.last.year|raw}, the state that decided the Electoral College voted between {calc.bias.small.gapPts|pt} points more {calc.bias.small.gapToward} than the nation ({calc.bias.small.year|raw}, {calc.bias.small.tipName}) and {calc.bias.big.gapPts|pt} points more {calc.bias.big.gapToward} ({calc.bias.big.year|raw}, {calc.bias.big.tipName}). In {calc.bias.last.year|raw}, {calc.bias.last.tipName} voted {calc.bias.last.gapPts|pt} points more {calc.bias.last.gapToward} than the nation. Each mark is the tipping state's two-party margin minus the national two-party margin, the measure usually called the Electoral College bias.",
+      "caption": "In {calc.bias.n|raw} presidential elections from {calc.bias.first.year|raw} to {calc.bias.last.year|raw}, the state that decided the Electoral College voted between {calc.bias.small.gapPts|pt} points more {calc.bias.small.gapToward} than the nation ({calc.bias.small.year|raw}, {calc.bias.small.tipName}) and {calc.bias.big.gapPts|pt} points more {calc.bias.big.gapToward} ({calc.bias.big.year|raw}, {calc.bias.big.tipName}). In {calc.bias.last.year|raw}, {calc.bias.last.tipName} voted {calc.bias.last.gapPts|pt} points more {calc.bias.last.gapToward} than the nation. Each mark is the tipping state's two-party margin minus the national two-party margin. Political scientists measure Electoral College bias in related ways (Erikson, Sigman and Yao, PNAS 117(45), 2020, doi:10.1073/pnas.2013581117); this is a related measure, not their definition.",
       "sources": "{hist.sources.bias}",
       "state": {
         "e": "pres2024",
