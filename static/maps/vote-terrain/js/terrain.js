@@ -107,8 +107,10 @@ export async function initTerrain({ container, geo, ramp, ramp2, onHover, labels
   renderer.setClearColor(GROUND);
   container.appendChild(renderer.domElement);
   const scene = new THREE.Scene();
-  scene.add(mesh);
-  const outline = new THREE.Group(); scene.add(outline);
+  // Everything drawn on the map sits in one group, so a card can scale every height together (fitHeights).
+  const world = new THREE.Group(); scene.add(world);
+  world.add(mesh);
+  const outline = new THREE.Group(); world.add(outline);
 
   // ---------- draped lines: state borders on the surface, and the ghost of the previous election ----------
   // State borders: county edges shared by two counties in different states (coastlines are left out).
@@ -141,7 +143,7 @@ export async function initTerrain({ container, geo, ramp, ramp2, onHover, labels
   const lineSet = (n, opacity, onTop = false) => {
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
     const m = new THREE.LineBasicMaterial({ color: 0x23306b, transparent: true, opacity, depthWrite: false, depthTest: !onTop });
-    const l = new THREE.LineSegments(g, m); l.frustumCulled = false; if (onTop) l.renderOrder = 2; scene.add(l); return l;
+    const l = new THREE.LineSegments(g, m); l.frustumCulled = false; if (onTop) l.renderOrder = 2; world.add(l); return l;
   };
   const drape = (line, Z, lift) => {
     const P = line.geometry.attributes.position.array;
@@ -335,7 +337,7 @@ export async function initTerrain({ container, geo, ramp, ramp2, onHover, labels
       const hfov = 2 * Math.atan(Math.tan(fov / 2) * camera.aspect);
       dist = (cols * CELL * 0.5) / Math.tan(hfov / 2) / usable * 1.04; polar = 48;
       // Export (a wide, short window): also fit the north-south extent, seen at this tilt.
-      if (side.fitHeight) dist = Math.max(dist, (rows * CELL * 0.5 * Math.cos(THREE.MathUtils.degToRad(polar)) + rows * CELL * 0.12) / Math.tan(fov / 2));
+      if (side.fitHeight) dist = Math.max(dist, (rows * CELL * 0.5 * Math.cos(THREE.MathUtils.degToRad(polar)) + rows * CELL * 0.2) / Math.tan(fov / 2));   // the near (southern) edge projects lower than the far one
       const unitsPerPx = 2 * dist * Math.tan(fov / 2) / Hh;
       tx -= (side.left - side.right) / 2 * unitsPerPx;
     } else {
@@ -454,21 +456,55 @@ export async function initTerrain({ container, geo, ramp, ramp2, onHover, labels
     const idx = fipsIdx.get(lb.f), cl = [];
     for (let j = 0; j < L; j++) if (owner[j] === idx) cl.push(cells[j]);
     const el = document.createElement('div'); el.className = 'metro'; el.textContent = lb.name; labelBox.appendChild(el);
-    return { ...lb, cells: cl, el };
+    return { ...lb, st: geo.meta[lb.f] ? geo.meta[lb.f].st : '', cells: cl, el };
   }).filter((p) => p.cells.length);
+  // State labels: while whole states are highlighted (a framed selection, a saved view), each is named on the map,
+  // with its figure when the page passes one. Metro labels on or near those states are hidden, so a city's name
+  // never sits on a selected state as if it were that state's label.
+  let stLabels = [], selBox = null;
+  const clearStateLabels = () => { for (const p of stLabels) p.el.remove(); stLabels = []; };
   let obstacles = [], frame = 0;
   const v3 = new THREE.Vector3();
+  const toScreen = (g, W, Hh) => {
+    const c = g % cols, r = (g - c) / cols;
+    v3.set(x0 + (c + 0.5) * CELL, yTop - (r + 0.5) * CELL, Math.max(0, zCur[g]) * world.scale.z + 2).project(camera);
+    return { x: (v3.x + 1) / 2 * W, y: (1 - v3.y) / 2 * Hh, front: v3.z < 1 };
+  };
   function placeLabels() {
     if (labelBox.style.display === 'none') return;
     if (frame % 30 === 0) obstacles = [...document.querySelectorAll('.panel, .key, .bop, .timeline, #locator, .tour-caption')]
       .filter((e) => !e.hidden && e.getClientRects().length).map((e) => e.getBoundingClientRect());   // fixed panels have no offsetParent
     const W = renderer.domElement.clientWidth, Hh = renderer.domElement.clientHeight, placed = [];
+    const boxAt = (el, x, y) => { const w = el.offsetWidth || 80, h = el.offsetHeight || 18; return { left: x - w / 2, right: x + w / 2, top: y - h - 9, bottom: y }; };
+    for (const p of stLabels) {
+      // Neighbouring states' labels must not cover each other: a label that would lift on a longer leader.
+      const { x, y, front } = toScreen(p.g, W, Hh), hgt = p.el.offsetHeight || 18;
+      let lead = 8, box = null;
+      for (let k = 0; k < 4; k++) {
+        lead = 8 + k * (hgt + 6);
+        const b0 = boxAt(p.el, x, y); box = { ...b0, top: b0.top - (lead - 8), bottom: b0.bottom - (lead - 8) };
+        if (!placed.some((q) => q.left < box.right && box.left < q.right && q.top < box.bottom && box.top < q.bottom)) break;
+      }
+      const show = front && box.left >= 4 && box.right <= W - 4 && box.top >= 4 && y < Hh;
+      if (show) { placed.push(box); p.el.style.setProperty('--lead', lead + 'px'); p.el.style.transform = `translate(${x}px, ${y}px) translate(-50%, calc(-100% - ${lead}px))`; }
+      p.el.style.visibility = show ? 'visible' : 'hidden';
+    }
+    // The highlighted states' extent on screen (their bounding box on the ground, projected), with a margin.
+    let near = null;
+    if (stLabels.length && selBox) {
+      let l = Infinity, rr = -Infinity, t = Infinity, b = -Infinity;
+      for (const [cx, cy] of [[selBox[0], selBox[2]], [selBox[1], selBox[2]], [selBox[0], selBox[3]], [selBox[1], selBox[3]]]) {
+        v3.set(cx, cy, 0).project(camera); const x = (v3.x + 1) / 2 * W, y = (1 - v3.y) / 2 * Hh;
+        l = Math.min(l, x); rr = Math.max(rr, x); t = Math.min(t, y); b = Math.max(b, y);
+      }
+      near = { l: l - 60, r: rr + 60, t: t - 60, b: b + 60 };
+    }
+    const stSet = new Set(stLabels.map((p) => p.st));
     for (const p of metros) {
       let best = p.cells[0]; for (const g of p.cells) if (zCur[g] > zCur[best]) best = g;
-      const c = best % cols, r = (best - c) / cols;
-      v3.set(x0 + (c + 0.5) * CELL, yTop - (r + 0.5) * CELL, Math.max(0, zCur[best]) + 2).project(camera);
-      const x = (v3.x + 1) / 2 * W, y = (1 - v3.y) / 2 * Hh;
-      let show = v3.z < 1 && x > 0 && x < W && y > 0 && y < Hh;
+      const { x, y, front } = toScreen(best, W, Hh);
+      let show = front && x > 0 && x < W && y > 0 && y < Hh;
+      if (near && (stSet.has(p.st) || (x > near.l && x < near.r && y > near.t && y < near.b))) show = false;
       const w = p.el.offsetWidth || 80, h = p.el.offsetHeight || 18, box = { left: x - w / 2, right: x + w / 2, top: y - h - 9, bottom: y };
       const hit = (b) => b.left < box.right && box.left < b.right && b.top < box.bottom && box.top < b.bottom;
       if (show && (box.left < 4 || box.right > W - 4 || box.top < 4 || obstacles.some(hit) || placed.some(hit))) show = false;   // whole label on screen
@@ -543,8 +579,10 @@ export async function initTerrain({ container, geo, ramp, ramp2, onHover, labels
     },
     // Highlight the reader's selection: whole states are outlined; selected counties keep full colour and the
     // rest fade toward the ground; with fly, the camera frames them from a low angle.
-    highlight(states, { fly = true, counties = null, animate = true, fit = 1.9 } = {}) {
-      if (hiLine) { scene.remove(hiLine); hiLine.geometry.dispose(); hiLine = null; hiSegs = null; }
+    // labels: { ST: text } names highlighted states on the map (up to eight).
+    highlight(states, { fly = true, counties = null, animate = true, fit = 1.9, labels = null } = {}) {
+      if (hiLine) { world.remove(hiLine); hiLine.geometry.dispose(); hiLine = null; hiSegs = null; }
+      clearStateLabels(); selBox = null;
       if ((!states || !states.length) && (!counties || !counties.size)) { hiAttr.fill(1); material.uniforms.uHiOn.value = 0; geom.attributes.aHi.needsUpdate = true; return; }
       const set = new Set(states || []);
       const inSel = counties && counties.size ? (j) => counties.has(fips[owner[j] - 1]) : (j) => set.has(cellSt[j]);
@@ -556,11 +594,24 @@ export async function initTerrain({ container, geo, ramp, ramp2, onHover, labels
         x0b = Math.min(x0b, x); x1b = Math.max(x1b, x); y0b = Math.min(y0b, y); y1b = Math.max(y1b, y);
       }
       geom.attributes.aHi.needsUpdate = true; material.uniforms.uHiOn.value = 1;
+      selBox = isFinite(x0b) ? [x0b, x1b, y0b, y1b] : null;
+      if (labels && states && states.length && states.length <= 8) {
+        // Each state's label stands on its land cell nearest the middle of its cells.
+        for (const st of states) {
+          let sx = 0, sy = 0, n = 0;
+          for (let j = 0; j < L; j++) if (cellSt[j] === st) { const g = cells[j]; sx += pos[g * 3]; sy += pos[g * 3 + 1]; n++; }
+          if (!n || !labels[st]) continue;
+          const mx = sx / n, my = sy / n; let g0 = -1, d0 = Infinity;
+          for (let j = 0; j < L; j++) if (cellSt[j] === st) { const g = cells[j], d = (pos[g * 3] - mx) ** 2 + (pos[g * 3 + 1] - my) ** 2; if (d < d0) { d0 = d; g0 = g; } }
+          const el = document.createElement('div'); el.className = 'metro st-label'; el.textContent = labels[st]; labelBox.appendChild(el);
+          stLabels.push({ st, g: g0, el });
+        }
+      }
       if (states && states.length) {
         hiSegs = outlineOf(states);
         hiLine = new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(hiSegs.length / 2 * 3), 3)),
           new THREE.LineBasicMaterial({ color: 0x23306b, transparent: true, opacity: 0.95, depthWrite: false }));
-        hiLine.frustumCulled = false; hiLine.renderOrder = 3; scene.add(hiLine);
+        hiLine.frustumCulled = false; hiLine.renderOrder = 3; world.add(hiLine);
         drapeSegs(hiLine, hiSegs, zCur, 0.9);
       }
       if (fly && isFinite(x0b)) {
@@ -602,5 +653,27 @@ export async function initTerrain({ container, geo, ramp, ramp2, onHover, labels
     },
     stopMotion,
     pick,
+    // Cards (export): scale every height together, so the tallest peak in view stays inside the frame, margin
+    // pixels below its top. Returns the factor (1 when nothing needed it); the page states it in the key.
+    fitHeights(margin = 24) {
+      world.scale.z = 1; world.updateMatrixWorld(); camera.updateMatrixWorld();
+      const W = renderer.domElement.clientWidth, Hh = renderer.domElement.clientHeight;
+      const tall = []; for (let j = 0; j < L; j++) if (zCur[cells[j]] > 0) tall.push(cells[j]);
+      tall.sort((a, b) => zCur[b] - zCur[a]);
+      const top = tall.slice(0, 800);
+      const fits = (s) => top.every((g) => {
+        const c = g % cols, r = (g - c) / cols, x = x0 + (c + 0.5) * CELL, y = yTop - (r + 0.5) * CELL;
+        v3.set(x, y, 0).project(camera);
+        const bx = (v3.x + 1) / 2 * W, by = (1 - v3.y) / 2 * Hh;
+        if (v3.z >= 1 || bx < 0 || bx > W || by < 0 || by > Hh) return true;   // its foot is out of view
+        v3.set(x, y, zCur[g] * s).project(camera);
+        return (1 - v3.y) / 2 * Hh >= margin;
+      });
+      if (fits(1)) return 1;
+      let lo = 0.02, hi = 1;
+      for (let i = 0; i < 22; i++) { const mid = (lo + hi) / 2; if (fits(mid)) lo = mid; else hi = mid; }
+      world.scale.z = lo;
+      return lo;
+    },
   };
 }

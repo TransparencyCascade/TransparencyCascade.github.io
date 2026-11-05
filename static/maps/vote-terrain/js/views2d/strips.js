@@ -72,7 +72,8 @@ export function stripsView({ ctx, DUR, head, body, foot, place, shiftOf }) {
       shown = shown.filter((r) => keep.has(r.st));
     }
     const big = RH >= 32, TH = big ? Math.min(RH - 12, 120) : RH - 6, TW = big ? 5 : 3;
-    rowsBox.style('height', avail + 'px').style('overflow-y', exporting ? 'hidden' : null);
+    // A card of selected states is as tall as its rows (export.mjs crops the card's image to the content).
+    rowsBox.style('height', (exporting && only ? Math.min(avail, shown.length * RH + 6) : avail) + 'px').style('overflow-y', exporting ? 'hidden' : null);
     gRows.attr('width', w).attr('height', shown.length * RH + 6);
     const g = gRows.selectAll('g.row').data(shown, (r) => r.st);
     g.exit().remove();

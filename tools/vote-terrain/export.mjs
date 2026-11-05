@@ -56,7 +56,7 @@ const browser = await chromium.launch(LAUNCH);
 const done = async (code) => { await browser.close(); server.close(); process.exit(code); };
 
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const cardHtml = (x, img) => `<!doctype html><html><head><meta charset="utf-8">
+const cardHtml = (x, img, fit = false) => `<!doctype html><html><head><meta charset="utf-8">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=block">
 <style>
   html, body { margin:0; }
@@ -65,13 +65,14 @@ const cardHtml = (x, img) => `<!doctype html><html><head><meta charset="utf-8">
   .main { position:absolute; left:180px; top:240px; width:2040px; height:972px; display:flex; flex-direction:column; gap:32px; }
   .img { flex:1; min-height:0; display:flex; align-items:center; justify-content:center; }
   .img img { max-width:100%; max-height:100%; display:block; }
+  .img.fit { flex:0 1 auto; }   /* a short chart: the caption follows it, no empty band between */
   .cap { font-size:40px; line-height:56px; max-width:1692px; margin:0; }
   .foot { position:absolute; left:180px; right:180px; top:${C.H - 240}px; border-top:2px solid rgba(35,48,107,.6); padding-top:40px; display:flex; justify-content:space-between; gap:60px; }
   .src { font-size:28px; line-height:30px; color:${C.graphite}; max-width:1860px; overflow-wrap:anywhere; }
   .tag { font-size:28px; line-height:30px; font-weight:700; white-space:nowrap; }
 </style></head><body>
 <div class="file">${esc(x.file)}</div>
-<div class="main"><div class="img" id="img">${img ? `<img src="${img}" alt="">` : ''}</div><p class="cap">${esc(x.caption)}</p></div>
+<div class="main"><div class="img${fit ? ' fit' : ''}" id="img">${img ? `<img src="${img}" alt="">` : ''}</div><p class="cap">${esc(x.caption)}</p></div>
 <div class="foot"><div class="src">${esc(x.sources)}</div><div class="tag">The RAMM</div></div>
 </body></html>`;
 
@@ -103,8 +104,14 @@ const boxFor = async (x) => {
   return r;
 };
 const renderCard = async (x, file) => {
-  const png = await mapPage.screenshot({ type: 'png' });
-  await card.setContent(cardHtml(x, 'data:image/png;base64,' + png.toString('base64')), { waitUntil: 'networkidle' });
+  // The terrain scales its heights so the tallest peak in view stays in the frame (the key says so); a flat view
+  // that draws less than its box (one state's districts) is cropped to what it drew, so the card has no empty band.
+  const info = await mapPage.evaluate(() => { const v = window.__vt, f = v.fitHeights(), flat = v.effW() !== 'terrain';
+    return { f, bottom: flat && v.views() ? v.views().contentBottom() : 0, W: innerWidth, H: innerHeight, key: document.querySelector('.key').getBoundingClientRect().bottom }; });
+  if (info.f < 1) await settle(mapPage, 200);
+  const crop = info.bottom && Math.max(info.bottom, info.key) + 16 < info.H - 40 ? Math.max(info.bottom, info.key) + 16 : 0;
+  const png = await mapPage.screenshot({ type: 'png', ...(crop ? { clip: { x: 0, y: 0, width: info.W, height: crop } } : {}) });
+  await card.setContent(cardHtml(x, 'data:image/png;base64,' + png.toString('base64'), !!crop), { waitUntil: 'networkidle' });
   await card.evaluate(() => document.fonts.ready);
   await card.screenshot({ path: file });
   return file;

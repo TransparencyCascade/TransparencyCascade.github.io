@@ -116,7 +116,16 @@ const showView = () => {
 };
 // The terrain shows the selection: whole states outlined, selected counties in full colour.
 // A saved view frames its selection closer than the Frame button does: the view is about those places.
-const terrainSel = (fly, animate = true, fit) => { if (terrain) terrain.highlight(sel && sel.states, { counties: sel && !sel.states ? sel.counties : null, fly, animate, fit }); };
+const terrainSel = (fly, animate = true, fit) => { if (terrain) terrain.highlight(sel && sel.states, { counties: sel && !sel.states ? sel.counties : null, fly, animate, fit, labels: stateLabels() }); };
+// Highlighted states are named on the terrain; when they are exactly an election's smallest change (president),
+// or a set of its Senate races, each name carries the votes that would have flipped it.
+const stateLabels = () => {
+  if (!sel || !sel.states) return null;
+  const sm = bal.elections[state.e] && bal.elections[state.e].smallest, same = (a) => a && a.length === sel.states.length && a.every((s) => sel.states.includes(s));
+  const per = officeOf(state.e) === 'president' && sm && sm.president && same(sm.president.states) ? sm.president.per_state
+    : officeOf(state.e) === 'senate' && sm && sm.senate && sm.senate.races && same(sm.senate.races.map((r) => r.state)) ? Object.fromEntries(sm.senate.races.map((r) => [r.state, r.cost])) : null;
+  return Object.fromEntries(sel.states.map((st) => [st, balance.stName(st) + (per && per[st] ? `, ${fmt(per[st])} votes` : '')]));
+};
 // A saved view with a selection opens framed on it (the selected places fully in view at a low angle), not on its camera preset.
 const framesSel = () => !!(askedView && askedView.state.sel && sel);
 // Metro labels on the terrain: the county that holds each big city, in priority order for crowded views.
@@ -507,7 +516,15 @@ if (savedViews) {
   savedViews.setOnResize(() => { if (views && effW() !== 'terrain') views.redraw(false); });
   if (!ASK.exporting) savedViews.open({ view: ASK.view, tour: ASK.tour }, { applyState: false });
 }
-window.__vt = { state, elections, saved: () => savedViews, meta, house: () => house.now(), terrain: () => terrain, blocks: () => blocks, views: () => views, sel: () => sel, setSelection, effW, tipHtml: tip.countyHtml,
+// Cards: scale the terrain's heights so the tallest peak in view fits the frame, and say so in the key.
+const fitHeights = () => {
+  if (!terrain || effW() !== 'terrain' || state.s !== 'terrain') return 1;
+  const f = terrain.fitHeights();
+  const kh = $('keyHeight'); kh.textContent = kh.textContent.replace(/; heights drawn at .*$/, '');
+  if (f < 1) kh.textContent += `; heights drawn at ${Math.round(f * 100)}% to fit the card`;
+  return f;
+};
+window.__vt = { state, elections, fitHeights, saved: () => savedViews, meta, house: () => house.now(), terrain: () => terrain, blocks: () => blocks, views: () => views, sel: () => sel, setSelection, effW, tipHtml: tip.countyHtml,
   colours: { GARNET: GARNET + '', SAPPHIRE: SAPPHIRE + '', NEUTRAL: NEUTRAL + '' } };
 sel = codec.decode(state.sel); state.sel = codec.encode(sel);
 ready = true;

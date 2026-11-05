@@ -93,6 +93,15 @@ export function createViews2d(ctx) {
       if (current !== name) { current = name; root.dataset.view = name; foot.textContent = ''; ctx.viewNote(''); views[name].build(); views[name].draw(false); }
     },
     redraw(animate = true) { if (current) views[current].draw(animate); },
+    // The bottom of what the view drew, in page pixels (export.mjs crops a card's image to it).
+    contentBottom() {
+      let b = 0;
+      for (const n of root.querySelectorAll('.v2d-head, .v2d-body > *, .v2d-foot')) {
+        if (n.hidden || !n.getClientRects().length || getComputedStyle(n).display === 'none') continue;
+        b = Math.max(b, n.getBoundingClientRect().bottom);
+      }
+      return Math.ceil(b);
+    },
     frame(counties) {                          // zoom the arrows or circles to a set of counties (others: no camera)
       if (current === 'circles') { if (counties && counties.length) views.circles.zoomTo(counties); else views.circles.reset(); return; }
       if (current !== 'arrows') return;
