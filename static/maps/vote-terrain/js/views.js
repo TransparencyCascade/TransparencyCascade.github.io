@@ -12,13 +12,15 @@
    calc.hist: first, last (census rows), capYear, lastHiName/lastHiV, lastLoName/lastLoV (most and fewest residents per seat,
      latest census), smallFirst, smallLast, smallMin, smallMax (elections with the fewest and most votes in their smallest change)
    calc.sim.y<year>.<pres|sen|house>.<toD|toR>.<first|other>: { at, control, states } (uniform swing; see below);
-     calc.sim.y<year>.captured: { n, ps, flipAtPs }. filter pt: a swing as unsigned points (1.8).
+     calc.sim.y<year>.swing: { ps, toR, toD, edgeR, edgeD } (House: seats that change hands at the plausible swing and at
+     the slider's limit, each { n, captured, atRisk, contestable }); calc.sim.range: the slider's limit in points.
+     filter pt: a swing as unsigned points (1.8).
    calc.house.<year>: ps, captured, contestable, atRisk, apart, capv, capvShare, st.<ST>.{captured, contestable, atRisk}
      (bands at the default plausible swing). An unknown token stops the caption and logs an error, so a broken
      caption cannot reach a card unnoticed. */
 import { fmt, esc, list, $ } from './util.js';
 import { createHouse } from './house.js';
-import { createSim } from './sim.js';
+import { createSim, RANGE } from './sim.js';
 
 export function createSavedViews({ registry, bal, eff, houseData, histData, simData, elections, stName, apply }) {
   const etTime = (iso) => new Date(iso).toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', month: 'short', day: 'numeric', year: 'numeric' }) + ' ET';
@@ -54,7 +56,7 @@ export function createSavedViews({ registry, bal, eff, houseData, histData, simD
   // Captured seats (House, at the default plausible swing): how many, and how many flip at that swing either way.
   if (simData) {
     const S = createSim(simData);
-    calc.sim = {};
+    calc.sim = { range: RANGE };
     for (const y of Object.keys(simData.days)) {
       const hn = houseData.years.includes(y) ? createHouse({ data: houseData, state: { e: 'house' + y, ps: '' }, elections }).now() : null;
       const P = S.placesFor(y, hn), th = S.thresholds(P, 'u'), base = S.tally(P, 0, 'u'), c = {};
@@ -69,9 +71,12 @@ export function createSavedViews({ registry, bal, eff, houseData, histData, simD
         }
       }
       if (hn) {
-        const ps = hn.plausible.value, cap = P.house.filter((p) => p.band === 'captured');
-        const flips = (sw) => S.tally(P, sw, 'u').house.flips.filter((p) => p.band === 'captured').length;
-        c.captured = { n: cap.length, ps, flipAtPs: Math.max(flips(ps), flips(-ps)) };
+        // Seats that change hands at the plausible swing, and at the slider's limit, with how many of those the page
+        // counts as captured. (At the plausible swing itself no captured seat can flip: the captured line is never
+        // below it, so that count would only restate the definition.)
+        const ps = hn.plausible.value, n = (sw) => { const f = S.tally(P, sw, 'u').house.flips; return { n: f.length, captured: f.filter((p) => p.band === 'captured').length,
+          atRisk: f.filter((p) => p.band === 'at risk').length, contestable: f.filter((p) => p.band === 'contestable').length }; };
+        c.swing = { ps, toR: n(-ps), toD: n(ps), edgeR: n(-RANGE), edgeD: n(RANGE) };
       }
       calc.sim['y' + y] = c;
     }

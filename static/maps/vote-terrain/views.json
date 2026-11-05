@@ -158,7 +158,7 @@
       "slug": "simulator-2026-house",
       "title": "Swing simulator, House 2026",
       "file": "One swing for every House race on Nov. 3, 2026, unofficial: captured seats stay put",
-      "caption": "On the unofficial count and a uniform swing, a simplification and not a forecast: the Democratic House majority holds until {calc.sim.y2026.house.toR.first.at|pt} points of margin toward Republicans, and Republicans reach 218 at {calc.sim.y2026.house.toR.other.at|pt}. Of {calc.sim.y2026.captured.n} captured seats, {calc.sim.y2026.captured.flipAtPs} flip at a swing of {calc.sim.y2026.captured.ps} points either way. Unofficial count as of {house.asof2026|et}.",
+      "caption": "On the unofficial count and a uniform swing, a simplification and not a forecast: the Democratic House majority holds until {calc.sim.y2026.house.toR.first.at|pt} points of margin toward Republicans, and Republicans reach 218 at {calc.sim.y2026.house.toR.other.at|pt}. At the default plausible swing of {calc.sim.y2026.swing.ps} points toward Republicans, {calc.sim.y2026.swing.toR.n} seats change hands. At {calc.sim.range|raw} points, the slider's limit, {calc.sim.y2026.swing.edgeR.n} do: {calc.sim.y2026.swing.edgeR.atRisk} from the at-risk band, {calc.sim.y2026.swing.edgeR.contestable} contestable and {calc.sim.y2026.swing.edgeR.captured} captured. Unofficial count as of {house.asof2026|et}.",
       "sources": "AP via CNN, 2026 House and Senate results, unofficial as of {house.asof2026|et}. Swing in points of two-party margin.",
       "state": {
         "e": "house2026",
