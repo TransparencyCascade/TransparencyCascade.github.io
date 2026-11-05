@@ -34,9 +34,11 @@
   #grain { position:fixed; inset:0; pointer-events:none; mix-blend-mode:multiply; opacity:.10;
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .3  0 0 0 0 .32  0 0 0 0 .38  0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
 
-  .panel { position:fixed; left:20px; top:20px; width:316px; max-height:calc(100% - 160px); overflow:auto;
-           background:var(--paper); border:1px solid var(--rule); padding:18px 20px 16px; font-size:14px; line-height:1.4; }
-  h1 { font-family:'Archivo Narrow', sans-serif; font-weight:600; font-size:34px; line-height:1; letter-spacing:-.01em; margin:0 0 8px;
+  .panel { position:fixed; left:12px; top:12px; width:224px; max-height:calc(100% - 160px); overflow:auto;
+           background:var(--paper); border:1px solid var(--rule); padding:12px 12px 10px; font-size:13px; line-height:1.35; }
+  .panel .head { margin:0 0 8px; } .panel .head h1 { white-space:nowrap; }
+  button.link { font:inherit; font-size:11.5px; color:var(--ink); background:none; border:0; padding:0; text-decoration:underline; text-underline-offset:2px; cursor:pointer; }
+  h1 { font-family:'Archivo Narrow', sans-serif; font-weight:600; font-size:26px; line-height:1; letter-spacing:-.01em; margin:0;
        text-shadow:1.5px 0 .5px rgba(35,48,107,.18); }
   .dek { margin:0 0 18px; color:var(--graphite); }
   .group { margin:0 0 16px; }
@@ -57,12 +59,12 @@
   button:focus-visible, select:focus-visible { outline:2px solid var(--focus); outline-offset:2px; }
 
   /* Key, beside the map */
-  .key { position:fixed; right:20px; top:20px; width:250px; background:var(--paper); border:1px solid var(--rule); padding:12px 14px; font-size:12px; }
-  .key .title { font-size:13px; font-weight:700; margin-bottom:6px; }
+  .key { position:fixed; right:12px; top:12px; width:182px; background:var(--paper); border:1px solid var(--rule); padding:8px 10px; font-size:11.5px; }
+  .key .title { display:flex; justify-content:space-between; align-items:flex-start; gap:4px; font-size:12px; font-weight:700; margin-bottom:5px; }
   .ramp { display:flex; height:16px; }
   .ramp i { flex:1; }
   .ramp-labels { display:flex; justify-content:space-between; color:var(--graphite); margin-top:3px; }
-  .key .vol { margin-top:12px; color:var(--graphite); line-height:1.35; }
+  .key .vol { margin-top:5px; color:var(--graphite); line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
   /* Timeline: elections in order along the bottom */
   .timeline { position:fixed; left:50%; bottom:22px; transform:translateX(-50%); display:flex; align-items:stretch;
@@ -87,12 +89,23 @@
                   color:var(--ink) !important; border:1px solid var(--rule); padding:8px 10px !important; max-width:320px; line-height:1.4; }
   .seg2 { margin-top:6px; }
   /* Lenses: four questions, each setting the controls below */
-  .lenses { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin:0 0 8px; }
-  .lenses button { font:inherit; font-size:13px; line-height:1.25; text-align:left; color:var(--ink); background:transparent;
-                   border:1px solid var(--rule); padding:8px 9px; cursor:pointer; min-height:46px; }
-  .lenses button[aria-pressed=true] { background:var(--ink); color:var(--paper); }
-  .lens-how { margin:0 0 10px; color:var(--graphite); font-size:13px; }
-  .quick { margin:0 0 14px; }
+  .lenses { display:grid; gap:4px; margin:0 0 8px; }
+  .lens { display:flex; gap:4px; }
+  .lenses [data-l] { flex:1; font:inherit; font-size:12.5px; line-height:1.2; text-align:left; color:var(--ink); background:transparent;
+                   border:1px solid var(--rule); padding:6px 8px; cursor:pointer; }
+  .lenses [data-l][aria-pressed=true] { background:var(--ink); color:var(--paper); }
+  .lens-i { flex:none; width:22px; font:italic 700 12px Georgia, serif; color:var(--ink); background:transparent; border:1px solid var(--rule); border-radius:50%; height:22px; align-self:center; padding:0; cursor:help; }
+  .key .lens-i { width:18px; height:18px; font-size:11px; margin-left:6px; vertical-align:1px; }
+  .lens-how { display:flex; gap:6px; align-items:flex-start; margin:0 0 8px; color:var(--graphite); font-size:12px; border-left:2px solid var(--rule); padding-left:6px; }
+  .lens-how button { font:inherit; color:var(--ink); background:none; border:0; padding:0 2px; cursor:pointer; }
+  .about { position:fixed; left:14px; top:14px; width:380px; max-height:calc(100% - 150px); overflow:auto; z-index:7; background:var(--paper); border:1px solid var(--ink);
+           padding:12px 16px 14px; font-size:12.5px; line-height:1.45; color:var(--ink); }
+  .about header { display:flex; justify-content:space-between; align-items:center; position:sticky; top:-12px; background:var(--paper); padding:2px 0 6px; }
+  .about header b { font-family:'Archivo Narrow', sans-serif; font-size:20px; }
+  .about header button { font:inherit; font-size:12px; color:var(--ink); background:transparent; border:1px solid var(--rule); padding:3px 9px; cursor:pointer; }
+  .about h3 { font-size:12.5px; margin:12px 0 4px; }
+  .about p, .about dl { margin:0 0 6px; } .about dt { font-weight:700; } .about dd { margin:0 0 6px; color:var(--graphite); }
+  .quick { margin:0 0 8px; } .quick button { font-size:12px; padding:4px 7px; }
   details.adjust { border-top:1px solid var(--rule); padding-top:10px; margin-bottom:6px; }
   details.adjust > summary { cursor:pointer; font-weight:700; margin-bottom:10px; }
   details.adjust > summary .muted { font-weight:400; color:var(--graphite); }
@@ -104,12 +117,14 @@
   .peak::after { content:''; position:absolute; left:50%; top:100%; height:8px; border-left:1px solid rgba(35,48,107,.6); }
   #locator { position:fixed; left:20px; bottom:22px; width:168px; height:106px; background:var(--paper); border:1px solid var(--rule); cursor:pointer; z-index:3; }
   /* Balance of power: what the votes decided, for the election on the timeline */
-  .bop { position:fixed; right:20px; bottom:22px; width:272px; overflow:auto;
-         background:var(--paper); border:1px solid var(--rule); padding:10px 14px 12px; font-size:12px; line-height:1.35; }
-  .bop summary { font-family:'Archivo Narrow', sans-serif; font-weight:600; font-size:20px; cursor:pointer; list-style:none; }
-  .bop summary::-webkit-details-marker { display:none; }
-  .bop summary::after { content:'–'; float:right; color:var(--graphite); font-family:'Courier Prime', monospace; font-size:14px; }
-  .bop:not([open]) summary::after { content:'+'; }
+  .bop { position:fixed; right:12px; bottom:22px; width:182px; overflow:auto;
+         background:var(--paper); border:1px solid var(--rule); padding:8px 10px 9px; font-size:11.5px; line-height:1.3; }
+  .bop.open { width:272px; }
+  .bop header { display:flex; justify-content:space-between; align-items:baseline; gap:6px; }
+  .bop header b { font-family:'Archivo Narrow', sans-serif; font-weight:600; font-size:15px; white-space:nowrap; }
+  .bop.open header b { font-size:19px; }
+  .bop header button { font:inherit; font-size:13px; line-height:1; color:var(--ink); background:transparent; border:1px solid var(--rule); padding:2px 6px; cursor:pointer; }
+  .bop .line { margin:5px 0 0; } .bop .line .bar { height:6px; margin:2px 0 0; } .bop .line .bar b { top:-2px; bottom:-2px; }
   .bop h3 { font-size:12px; font-weight:700; margin:10px 0 3px; }
   .bop p { margin:0 0 3px; }
   .bop .bar { position:relative; display:flex; height:12px; margin:4px 0 3px; }
@@ -120,18 +135,69 @@
   .bop .small { border-top:1px solid var(--rule); margin-top:10px; padding-top:6px; }
   .bop .src { margin-top:8px; padding-top:6px; font-size:11px; }
   .bop .src a { color:var(--graphite); }
-  @media (max-width: 1280px) { .key { width:210px; right:14px; } .panel { width:290px; } }
+  /* View tabs, flat views, selection chip, find and table */
+  .tabs { position:fixed; left:50%; top:20px; transform:translateX(-50%); display:flex; background:var(--paper); border:1px solid var(--rule); z-index:4; }
+  .tabs button { font:inherit; font-size:13px; color:var(--ink); background:transparent; border:0; border-left:1px solid var(--rule); padding:6px 16px; cursor:pointer; }
+  .tabs button:first-child { border-left:0; }
+  .tabs button[aria-pressed=true] { background:var(--ink); color:var(--paper); }
+  .tabs button:disabled { color:#A3A9B4; cursor:not-allowed; }
+  .tab-why { position:fixed; left:50%; top:54px; transform:translateX(-50%); margin:0; max-width:min(560px, calc(100% - 24px)); font-size:12px; color:var(--graphite); background:var(--paper); border:1px solid var(--rule); padding:3px 10px; z-index:4; }
+  #v2d .v2d-root { position:fixed; display:flex; flex-direction:column; gap:6px; z-index:1; }
+  .v2d-head { display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:12px; color:var(--graphite); min-height:28px; }
+  .v2d-head .v2d-seg { flex:none; }
+  .v2d-head .v2d-seg button { flex:none; padding:5px 10px; }
+  .v2d-label { color:var(--graphite); }
+  .v2d-body { flex:1; min-height:0; position:relative; display:flex; flex-direction:column; }
+  .v2d-body svg { display:block; overflow:visible; }
+  .v2d-body text { font-family:'Courier Prime', monospace; font-size:11px; fill:var(--graphite); }
+  .v2d-body .axis-title { font-size:12px; fill:var(--ink); }
+  .v2d-body .quad { font-size:12px; fill:var(--ink); font-weight:700; }
+  .v2d-body .brush-label { font-size:12px; fill:var(--ink); font-weight:700; paint-order:stroke; stroke:var(--ground); stroke-width:4px; }
+  .v2d-body .st { fill:var(--ink); font-size:12px; }
+  .v2d-rows { overflow-y:auto; overflow-x:hidden; border-top:1px solid var(--rule); }
+  .v2d-foot { font-size:11px; color:var(--graphite); }
+  .v2d-ref { color:var(--graphite); }
+  .sel-chip { display:flex; flex-wrap:wrap; gap:6px; align-items:center; border:1px solid var(--ink); background:rgba(35,48,107,.06); padding:6px 8px; margin:0 0 12px; font-size:12.5px; }
+  .sel-chip span { flex:1 1 100%; }
+  .sel-chip button { font:inherit; font-size:12px; color:var(--ink); background:var(--paper); border:1px solid var(--rule); padding:3px 8px; cursor:pointer; }
+  .notice { border-left:3px solid var(--ink); padding:2px 0 2px 8px; margin:0 0 10px; font-size:12.5px; }
+  .find { position:fixed; left:50%; top:62px; transform:translateX(-50%); width:min(420px, calc(100% - 24px)); background:var(--paper); border:1px solid var(--ink); z-index:6; padding:8px; }
+  .find input { width:100%; font:inherit; font-size:15px; color:var(--ink); background:#fff; border:1px solid var(--rule); padding:6px 8px; }
+  .find ul { list-style:none; margin:6px 0 0; padding:0; max-height:280px; overflow:auto; }
+  .find li { padding:5px 6px; cursor:pointer; font-size:13px; }
+  .find li[aria-selected=true], .find li:hover { background:var(--ink); color:var(--paper); }
+  .table-wrap { position:fixed; inset:60px max(20px, 8%) 110px; background:var(--paper); border:1px solid var(--ink); z-index:6; display:flex; flex-direction:column; }
+  .table-wrap header { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--rule); font-size:13px; }
+  .table-wrap header b { font-family:'Archivo Narrow', sans-serif; font-size:18px; }
+  .table-wrap header button { font:inherit; font-size:12px; color:var(--ink); background:transparent; border:1px solid var(--rule); padding:4px 10px; cursor:pointer; }
+  .table-wrap .scroll { overflow:auto; flex:1; }
+  .table-wrap table { border-collapse:collapse; width:100%; font-size:12.5px; font-variant-numeric:tabular-nums; }
+  .table-wrap th, .table-wrap td { padding:4px 10px; border-bottom:1px solid rgba(35,48,107,.12); text-align:right; white-space:nowrap; }
+  .table-wrap th:first-child, .table-wrap td:first-child, .table-wrap th:nth-child(2), .table-wrap td:nth-child(2) { text-align:left; }
+  .table-wrap th { position:sticky; top:0; background:var(--paper); cursor:pointer; border-bottom:1px solid var(--rule); }
+  .table-wrap th[aria-sort] { text-decoration:underline; }
+  .table-wrap tr.sel td { background:rgba(35,48,107,.07); }
+  .quick { display:flex; flex-wrap:wrap; gap:6px; }
   @media (max-width: 900px) {
-    .key { top:auto; bottom:96px; right:12px; width:200px; }
-    .bop { top:20px; bottom:auto; right:12px; width:240px; max-height:45%; }
-    .panel { width:280px; }
+    .key { top:auto; bottom:96px; right:12px; }
+    .bop { top:14px; bottom:auto; right:12px; max-height:45%; }
   }
   @media (max-width: 640px) {
-    .panel { left:10px; right:10px; width:auto; top:auto; bottom:84px; max-height:38%; padding:12px 14px; }
+    .tabs { top:10px; left:10px; transform:none; }
+    .tab-why { top:44px; left:10px; transform:none; }
+    .tabs button { padding:6px 10px; }
+    .find { top:52px; }
+    .table-wrap { inset:52px 10px 90px; }
+    .panel { left:10px; right:10px; width:auto; top:auto; bottom:110px; max-height:34%; padding:10px 12px; }
+    body[data-w=dots] .panel, body[data-w=arrows] .panel, body[data-w=scatter] .panel { max-height:24%; }
+    body[data-w=dots] .key, body[data-w=arrows] .key, body[data-w=scatter] .key { width:150px; padding:8px 10px; }
     #locator { display:none !important; }
-    h1 { font-size:26px; } .dek { display:none; }
-    .key { top:10px; right:10px; bottom:auto; width:170px; }
-    .bop { top:auto; bottom:84px; left:10px; right:10px; width:auto; max-height:40%; z-index:3; }
+    h1 { font-size:24px; }
+    .about { left:10px; right:10px; top:10px; width:auto; max-height:calc(100% - 20px); }
+    .key { top:50px; right:10px; bottom:auto; width:170px; }
+    .bop, .bop.open { top:50px; bottom:auto; left:10px; right:auto; width:184px; max-height:60%; z-index:3; }
+    .bop.open { right:10px; width:auto; z-index:6; }
+    .key { width:184px; }
     .timeline { left:10px; right:10px; transform:none; bottom:10px; overflow-x:auto; }
     .offices { left:10px; transform:none; bottom:74px; }
     .timeline .step { min-width:88px; padding:8px 10px; } .timeline .step b { font-size:18px; }
@@ -141,20 +207,37 @@
 <body>
 <div id="terrain" role="img" aria-label="Landscape of U.S. counties: the land rises with the votes cast per square mile and is coloured by margin or swing."></div>
 <div id="map" role="img" aria-label="Three-dimensional map of U.S. counties, each raised by the votes it cast per square mile and coloured by margin or swing." style="display:none"></div>
+<div id="v2d"></div>
 <div id="grain" aria-hidden="true"></div>
+<nav class="tabs" id="tabs" aria-label="View">
+  <button data-w="terrain">Terrain</button><button data-w="arrows">Arrows</button><button data-w="dots">Dots</button><button data-w="scatter">Scatter</button>
+</nav>
+<p class="tab-why" id="tabWhy" hidden></p>
+<div class="find" id="find" hidden role="dialog" aria-label="Find a county or state">
+  <input id="findInput" type="search" placeholder="Find a county or state" autocomplete="off" aria-controls="findList" aria-autocomplete="list">
+  <ul id="findList" role="listbox"></ul>
+</div>
+<div class="table-wrap" id="tableWrap" hidden role="dialog" aria-label="Table of the places in view">
+  <header><b id="tableTitle">Table</b><span id="tableNote"></span><button id="tableClose">Close</button></header>
+  <div class="scroll"><table id="table"></table></div>
+</div>
 
 <div class="panel">
-  <h1>Vote terrain</h1>
-  <p class="dek">The votes cast in each county, as land. Every county holds exactly its votes; dense places rise into mountains, big empty ones lie flat.</p>
+  <div class="head"><h1>Vote terrain</h1><button class="link" id="aboutBtn" aria-controls="about" aria-expanded="false">About this map</button></div>
   <div class="lenses" role="group" aria-label="What to look at">
-    <button data-l="votes">Where the votes are</button><button data-l="won">Who won where</button>
-    <button data-l="changed">What changed</button><button data-l="worth">What a vote is worth</button>
+    <div class="lens"><button data-l="votes">Where the votes are</button><button class="lens-i" data-li="votes" aria-label="What “Where the votes are” shows">i</button></div>
+    <div class="lens"><button data-l="won">Who won where</button><button class="lens-i" data-li="won" aria-label="What “Who won where” shows">i</button></div>
+    <div class="lens"><button data-l="changed">What changed</button><button class="lens-i" data-li="changed" aria-label="What “What changed” shows">i</button></div>
+    <div class="lens"><button data-l="worth">What a vote is worth</button><button class="lens-i" data-li="worth" aria-label="What “What a vote is worth” shows">i</button></div>
   </div>
   <div class="seg seg2" id="worthRow" role="group" aria-label="Weight by" hidden style="margin-bottom:8px">
     <button data-wh="ev">Electoral College</button><button data-wh="sen">Senate</button>
   </div>
-  <p class="lens-how" id="lensHow"></p>
-  <div class="tools quick"><button id="tour" aria-pressed="false">Tour</button><button id="reset">Reset view</button></div>
+  <p class="notice" id="notice" hidden></p>
+  <p class="lens-how" id="lensHow" hidden><span id="lensHowText"></span><button id="lensHowClose" aria-label="Dismiss">×</button></p>
+  <div class="sel-chip" id="selChip" hidden><span id="selText"></span><button id="selFrame">Frame</button><button id="selClose" aria-label="Clear the selection">×</button></div>
+  <p class="how" id="viewNote" hidden style="margin:0 0 10px"></p>
+  <div class="tools quick"><button id="tour" aria-pressed="false">Tour</button><button id="reset">Reset view</button><button id="tableBtn">Table</button><button id="findBtn">Find</button></div>
   <details class="adjust" id="adjust">
     <summary>Adjust <span class="muted" id="lensState"></span></summary>
   <div class="group">
@@ -202,31 +285,45 @@
       <button data-view="west">From the west</button><button data-view="east">From the east</button><button data-view="national">Overhead</button><button data-view="texas">Texas triangle</button><button data-view="maine">Maine</button>
       <button id="flat" aria-pressed="false">Flat map</button><button id="ghost" aria-pressed="false">Show previous election</button>
     </div>
-    <p class="how">Drag to move the map. Shift-drag, or drag with two fingers, to tilt and turn. Scroll or pinch to zoom.</p>
   </div>
   </details>
+</div>
+
+<aside class="about" id="about" hidden role="dialog" aria-label="About this map">
+  <header><b>About this map</b><button id="aboutClose">Close</button></header>
+  <p>The votes cast in each county, as land. Every county holds exactly its votes; dense places rise into mountains, big empty ones lie flat.</p>
+  <h3>The four lenses</h3>
+  <dl id="aboutLenses"></dl>
+  <h3 id="aboutKeyHead">Reading the key</h3>
+  <p class="contours" id="keyTerrain"><i></i>Contours at 100, 1,000 and 10,000 votes per square mile, and at 10 when zoomed in.<br>Smoothed so each county's volume equals its votes; the shape inside a county is an estimate.</p>
+  <p id="keyBlocks">Off the Gulf coast: two blocks of 1,000,000 votes each on different footprints. Same volume, different height.</p>
+  <p id="aboutWeight"></p>
+  <h3>Moving around</h3>
+  <p>Drag to move the map. Shift-drag, or drag with two fingers, to tilt and turn. Scroll or pinch to zoom. Click a county to select it; shift-click or long-press to add. Keys: ← → elections, 1–4 lenses, V next view, Space play, Esc clear, / find, T table.</p>
+  <h3>Notes and sources</h3>
   <p class="note" id="notes"></p>
   <div class="src" id="source"></div>
-</div>
+</aside>
 
 <div class="key" aria-live="polite">
-  <div class="title" id="keyTitle">Swing</div>
+  <div class="title"><span id="keyTitle">Swing</span><button class="lens-i" id="keyInfo" aria-label="More about the key">i</button></div>
   <div class="ramp" id="ramp"></div>
   <div class="ramp-labels" id="rampLabels"></div>
-  <div class="vol" id="keyBlocks">Off the Gulf coast: two blocks of 1,000,000 votes each on different footprints. Same volume, different height.</div>
+  <div class="vol" id="keyHeight"></div>
   <div class="vol" id="keyWeight" hidden></div>
-  <div class="contours" id="keyTerrain"><i></i>Contours at 100, 1,000 and 10,000 votes per square mile, and at 10 when zoomed in.<br><br>Smoothed so each county's volume equals its votes; the shape inside a county is an estimate.</div>
 </div>
 
-<details class="bop" id="bop" open>
-  <summary id="bopTitle">Balance of power</summary>
-  <div id="bopBody"></div>
-</details>
+<section class="bop" id="bop" aria-labelledby="bopTitle">
+  <header><b id="bopTitle">Balance of power</b><button id="bopToggle" aria-expanded="false" aria-controls="bopBody">More</button></header>
+  <div id="bopLines"></div>
+  <div id="bopBody" hidden></div>
+</section>
 
 <div class="offices" id="offices" role="group" aria-label="Office"></div>
 <nav class="timeline" id="timeline" aria-label="Election"></nav>
 <canvas id="locator" aria-label="Locator: the whole country from above, with the part in view marked. Click to move the view there." role="button" tabindex="0"></canvas>
-<script type="module" src="terrain.js?v=52"></script>
-<script src="app.js?v=51"></script>
+<script src="views2d.js?v=71"></script>
+<script type="module" src="terrain.js?v=71"></script>
+<script src="app.js?v=71"></script>
 </body>
 </html>

@@ -88,7 +88,7 @@ async function init({ container, geo, ramp, onHover, labels = [], locator = null
         line *= (1.0 - smoothstep(0.0, 0.04, vSea)) * (1.0 - vNo);
         col = mix(col, uInk, line * 0.5);
         // Highlighted states keep their colour; the rest of the country fades toward the page.
-        if (uHiOn > 0.5) col = mix(col, uGround, 0.55 * (1.0 - clamp(vHi, 0.0, 1.0)));
+        if (uHiOn > 0.5) col = mix(col, uGround, 0.65 * (1.0 - clamp(vHi, 0.0, 1.0)));   // unselected places at about a third of their colour
         // The coast is cut, not painted: past the halfway line between land and sea cells nothing is drawn,
         // so the shoreline follows a smooth line through the grid and the page background shows beyond it.
         if (vSea > 0.5) discard;
@@ -532,24 +532,28 @@ async function init({ container, geo, ramp, onHover, labels = [], locator = null
       showGhost(!!ghostOn);
       drawOutline(hovered || pinned);
     },
-    // Highlight a set of states: outline them, fade the rest, and (fly) frame them from a low angle.
-    highlight(states, { fly = true } = {}) {
+    // Highlight the reader's selection: whole states are outlined; selected counties keep full colour and the
+    // rest fade toward the ground; with fly, the camera frames them from a low angle.
+    highlight(states, { fly = true, counties = null } = {}) {
       if (hiLine) { scene.remove(hiLine); hiLine.geometry.dispose(); hiLine = null; hiSegs = null; }
-      if (!states || !states.length) { hiAttr.fill(1); material.uniforms.uHiOn.value = 0; geom.attributes.aHi.needsUpdate = true; return; }
-      const set = new Set(states);
+      if ((!states || !states.length) && (!counties || !counties.size)) { hiAttr.fill(1); material.uniforms.uHiOn.value = 0; geom.attributes.aHi.needsUpdate = true; return; }
+      const set = new Set(states || []);
+      const inSel = counties && counties.size ? (j) => counties.has(fips[owner[j] - 1]) : (j) => set.has(cellSt[j]);
       hiAttr.fill(0);
       let x0b = Infinity, x1b = -Infinity, y0b = Infinity, y1b = -Infinity;
-      for (let j = 0; j < L; j++) if (set.has(cellSt[j])) {
+      for (let j = 0; j < L; j++) if (inSel(j)) {
         const g = cells[j]; hiAttr[g] = 1;
         const x = pos[g * 3], y = pos[g * 3 + 1];
         x0b = Math.min(x0b, x); x1b = Math.max(x1b, x); y0b = Math.min(y0b, y); y1b = Math.max(y1b, y);
       }
       geom.attributes.aHi.needsUpdate = true; material.uniforms.uHiOn.value = 1;
-      hiSegs = outlineOf(states);
-      hiLine = new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(hiSegs.length / 2 * 3), 3)),
-        new THREE.LineBasicMaterial({ color: 0x23306b, transparent: true, opacity: 0.95, depthWrite: false }));
-      hiLine.frustumCulled = false; hiLine.renderOrder = 3; scene.add(hiLine);
-      drapeSegs(hiLine, hiSegs, zCur, 0.9);
+      if (states && states.length) {
+        hiSegs = outlineOf(states);
+        hiLine = new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(hiSegs.length / 2 * 3), 3)),
+          new THREE.LineBasicMaterial({ color: 0x23306b, transparent: true, opacity: 0.95, depthWrite: false }));
+        hiLine.frustumCulled = false; hiLine.renderOrder = 3; scene.add(hiLine);
+        drapeSegs(hiLine, hiSegs, zCur, 0.9);
+      }
       if (fly && isFinite(x0b)) {
         stopMotion();
         const fov = THREE.MathUtils.degToRad(camera.fov), span = Math.max(x1b - x0b, (y1b - y0b) * camera.aspect) * 1.35 + 40;
