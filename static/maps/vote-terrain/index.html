@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vote terrain</title>
+<link rel="icon" href="data:,">
+<meta name="description" content="The votes cast in every county as a landscape: each county's volume is its votes, colour is the margin or the swing. President 2016, 2020 and 2024, and the 2026 Senate races.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@600;700&family=Courier+Prime:wght@400;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/deck.gl@9.0.38/dist.min.js"></script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<style>
+  :root {
+    --ground:#E8ECEC;      /* onionskin */
+    --paper:#F3F5F5;       /* panel and key surfaces */
+    --ink:#23306B;         /* carbon blue */
+    --graphite:#5B6168;
+    --rule:rgba(35,48,107,0.28);
+    --focus:#23306B;
+  }
+  * { box-sizing:border-box; }
+  [hidden] { display:none !important; }   /* the hidden attribute wins over component display rules */
+  html, body { margin:0; height:100%; background:var(--ground); color:var(--ink); font-family:'Courier Prime', monospace; }
+  #map, #terrain { position:fixed; inset:0; }
+  #terrain canvas { display:block; width:100%; height:100%; }
+  .vt-tip { position:fixed; z-index:5; pointer-events:none; }
+  .tour-caption { position:fixed; left:50%; top:22px; transform:translateX(-50%); background:var(--paper); border:1px solid var(--rule); padding:8px 14px; font-size:14px; z-index:4; }
+  .key .contours { margin-top:12px; color:var(--graphite); line-height:1.35; }
+  .key .contours i { display:inline-block; width:22px; height:0; border-top:1.5px solid rgba(35,48,107,.55); vertical-align:middle; margin-right:6px; }
+  /* Paper grain over the whole scene: one quiet texture, so the blocks read as a paper model. */
+  #grain { position:fixed; inset:0; pointer-events:none; mix-blend-mode:multiply; opacity:.10;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .3  0 0 0 0 .32  0 0 0 0 .38  0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+
+  .panel { position:fixed; left:20px; top:20px; width:316px; max-height:calc(100% - 160px); overflow:auto;
+           background:var(--paper); border:1px solid var(--rule); padding:18px 20px 16px; font-size:14px; line-height:1.4; }
+  h1 { font-family:'Archivo Narrow', sans-serif; font-weight:600; font-size:34px; line-height:1; letter-spacing:-.01em; margin:0 0 8px;
+       text-shadow:1.5px 0 .5px rgba(35,48,107,.18); }
+  .dek { margin:0 0 18px; color:var(--graphite); }
+  .group { margin:0 0 16px; }
+  .group > .name { display:block; font-weight:700; margin-bottom:6px; }
+  .seg { display:flex; border:1px solid var(--rule); }
+  .seg button { flex:1; font:inherit; font-size:13px; color:var(--ink); background:transparent; border:0; border-left:1px solid var(--rule);
+                padding:6px 4px; cursor:pointer; }
+  .seg button:first-child { border-left:0; }
+  .seg button[aria-pressed=true] { background:var(--ink); color:var(--paper); }
+  .row { display:flex; gap:8px; align-items:center; margin-top:8px; font-size:13px; }
+  select { font:inherit; color:var(--ink); background:var(--paper); border:1px solid var(--rule); padding:3px 4px; flex:1; }
+  .tools { display:flex; flex-wrap:wrap; gap:6px; }
+  .tools button { font:inherit; font-size:13px; color:var(--ink); background:transparent; border:1px solid var(--rule); padding:5px 9px; cursor:pointer; }
+  .tools button[aria-pressed=true] { background:var(--ink); color:var(--paper); }
+  .how { color:var(--graphite); font-size:12px; margin:8px 0 0; }
+  .note { color:var(--graphite); font-size:12px; margin:10px 0 0; }
+  .src { color:var(--graphite); font-size:12px; border-top:1px solid var(--rule); margin-top:12px; padding-top:8px; }
+  button:focus-visible, select:focus-visible { outline:2px solid var(--focus); outline-offset:2px; }
+
+  /* Key, beside the map */
+  .key { position:fixed; right:20px; top:20px; width:250px; background:var(--paper); border:1px solid var(--rule); padding:12px 14px; font-size:12px; }
+  .key .title { font-size:13px; font-weight:700; margin-bottom:6px; }
+  .ramp { display:flex; height:16px; }
+  .ramp i { flex:1; }
+  .ramp-labels { display:flex; justify-content:space-between; color:var(--graphite); margin-top:3px; }
+  .key .vol { margin-top:12px; color:var(--graphite); line-height:1.35; }
+
+  /* Timeline: elections in order along the bottom */
+  .timeline { position:fixed; left:50%; bottom:22px; transform:translateX(-50%); display:flex; align-items:stretch;
+              background:var(--paper); border:1px solid var(--rule); }
+  .timeline button { font:inherit; color:var(--ink); background:transparent; border:0; border-left:1px solid var(--rule); cursor:pointer; padding:10px 16px; }
+  .timeline button:first-child { border-left:0; }
+  .timeline .step { min-width:118px; text-align:left; }
+  .timeline .step b { display:block; font-family:'Archivo Narrow', sans-serif; font-size:22px; font-weight:600; line-height:1; }
+  .timeline .step span { font-size:12px; color:var(--graphite); }
+  .timeline .step[aria-pressed=true] { background:var(--ink); color:var(--paper); }
+  .timeline .step[aria-pressed=true] span { color:#C9CFE3; }
+  .timeline .nav { font-size:18px; padding:10px 14px; }
+
+  .deck-tooltip { font-family:'Courier Prime', monospace !important; font-size:13px !important; background:var(--paper) !important;
+                  color:var(--ink) !important; border:1px solid var(--rule); padding:8px 10px !important; max-width:320px; line-height:1.4; }
+  .seg2 { margin-top:6px; }
+  /* Lenses: four questions, each setting the controls below */
+  .lenses { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin:0 0 8px; }
+  .lenses button { font:inherit; font-size:13px; line-height:1.25; text-align:left; color:var(--ink); background:transparent;
+                   border:1px solid var(--rule); padding:8px 9px; cursor:pointer; min-height:46px; }
+  .lenses button[aria-pressed=true] { background:var(--ink); color:var(--paper); }
+  .lens-how { margin:0 0 10px; color:var(--graphite); font-size:13px; }
+  .quick { margin:0 0 14px; }
+  details.adjust { border-top:1px solid var(--rule); padding-top:10px; margin-bottom:6px; }
+  details.adjust > summary { cursor:pointer; font-weight:700; margin-bottom:10px; }
+  details.adjust > summary .muted { font-weight:400; color:var(--graphite); }
+  .timeline .nav.hint { box-shadow:inset 0 0 0 2px var(--ink); }
+  /* Metro labels and the locator */
+  .peak-labels { position:fixed; inset:0; pointer-events:none; z-index:2; }
+  .peak { position:absolute; left:0; top:0; font-size:12px; line-height:1; white-space:nowrap; color:var(--ink);
+          background:rgba(243,245,245,.88); border:1px solid var(--rule); padding:3px 5px; visibility:hidden; }
+  .peak::after { content:''; position:absolute; left:50%; top:100%; height:8px; border-left:1px solid rgba(35,48,107,.6); }
+  #locator { position:fixed; left:20px; bottom:22px; width:168px; height:106px; background:var(--paper); border:1px solid var(--rule); cursor:pointer; z-index:3; }
+  /* Balance of power: what the votes decided, for the election on the timeline */
+  .bop { position:fixed; right:20px; bottom:22px; width:272px; overflow:auto;
+         background:var(--paper); border:1px solid var(--rule); padding:10px 14px 12px; font-size:12px; line-height:1.35; }
+  .bop summary { font-family:'Archivo Narrow', sans-serif; font-weight:600; font-size:20px; cursor:pointer; list-style:none; }
+  .bop summary::-webkit-details-marker { display:none; }
+  .bop summary::after { content:'–'; float:right; color:var(--graphite); font-family:'Courier Prime', monospace; font-size:14px; }
+  .bop:not([open]) summary::after { content:'+'; }
+  .bop h3 { font-size:12px; font-weight:700; margin:10px 0 3px; }
+  .bop p { margin:0 0 3px; }
+  .bop .bar { position:relative; display:flex; height:12px; margin:4px 0 3px; }
+  .bop .bar i { display:block; height:100%; }
+  .bop .bar .u { background:#D3D7DA; }
+  .bop .bar b { position:absolute; top:-3px; bottom:-3px; left:50%; border-left:1.5px solid var(--ink); }
+  .bop .muted { color:var(--graphite); }
+  .bop .small { border-top:1px solid var(--rule); margin-top:10px; padding-top:6px; }
+  .bop .src { margin-top:8px; padding-top:6px; font-size:11px; }
+  .bop .src a { color:var(--graphite); }
+  @media (max-width: 1280px) { .key { width:210px; right:14px; } .panel { width:290px; } }
+  @media (max-width: 900px) {
+    .key { top:auto; bottom:96px; right:12px; width:200px; }
+    .bop { top:20px; bottom:auto; right:12px; width:240px; max-height:45%; }
+    .panel { width:280px; }
+  }
+  @media (max-width: 640px) {
+    .panel { left:10px; right:10px; width:auto; top:auto; bottom:84px; max-height:38%; padding:12px 14px; }
+    #locator { display:none !important; }
+    h1 { font-size:26px; } .dek { display:none; }
+    .key { top:10px; right:10px; bottom:auto; width:170px; }
+    .bop { top:auto; bottom:84px; left:10px; right:10px; width:auto; max-height:40%; z-index:3; }
+    .timeline { left:10px; right:10px; transform:none; bottom:10px; overflow-x:auto; }
+    .timeline .step { min-width:88px; padding:8px 10px; } .timeline .step b { font-size:18px; }
+  }
+</style>
+</head>
+<body>
+<div id="terrain" role="img" aria-label="Landscape of U.S. counties: the land rises with the votes cast per square mile and is coloured by margin or swing."></div>
+<div id="map" role="img" aria-label="Three-dimensional map of U.S. counties, each raised by the votes it cast per square mile and coloured by margin or swing." style="display:none"></div>
+<div id="grain" aria-hidden="true"></div>
+
+<div class="panel">
+  <h1>Vote terrain</h1>
+  <p class="dek">The votes cast in each county, as land. Every county holds exactly its votes; dense places rise into mountains, big empty ones lie flat.</p>
+  <div class="lenses" role="group" aria-label="What to look at">
+    <button data-l="votes">Where the votes are</button><button data-l="won">Who won where</button>
+    <button data-l="changed">What changed</button><button data-l="worth">What a vote is worth</button>
+  </div>
+  <div class="seg seg2" id="worthRow" role="group" aria-label="Weight by" hidden style="margin-bottom:8px">
+    <button data-wh="ev">Electoral College</button><button data-wh="sen">Senate</button>
+  </div>
+  <p class="lens-how" id="lensHow"></p>
+  <div class="tools quick"><button id="tour" aria-pressed="false">Tour</button><button id="reset">Reset view</button></div>
+  <details class="adjust" id="adjust">
+    <summary>Adjust <span class="muted" id="lensState"></span></summary>
+  <div class="group">
+    <span class="name" id="s-name">Shape</span>
+    <div class="seg" role="group" aria-labelledby="s-name">
+      <button data-s="terrain">Terrain</button><button data-s="blocks">Exact counties</button>
+    </div>
+  </div>
+  <div class="group" id="smoothGroup">
+    <span class="name" id="m-name">Smoothing</span>
+    <div class="seg" role="group" aria-labelledby="m-name">
+      <button data-m="1">Light</button><button data-m="8">Strong</button>
+    </div>
+  </div>
+  <div class="group">
+    <span class="name" id="h-name">Height</span>
+    <div class="seg" role="group" aria-label="Height scale" style="margin-bottom:6px">
+      <button data-n="area">Per square mile</button><button data-n="county">Per county</button>
+    </div>
+    <div class="seg" role="group" aria-labelledby="h-name">
+      <button data-h="total">All votes</button><button data-h="dem">Democratic</button><button data-h="rep">Republican</button>
+    </div>
+    <div class="seg seg2" role="group" aria-label="Height weighted by power">
+      <button data-h="ev">Electoral weight</button><button data-h="sen">Senate weight</button>
+    </div>
+    <div class="seg seg2" role="group" aria-label="Height by net margin">
+      <button data-h="net">Net margin</button>
+    </div>
+    <div class="seg seg2" role="group" aria-label="Which party is up" id="upRow" hidden>
+      <button data-u="d">Democrats up</button><button data-u="r">Republicans up</button>
+    </div>
+    <p class="how" id="weightHow" hidden></p>
+    <p class="how" id="scaleHow" hidden></p>
+  </div>
+  <div class="group">
+    <span class="name" id="c-name">Colour</span>
+    <div class="seg" role="group" aria-labelledby="c-name">
+      <button data-c="margin">Margin</button><button data-c="swing" id="swingBtn">Swing</button>
+    </div>
+    <p class="how" id="swingHow"></p>
+  </div>
+  <div class="group">
+    <span class="name">View</span>
+    <div class="tools">
+      <button data-view="west">From the west</button><button data-view="east">From the east</button><button data-view="national">Overhead</button><button data-view="texas">Texas triangle</button><button data-view="maine">Maine</button>
+      <button id="flat" aria-pressed="false">Flat map</button><button id="ghost" aria-pressed="false">Show previous election</button>
+    </div>
+    <p class="how">Drag to move the map. Shift-drag, or drag with two fingers, to tilt and turn. Scroll or pinch to zoom.</p>
+  </div>
+  </details>
+  <p class="note" id="notes"></p>
+  <div class="src" id="source"></div>
+</div>
+
+<div class="key" aria-live="polite">
+  <div class="title" id="keyTitle">Swing</div>
+  <div class="ramp" id="ramp"></div>
+  <div class="ramp-labels" id="rampLabels"></div>
+  <div class="vol" id="keyBlocks">Off the Gulf coast: two blocks of 1,000,000 votes each on different footprints. Same volume, different height.</div>
+  <div class="vol" id="keyWeight" hidden></div>
+  <div class="contours" id="keyTerrain"><i></i>Contours at 100, 1,000 and 10,000 votes per square mile, and at 10 when zoomed in.<br><br>Smoothed so each county's volume equals its votes; the shape inside a county is an estimate.</div>
+</div>
+
+<details class="bop" id="bop" open>
+  <summary id="bopTitle">Balance of power</summary>
+  <div id="bopBody"></div>
+</details>
+
+<nav class="timeline" id="timeline" aria-label="Election"></nav>
+<canvas id="locator" aria-label="Locator: the whole country from above, with the part in view marked. Click to move the view there." role="button" tabindex="0"></canvas>
+<script type="module" src="terrain.js?v=56"></script>
+<script src="app.js?v=51"></script>
+</body>
+</html>

