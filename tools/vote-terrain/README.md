@@ -82,7 +82,7 @@ Run from the repository root, in this order (each step reads what the one before
 11. `python3 -I tools/vote-terrain/build_regions.py static/maps/vote-terrain`
    `regions.json`: the close-up's preset regions (`sel=p:<id>&cu=<id>`), each with its county codes (resolved from names in
    `geometry.json`, checked) and a cited definition. No USDA or Census Bureau list was found for "Rio Grande border counties" or
-   "the Black Belt", so each states the rule used; the Black Belt preset is the Alabama list only (see its definition).
+   "the Black Belt", so each states the rule used; the Black Belt is a data rule (Black alone at least 25% in the 2020 census P1 table, 11 former Confederate states; counties in `black-belt-p1-2020.csv`; see its definition).
 
 `geometry_codec.mjs` packs the geometry (lossless; it checks the round trip). To convert a geometry.json in
 the old shape: `node tools/vote-terrain/geometry_codec.mjs <old geometry.json> static/maps/vote-terrain`.

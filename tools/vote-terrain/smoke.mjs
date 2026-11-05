@@ -570,7 +570,7 @@ const SCENARIOS = [
       out[r.id] = { n: r.counties.length, found: r.counties.every((f) => v.meta[f]), states: [...new Set(r.counties.map((f) => v.meta[f].st))].join(), votes: t, area: a.votes, margin: +((d - q) / t * 100).toFixed(3), hasDef: r.definition.length > 40 && r.source.length > 20, ok: r.counties.every((f) => v.meta[f]) && a.votes === t && Math.abs(a.m - (d - q) / t * 100) < 1e-9 };
     }
     out.rowsInDrawer = document.querySelectorAll('#drawer .dr-t tbody tr').length;
-    out.ok = Object.values(out).every((x) => typeof x !== 'object' || x.ok) && out['rio-grande'].n === 13 && out.maine.n === 16 && out['black-belt'].n === 18 && out.rowsInDrawer === 11;
+    out.ok = Object.values(out).every((x) => typeof x !== 'object' || x.ok) && out['rio-grande'].n === 13 && out.maine.n === 16 && out['black-belt'].n === 357 && out.rowsInDrawer === 11;
     return out; }) },
   ...['turnout-dropoff-2026', 'ticket-splitting-2026', 'county-history-maricopa', 'closeup-rio-grande'].map((v) => ({ name: `v-view-${v}`, query: `view=${v}`,
     probe: (page) => page.evaluate(() => ({ card: document.getElementById('viewCard').innerText.replace(/\s+/g, ' '), w: window.__vt.effW(), hk: window.__vt.state.hk, cu: window.__vt.state.cu, sel: window.__vt.state.sel })) })),
