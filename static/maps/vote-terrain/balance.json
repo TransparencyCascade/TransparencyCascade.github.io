@@ -725,5 +725,47 @@
    },
    "unofficial_asof": "2026-11-05T04:20:41.537408Z"
   }
+ },
+ "noCounty": {
+  "AK": {
+   "pres2016": {
+    "votes": 318608,
+    "D": 116454,
+    "R": 163387,
+    "source": "Federal Elections 2016, Table 2 (https://www.fec.gov/documents/1890/federalelections2016.xlsx)"
+   },
+   "pres2020": {
+    "votes": 359530,
+    "D": 153778,
+    "R": 189951,
+    "source": "Federal Elections 2020, Table 2 (https://www.fec.gov/documents/4228/federalelections2020.xlsx)"
+   },
+   "pres2024": {
+    "votes": 338177,
+    "D": 140026,
+    "R": 184458,
+    "source": "Official 2024 Presidential General Election Results (https://www.fec.gov/documents/5645/2024presgeresults.xlsx)"
+   },
+   "sen2020": {
+    "votes": 354587,
+    "D": 146068,
+    "R": 191112,
+    "source": "https://www.fec.gov/documents/4228/federalelections2020.xlsx"
+   },
+   "sen2022": {
+    "votes": 261705,
+    "D": 27145,
+    "R": 232532,
+    "source": "https://www.fec.gov/documents/5676/federalelections2022.xlsx (first-choice general votes; the race was decided by ranked choice)"
+   },
+   "sen2026": {
+    "votes": 213733,
+    "D": 102962,
+    "R": 107171,
+    "unofficial": "2026-11-05T04:20Z",
+    "reporting": 75,
+    "source": "https://politics.api.cnn.io/results/national-races/2026-SG.json"
+   }
+  }
  }
 }

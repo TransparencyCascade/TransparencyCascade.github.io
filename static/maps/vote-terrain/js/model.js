@@ -34,12 +34,15 @@ export function createModel({ geo, el, bal, eff, state, selection }) {
   };
 
   // ---------- power weights: a state's electoral votes (or two Senate seats) per vote cast, against the average ----------
-  // Average over the states with results in the election in view (Alaska has no county data and is left out).
+  // Average over the states with results in the election in view. Alaska has no county data; where its certified
+  // statewide total is in effective.json (stateOnly) it counts in the average, though it has no county to raise.
   const weightCache = {};
   const weightsFor = (e, kind) => {
     const key = e + kind; if (weightCache[key]) return weightCache[key];
     const V = {};
     for (const [f, v] of Object.entries(elections[e].data)) { const st = meta[f] && meta[f].st; if (st) V[st] = (V[st] || 0) + v[0]; }
+    const so = (eff.elections[e] && eff.elections[e].stateOnly) || {};
+    for (const [st, x] of Object.entries(so)) V[st] = x.votes;
     // Electoral votes in force: the 2010 apportionment through the 2020 elections, the 2020 one from 2022.
     const ev = bal.ev[e] || (elections[e].year >= 2022 ? bal.ev.pres2024 : bal.ev.pres2016);
     const S = Object.keys(V).filter((st) => V[st] > 0 && (kind === 'ev' ? ev[st] > 0 : st !== 'DC'));

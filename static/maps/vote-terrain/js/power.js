@@ -4,8 +4,8 @@
    Weight per vote (effective.json): each state's electoral weight per vote cast against the national average,
    and its three parts, which multiply back to it (see the About drawer).
    Power cartogram: each state's share of the votes cast in the election in view, of the electoral votes in force,
-   and of the Senate's seats. Alaska has no county votes in the page, so it is left out of all three, as it is
-   of every national total here.
+   and of the Senate's seats. Alaska reports by House district, not by county; where effective.json holds its
+   certified statewide total (stateOnly), it is one more state row, and it counts in the shares' totals.
    Concentration: one party's counties ordered from most of its votes to fewest; how many counties, and how much
    land, it takes to reach a share of that party's votes. */
 export const PARTIES = { d: { key: 2, name: 'Democratic', party: 'Democrats' }, r: { key: 1, name: 'Republican', party: 'Republicans' } };
@@ -13,6 +13,8 @@ export const PARTIES = { d: { key: 2, name: 'Democratic', party: 'Democrats' }, 
 export function createPower({ meta, elections, eff, bal }) {
   const cache = {};
   const memo = (k, f) => (k in cache ? cache[k] : (cache[k] = f()));
+  // States with no county votes in the page, from their statewide totals: { AK: { votes, R, D, source } }.
+  const stateOnly = (e) => (eff.elections[e] && eff.elections[e].stateOnly) || {};
 
   // Weight per vote by state, highest first: [{ st, r, B, N, T }] (null when the election has no effective-vote data).
   const rank = (e) => memo('rank' + e, () => {
@@ -27,6 +29,7 @@ export function createPower({ meta, elections, eff, bal }) {
       const st = meta[f] && meta[f].st; if (!st) continue;
       const x = (V[st] ||= { st, votes: 0, R: 0, D: 0 }); x.votes += v[0]; x.R += v[1]; x.D += v[2];
     }
+    for (const [st, x] of Object.entries(stateOnly(e))) V[st] = { st, votes: x.votes, R: x.R, D: x.D, stateOnly: true };
     const ev = bal.ev[e] || (elections[e].year >= 2022 ? bal.ev.pres2024 : bal.ev.pres2016);
     const rows = Object.values(V).filter((x) => x.votes > 0);
     for (const x of rows) { x.ev = ev[x.st] || 0; x.sen = x.st === 'DC' ? 0 : 2; x.margin = (x.D - x.R) / x.votes * 100; }
@@ -55,5 +58,5 @@ export function createPower({ meta, elections, eff, bal }) {
     let i = C.findIndex((p) => p.cv >= q / 100 - 1e-12); if (i < 0) i = C.length - 1;
     return { n: i + 1, land: C[i].ca, counties: C[i].cn, of: C.length, list: C.slice(0, i + 1).map((p) => p.f) };
   };
-  return { rank, states, curve, reach };
+  return { rank, states, curve, reach, stateOnly };
 }

@@ -29,7 +29,7 @@ export function powerView({ ctx, head, body, foot, place, shiftOf, DUR }) {
     const i = head.querySelector('.lens-i');
     if (i) ctx.infoButton(i, () => ({
       rank: 'Weight per vote: each state\'s electoral votes for every vote cast there, against the national average. Its three parts multiply back to it: the state\'s electoral votes per resident (two Senate electors per state, House seats in whole numbers); residents per eligible citizen (children and non-citizens are counted for apportionment but cannot vote); eligible citizens per vote cast (turnout). On the doubling scale a part\'s length is its factor, so the parts add up to the black tick. Click a row to select the state.',
-      tiles: 'Each square\'s area is the state\'s share of the votes cast in the election in view, of the electoral votes in force, or of the Senate\'s seats. Choose one to play the change; drag the slider to scrub it. Colour is the state\'s margin. Alaska is left out: the page has no county votes for it. Click a square to select the state.',
+      tiles: 'Each square\'s area is the state\'s share of the votes cast in the election in view, of the electoral votes in force, or of the Senate\'s seats. Choose one to play the change; drag the slider to scrub it. Colour is the state\'s margin. Alaska reports by House district, not by county, so its square uses its certified statewide total. Click a square to select the state.',
       conc: 'Each line orders one party\'s counties from most of its votes to fewest and adds them up: how much of the land (or how many of the counties) holds a given share of that party\'s votes. The diagonal is an even spread. Drag the marker up or down; the counties it reaches for the chosen party become the selection.',
     })[ctx.power().pc]);
     body.innerHTML = '';
@@ -60,8 +60,9 @@ export function powerView({ ctx, head, body, foot, place, shiftOf, DUR }) {
   const noteFor = (P, e) => {
     const L = ctx.label();
     if (P.pc === 'rank') return P.calc.rank(e) ? `Weight of one vote, by state, ${L}: national average = 1.` : `Weight per vote needs census and citizen counts, and ${L} has none in the page.`;
-    if (P.pc === 'tiles') { const n = P.calc.states(e).rows.length;
-      return `Squares sized by each state's share of the ${({ votes: `votes cast in ${L}`, ev: 'electoral votes in force', sen: 'Senate\'s seats' })[P.pm]}, among the ${n} states${n > 50 ? ' and DC' : ''} with results here. Alaska is left out (no county votes in the page)${n < 50 ? `; so are the states with no race in ${L}` : ''}.`; }
+    if (P.pc === 'tiles') { const rows = P.calc.states(e).rows, n = rows.filter((r) => r.st !== 'DC').length, dc = rows.some((r) => r.st === 'DC');
+      const ak = rows.some((r) => r.st === 'AK');
+      return `Squares sized by each state's share of the ${({ votes: `votes cast in ${L}`, ev: 'electoral votes in force', sen: 'Senate\'s seats' })[P.pm]}, among the ${n} states${dc ? ' and DC' : ''} with results here${n < 50 ? `; states with no race in ${L} are left out` : ''}. ${ak ? 'Alaska, which reports by House district, uses its statewide total.' : 'Alaska is left out: it reports by House district, and the page has no statewide total for this race.'}`; }
     return `Each party's votes, ${L}, counted from its biggest counties down.`;
   };
   const footFor = (P) => ({ rank: ctx.effSource(), tiles: `${ctx.source()} Electoral votes: National Archives, by the apportionment in force.`, conc: `${ctx.source()} Land: Census Bureau county areas.` })[P.pc];

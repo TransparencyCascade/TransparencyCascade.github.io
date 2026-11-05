@@ -352,6 +352,37 @@ def year_2026():
     }
 
 
+# ---------- states with no county votes in the page ----------
+# Alaska reports by House district, not by county, so the county views leave it out. The state-level views
+# (weight per vote, the cartogram) take its certified statewide totals instead. Governor races are not covered:
+# no official compilation of governor results was at hand.
+def no_county_totals():
+    ak = {}
+    for y in (2016, 2020, 2024):
+        f, prefix, cD, cR = FEC_PRES[y]
+        cT = {2016: "G", 2020: "G", 2024: "AE"}[y]
+        r = next(r for r in read_sheet(f"{D_DIR}/{f}", prefix) if r.get("A", "").strip() == "AK")
+        ak[f"pres{y}"] = {"votes": int(r[cT]), "D": int(r[cD]), "R": int(r[cR]), "source": URL[f"fecpres{y}"]}
+    for y in (2020, 2022):
+        rows = read_sheet(f"{D_DIR}/fec{y}.xlsx", "US Senate Results")
+        tot = next(r for r in rows if r.get("B") == "AK" and r.get("D") == "S" and "Total State Votes" in r.get("J", ""))
+        D = R = 0
+        for r in rows:
+            if r.get("B") == "AK" and r.get("D") == "S" and r.get("P", "").isdigit() and r.get("I"):
+                p = r.get("K", "")
+                if p == "R":
+                    R += int(r["P"])
+                elif p == "D" or p.endswith("/D"):
+                    D += int(r["P"])
+        ak[f"sen{y}"] = {"votes": int(tot["P"]), "D": D, "R": R, "source": URL[f"fec{y}"] + (
+            " (first-choice general votes; the race was decided by ranked choice)" if y == 2022 else "")}
+    r = next(r for r in json.load(open(f"{D_DIR}/sg2026.json")) if r["stateAbbreviation"] == "AK")
+    side = lambda p: sum(c["voteNum"] for c in r["candidates"] if c["majorParty"] == p)
+    ak["sen2026"] = {"votes": r["totalVote"], "D": side("DEM"), "R": side("REP"), "unofficial": r["extractedAt"][:16] + "Z",
+                     "reporting": r["percentReporting"], "source": URL["cnn_sen"]}
+    return {"AK": ak}
+
+
 def main():
     ev2010 = {}
     cast = {y: archives_table(y) for y in (2016, 2020, 2024)}
@@ -416,6 +447,11 @@ def main():
             entry["smallest"] = {"senate": smallest_senate(races, "D", 51 - s["R"] if cD > 50 else 1, "Republicans needed 51 seats; the vice president was a Democrat.", URL[fec])}
         out["elections"][key] = entry
     out["elections"]["sen2026"] = year_2026()
+    out["noCounty"] = no_county_totals()
+    # Check: the presidential totals agree with the certified D and R the smallest change uses.
+    for y in (2016, 2020, 2024):
+        a, cert = out["noCounty"]["AK"][f"pres{y}"], state_pres(y)["AK"]
+        assert (a["D"], a["R"]) == (cert["D"], cert["R"]), (y, a, cert)
     json.dump(out, open(OUT, "w"), indent=1)
     for k, e in out["elections"].items():
         print(k, json.dumps({x: e[x] for x in e if x != "smallest"}, default=str)[:600])

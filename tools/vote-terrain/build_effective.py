@@ -239,6 +239,17 @@ st_bad10 = {s: (st_pop["2010"][s], st_pop10_file[k]) for k, s in FIPS_ST.items()
 assert not st_bad and not st_bad10, (st_bad, st_bad10)
 checks["population"]["state_sums_match_state_totals"] = True
 
+# ---- Alaska: no county votes in the page; certified statewide totals from balance.json ----
+# Alaska reports by House district, not by county. Where balance.json holds its statewide total for an election
+# (president 2016-2024, Senate 2020, 2022 and 2026), Alaska enters the state rows and the national totals as one
+# unit: its census population, its citizen voting-age population (the sum of its county-equivalent rows in the
+# ACS special tabulation) and its electoral votes. Governor races have no Alaska total, so Alaska stays out.
+AK_TOT = bal.get("noCounty", {}).get("AK", {})
+AK_POP = {"2010": st_pop10_file["02"], "2020": nat20["02"]}
+AK_CV = {"2010": sum(v for f, v in cv18.items() if f.startswith("02")),
+         "2020": sum(v for f, v in cv23_raw.items() if f.startswith("02"))}
+assert all(AK_CV.values()), AK_CV
+
 # ---- per election ----
 BASIS = lambda e: "2010" if int(e["year"]) <= 2020 else "2020"
 POP = {"2010": pop10, "2020": pop20}
@@ -255,10 +266,11 @@ for key, e in el["elections"].items():
     rows = [(f, v[0]) for f, v in e["data"].items() if v[0] > 0]
     sts = {st_of(f) for f, _ in rows}
     evc = {f: EV[st_of(f)] * pop[f] / st_pop[b][st_of(f)] for f, _ in rows}
-    E = sum(evc.values())
-    V = sum(v for _, v in rows)
-    P = sum(pop[f] for f, _ in rows)
-    C = sum(cv[f] for f, _ in rows)
+    ak = AK_TOT.get(key)
+    E = sum(evc.values()) + (EV["AK"] if ak else 0)
+    V = sum(v for _, v in rows) + (ak["votes"] if ak else 0)
+    P = sum(pop[f] for f, _ in rows) + (AK_POP[b] if ak else 0)
+    C = sum(cv[f] for f, _ in rows) + (AK_CV[b] if ak else 0)
     A = E / V
     per = []
     for f, votes in rows:
@@ -283,9 +295,18 @@ for key, e in el["elections"].items():
         T = (scv[s] / svotes[s]) / (C / V)
         worst = max(worst, abs(B * N * T / r - 1))
         states[s] = [round(r, 4), round(B, 4), round(N, 4), round(T, 4)]
+    if ak:   # Alaska as one unit, from its statewide total
+        r = EV["AK"] / ak["votes"] / A
+        B = (EV["AK"] / AK_POP[b]) / (E / P)
+        N = (AK_POP[b] / AK_CV[b]) / (P / C)
+        T = (AK_CV[b] / ak["votes"]) / (C / V)
+        worst = max(worst, abs(B * N * T / r - 1))
+        states["AK"] = [round(r, 4), round(B, 4), round(N, 4), round(T, 4)]
     out_el[key] = {
         "basis": b, "cvap": CVAP_LABEL[b], "E": round(E, 3), "V": V, "P": P, "C": C,
         "A": A, "Nnat": P / C, "Tnat": C / V, "states": states,
+        **({"stateOnly": {"AK": {"votes": ak["votes"], "D": ak["D"], "R": ak["R"], "source": ak["source"],
+                                 **({"unofficial": ak["unofficial"]} if "unofficial" in ak else {})}}} if ak else {}),
     }
     per.sort()
     extremes[key] = {
@@ -318,7 +339,10 @@ out = {
                  "and the 2020 apportionment from 2022.",
         "CT": "The 2019-2023 tabulation uses Connecticut's nine planning regions, which do not nest in the eight historic "
               "counties used here; the state total is shared among the counties by their 2020 Census population 18+.",
-        "AK": "Alaska has no county votes here, so it is left out of every national total.",
+        "AK": "Alaska reports by House district, not by county, so it is not on the county maps. Where its certified "
+              "statewide total is at hand (president 2016-2024; Senate 2020, 2022 and 2026, the last unofficial), it "
+              "counts as one unit in the state figures and the national totals; governor races have no Alaska total "
+              "here, so for them it is left out.",
         "fold": "Shannon County SD (46113) is Oglala Lakota (46102); Falls Church city is counted with Fairfax County and "
                 "Bedford city with Bedford County, as in the vote data.",
         "senate_governor": "For Senate and governor races the national averages are over the states with a race.",
