@@ -245,6 +245,7 @@ fs.writeFileSync(path.join(OUT, 'elections.json'), JSON.stringify({
     CT: 'Connecticut is drawn on its eight historic counties, the codes the certified presidential file uses.',
     KC: 'Kansas City, Missouri reports separately; its votes are added to Jackson County, though the city also reaches into Clay, Platte and Cass counties.',
     VA: 'Falls Church city is added to Fairfax County and Bedford city (2016) to Bedford County.',
+    CERT: 'County figures are the certified county file\'s; summed by state they differ slightly from certified state totals in some states (the county counts predate the recounts in Georgia 2020 and Wisconsin 2016 and 2020; the largest gap is 0.5%, Iowa 2020). The balance of power uses certified state totals from the FEC.',
   },
 }));
 

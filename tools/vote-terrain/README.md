@@ -38,6 +38,8 @@ Run from the repository root, in this order (each step reads what the one before
    temporary folder from the session that built it.
 3. `node tools/vote-terrain/build_terrain.mjs` — `terrain.json`, `terrain-counties.bin`, `terrain-cells.bin`, `terrain-<election>-s<N>.bin`.
 4. `python3 -I tools/vote-terrain/build_balance.py <downloads> <countypres csv> <house district csv> static/maps/vote-terrain/balance.json`
+   The smallest change uses certified state totals from the FEC (2016 and 2020 Federal Elections Table 2, the
+   2024 official results file), not the county file's state sums; the build prints every state where the two differ.
 5. `python3 -I tools/vote-terrain/build_effective.py <downloads> static/maps/vote-terrain/elections.json static/maps/vote-terrain/balance.json static/maps/vote-terrain/effective.json`
 6. `VT_MODULES=<dir with node_modules/d3-force, d3-polygon> node tools/vote-terrain/build_circles.mjs` — `circles-*.json`.
 7. `python3 -I tools/vote-terrain/build_house.py <house district csv> <house state csv> static/maps/vote-terrain/balance.json static/maps/vote-terrain/house.json`

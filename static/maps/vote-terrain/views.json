@@ -21,7 +21,7 @@
       "title": "The smallest change, 2024",
       "file": "Net margin by county, President 2024; the three states that decided it",
       "caption": "{bal.elections.pres2024.smallest.president.votes|n} voters switching from {bal.elections.pres2024.president.winner|last} to {bal.elections.pres2024.president.runner|last} would have changed the 2024 presidency: {bal.elections.pres2024.smallest.president.per_state|perstate}.",
-      "sources": "{elections.pres2024.source} Electoral votes: National Archives. Half each state's margin plus one, closest states first.",
+      "sources": "Map: {elections.pres2024.source} Votes: half each state's certified margin plus one, closest states first, from the FEC, {bal.sources.fecpres2024}. Electoral votes: National Archives.",
       "state": {
         "e": "pres2024",
         "l": "won",
