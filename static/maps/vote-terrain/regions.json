@@ -1,0 +1,75 @@
+{
+ "regions": [
+  {
+   "id": "rio-grande",
+   "name": "Rio Grande border counties",
+   "counties": [
+    "48141",
+    "48229",
+    "48377",
+    "48043",
+    "48443",
+    "48465",
+    "48271",
+    "48323",
+    "48479",
+    "48505",
+    "48427",
+    "48215",
+    "48061"
+   ],
+   "definition": "The 13 Texas counties whose southern boundary is the Rio Grande, the U.S.-Mexico boundary from El Paso to the Gulf: El Paso, Hudspeth, Presidio, Brewster, Terrell, Val Verde, Kinney, Maverick, Webb, Zapata, Starr, Hidalgo and Cameron. Rule used by this page; the Census Bureau and USDA publish no list under this name. New Mexico, Arizona and California border counties are not included, since the line there is not the river.",
+   "source": "County names resolved to Census Bureau FIPS codes in geometry.json. For the wider 100-kilometer border area (44 U.S. counties), see the 1983 La Paz Agreement, as summarized by the HHS Office of Global Affairs (hhs.gov, U.S.-Mexico Border Region); not used here, no county list was available."
+  },
+  {
+   "id": "black-belt",
+   "name": "Alabama Black Belt",
+   "counties": [
+    "01005",
+    "01011",
+    "01013",
+    "01023",
+    "01041",
+    "01047",
+    "01063",
+    "01065",
+    "01085",
+    "01087",
+    "01091",
+    "01101",
+    "01105",
+    "01107",
+    "01109",
+    "01113",
+    "01119",
+    "01131"
+   ],
+   "definition": "The 18 Alabama counties of the region's historical list: Barbour, Bullock, Butler, Choctaw, Crenshaw, Dallas, Greene, Hale, Lowndes, Macon, Marengo, Montgomery, Perry, Pickens, Pike, Russell, Sumter and Wilcox. The core is the ten counties J. D. Pope named in \"Types of Farming Areas,\" Agriculture of Alabama (1930): Greene, Hale, Perry, Sumter, Marengo, Dallas, Wilcox, Lowndes, Montgomery and Bullock. No USDA or Census Bureau county list for the Black Belt was found, and sources differ on its edges (the federal Alabama Black Belt National Heritage Area, 2023, covers 19 counties); the other Black Belt states are not included.",
+   "source": "County list: Wikipedia, \"Black Belt (region of Alabama)\" (no source cited there); core: Pope (1930), as quoted in Wikipedia, \"Black Belt in the American South\". County names resolved to FIPS codes in geometry.json."
+  },
+  {
+   "id": "maine",
+   "name": "Maine",
+   "counties": [
+    "23001",
+    "23003",
+    "23005",
+    "23007",
+    "23009",
+    "23011",
+    "23013",
+    "23015",
+    "23017",
+    "23019",
+    "23021",
+    "23023",
+    "23025",
+    "23027",
+    "23029",
+    "23031"
+   ],
+   "definition": "All 16 counties of Maine.",
+   "source": "Census Bureau county list (FIPS state 23), as in geometry.json."
+  }
+ ]
+}
