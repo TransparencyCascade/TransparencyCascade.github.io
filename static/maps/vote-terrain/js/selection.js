@@ -3,7 +3,7 @@
    election in the link. */
 import { fmt, list, countyLabelOf } from './util.js';
 
-export function createSelectionCodec({ geo, el, state, model, stName }) {
+export function createSelectionCodec({ geo, el, state, model, stName, house }) {
   const { meta } = geo, { elections } = el;
   const ALL_ST = new Set(Object.values(meta).map((m) => m.st));
   const countiesOf = (states) => { const S = new Set(states); return Object.keys(meta).filter((f) => S.has(meta[f].st)); };
@@ -42,6 +42,12 @@ export function createSelectionCodec({ geo, el, state, model, stName }) {
     return out && out.counties.size ? out : null;
   };
   const summary = (sel) => {
+    // On the House track the selection counts districts: those in every state the selection touches.
+    if (house && house.isHouse()) {
+      const sts = sel.states || [...new Set([...sel.counties].map((f) => meta[f].st))];
+      const n = house.data.districts.filter((d) => sts.includes(d.st)).length;
+      return `${sts.length <= 3 ? list(sts.map(stName)) : `${sts.length} states`}: ${fmt(n)} House district${n === 1 ? '' : 's'}, ${elections[state.e].label}`;
+    }
     const d = elections[state.e].data, sts = new Set(); let votes = 0, none = 0;
     for (const f of sel.counties) { sts.add(meta[f].st); if (d[f]) votes += d[f][0]; else none++; }
     const n = sel.counties.size, first = sel.counties.values().next().value;

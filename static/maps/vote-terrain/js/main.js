@@ -3,6 +3,7 @@
      (pycnophylactic interpolation, precomputed by build_terrain.mjs).
    Exact counties (blocks.js): each county extruded flat, height = votes / area.
    Circles, Arrows, Dots and Scatter (views2d/): flat views, for phones and for questions a map answers badly.
+   The House track (house.js, house.json): results by district, drawn only by Districts and Seats and votes.
    Data from build_data.mjs and the other tools/vote-terrain builders; see tools/vote-terrain/README.md.
 
    window.__vt exists for the smoke test (tools/vote-terrain/smoke.mjs) and checks in the console only;
@@ -20,16 +21,22 @@ import { createFind } from './find.js';
 import { createTable } from './table.js';
 import { createAbout } from './about.js';
 import { createViews2d } from './views2d/index.js';
+import { createHouse, PS_MIN, PS_MAX } from './house.js';
 
 // Without WebGL the 3D views cannot draw: the page falls back to a flat view (see noGL) and keeps everything else.
 const hasGL = (() => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return false; } })();
 const terrainModule = hasGL ? import('./terrain.js') : null;   // three.js loads alongside the data
-const [geoHead, geoBytes, el, bal, eff] = await Promise.all([getJSON('geometry.json'), getBin('geometry.bin', Uint8Array), ...['elections.json', 'balance.json', 'effective.json'].map(getJSON)]);
+const [geoHead, geoBytes, el, bal, eff, houseData] = await Promise.all([getJSON('geometry.json'), getBin('geometry.bin', Uint8Array), ...['elections.json', 'balance.json', 'effective.json', 'house.json'].map(getJSON)]);
 const geo = decodeGeometry(geoHead, geoBytes);
 // ?snapshot=<slug>: say so, with the date the data was frozen (snapshot.mjs writes the manifest).
 if (SNAPSHOT) getJSON('manifest.json').then((m) => { const n = $('snapNote'); n.textContent = `Frozen data: snapshot ${m.slug}, ${m.created.slice(0, 10)}.`; n.hidden = false; }).catch(() => {});
 const { meta, pieces, presets } = geo;
 const { order, tracks, sameOffice, elections, notes } = el;
+// The House track joins the timeline as its own office; its elections carry no county data.
+const house = createHouse({ data: houseData, state, elections });
+Object.assign(elections, house.elections); tracks.house = house.ids; order.push(...house.ids);
+for (const id of house.ids) sameOffice[id] = null;
+const isHouse = house.isHouse;
 
 const firstVisit = !location.hash;                    // a shared link opens still; a first visit spins
 fromHash(order);
@@ -69,10 +76,13 @@ const terrainState = () => {
     countyMult: pop ? multFor(state.e) : null, baseCountyMult: pop && b ? multFor(b) : null, countyValue, valueMax: WEIGHT_MAX };
 };
 // Why a tab cannot be used for the election in view ('' when it can).
-const tabWhy = (w) => (w === 'terrain' && glFailed ? 'needs WebGL, which this browser is not providing'
+const HOUSE_TABS = ['strips', 'seats'];
+const tabWhy = (w) => (isHouse() && !HOUSE_TABS.includes(w) ? 'needs county results, and House results are by district'
+  : !isHouse() && HOUSE_TABS.includes(w) ? 'draws the House by district: choose House above the timeline'
+  : w === 'terrain' && glFailed ? 'needs WebGL, which this browser is not providing'
   : (w === 'arrows' || w === 'scatter') && !baselineOf() ? 'needs an earlier race for the same seat, and this election has none in the data' : '');
-// The view drawn: the chosen tab, or Circles when that tab cannot draw here.
-const effW = () => (!tabWhy(state.w) ? state.w : 'circles');
+// The view drawn: the chosen tab, or Circles (Districts on the House track) when that tab cannot draw here.
+const effW = () => (!tabWhy(state.w) ? state.w : isHouse() ? 'strips' : 'circles');
 const showView = () => {
   const w = effW(), is3d = w === 'terrain', on = is3d && state.s === 'terrain' && terrain;
   if (is3d && state.s !== 'terrain') ensureBlocks();
@@ -91,7 +101,7 @@ const METROS = [['06037', 'Los Angeles'], ['36061', 'New York'], ['17031', 'Chic
 if (!glFailed) terrainModule
   .then((m) => m.initTerrain({ container: $('terrain'), geo, ramp: buildRamp(toward), ramp2: buildRamp(towardW), onHover: tip.hoverCounty, labels: METROS,
     locator: $('locator') }))
-  .then((t) => { terrain = t; showView(); terrain.setState(terrainState(), { animate: false, base: baselineOf() }); terrain.view(state.v, presets, sideSpace(), false);
+  .then((t) => { terrain = t; showView(); if (!isHouse()) terrain.setState(terrainState(), { animate: false, base: baselineOf() }); terrain.view(state.v, presets, sideSpace(), false);
     terrainSel(false);
     if (firstVisit && state.s === 'terrain' && effW() === 'terrain') terrain.spin(); })
   .catch(() => noGL());
@@ -158,11 +168,11 @@ offices.addEventListener('click', (ev) => {
 const stop = () => { clearInterval(timer); timer = null; $('play').textContent = '▶'; };
 
 // ---------- balance of power ----------
-const balance = createBalance({ el, bal, state, selection: () => sel, onResize: () => { if (views && ready && effW() !== 'terrain') views.redraw(false); } });
+const balance = createBalance({ el, bal, state, house, selection: () => sel, onResize: () => { if (views && ready && effW() !== 'terrain') views.redraw(false); } });
 const stName = balance.stName;
 
 // ---------- selection: one set of counties shared by every view, kept across elections and tabs ----------
-const codec = createSelectionCodec({ geo, el, state, model, stName });
+const codec = createSelectionCodec({ geo, el, state, model, stName, house });
 // spec: { states } or { counties, rule }; opts.add merges, opts.toggle lets a second click clear it, opts.frame moves the camera to it.
 const setSelection = (spec, opts = {}) => {
   sel = codec.next(sel, spec, opts); selVersion++;
@@ -238,8 +248,12 @@ views = createViews2d({
   circles: () => circlesFor(),
   size: (f) => { const v = elections[state.e].data[f]; return !v ? 0 : state.h === 'pop' ? model.repVotesOf(f) : v[0]; },
   sizeUnit: () => { const E = eff.elections[state.e];
-    return state.h === 'pop' && E ? { ref: model.V24 / eff.rep[E.basis].E, label: 'residents apportioned one electoral vote' } : { ref: 1e6, label: '1,000,000 votes' }; },
+    return state.h === 'pop' && E ? { ref: model.V24 / eff.rep[E.basis].E, label: (n) => `residents apportioned ${n === 1 ? 'one electoral vote' : `${n} electoral votes`}` }
+      : { ref: 1, label: (n) => `${fmt(n)} votes` }; },
   fill: (f) => `rgb(${model.colourRaw(f).join(',')})`,
+  house: () => house.now(),
+  // The states the selection touches: chosen whole, or holding a selected county.
+  selectedStates: () => (!sel ? null : new Set(sel.states || [...sel.counties].map((f) => meta[f].st))),
   infoButton: (b, text) => about.infoButton(b, text),
 });
 window.addEventListener('resize', () => { if (effW() !== 'terrain') views.redraw(false); });
@@ -256,11 +270,20 @@ const switchTab = (w) => {
 
 // ---------- find, table, read-once text ----------
 const find = createFind({ geo, el, ALL_ST: codec.ALL_ST, stName, choose: (spec) => setSelection(spec, { frame: true }) });
-const table = createTable({ geo, el, state, model, selection: () => sel, effW, pctCh: codec.pctCh, OFFICE_NAME });
+const table = createTable({ geo, el, state, model, house, selection: () => sel, effW, pctCh: codec.pctCh, OFFICE_NAME, stName });
 const about = createAbout({ el, eff, state, tip, selection: () => sel, select: setSelection, stName });
 
 function render(opts = {}) {
   buildTimeline();
+  document.body.classList.toggle('house', isHouse());
+  $('psGroup').hidden = !isHouse();
+  if (isHouse()) {
+    const P = house.plausible();
+    $('psRange').value = P.value ?? houseData.plausible.value; $('psRange').disabled = P.mode === 'state';
+    $('psOut').textContent = P.mode === 'state' ? 'by state' : `${P.value} pts`;
+    document.querySelectorAll('[data-ps]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.ps === (P.mode === 'state' ? 'state' : P.mode === 'default' ? 'default' : '')));
+    $('psHow').textContent = `${P.mode === 'state' ? 'Each state\'s own median observed swing.' : P.mode === 'default' ? `Default: national median observed swing, ${P.value} points.` : `Set to ${P.value} points; default ${houseData.plausible.value}.`} ${house.howPs()} Moves the at-risk and captured lines in Districts and Seats and votes.`;
+  }
   const i = trk().indexOf(state.e);
   offices.querySelectorAll('[data-office]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.office === officeOf(state.e)));
   timeline.querySelectorAll('.step').forEach((s) => s.setAttribute('aria-pressed', s.dataset.e === state.e));
@@ -294,7 +317,7 @@ function render(opts = {}) {
   $('worthRow').hidden = state.l !== 'worth';
   document.querySelectorAll('[data-wh]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.wh === state.h));
   const per = state.n === 'county' ? 'per county' : 'per sq mi', vw = effW();
-  $('keyHeight').textContent = vw === 'dots' ? 'Dot area: votes' : vw === 'scatter' ? 'Circle area: votes' : vw === 'arrows' ? 'Arrow length: swing'
+  $('keyHeight').textContent = vw === 'strips' ? 'Tick: one district; shading: at risk and contestable' : vw === 'seats' ? 'Point area: districts in the state' : vw === 'dots' ? 'Dot area: votes' : vw === 'scatter' ? 'Circle area: votes' : vw === 'arrows' ? 'Arrow length: swing'
     : vw === 'circles' ? (state.h === 'pop' ? 'Area: represented people' : 'Circle area: votes')
     : state.d === '2d' ? 'Flat map: colour only' : state.h === 'pop' ? 'Height: represented people'
     : state.h === 'net' ? `Height: net margin ${per}` : state.h === 'ev' || state.h === 'sen' ? `Height: votes × ${state.h === 'ev' ? 'electoral' : 'Senate'} weight`
@@ -306,7 +329,8 @@ function render(opts = {}) {
   // Weighted views: one plain sentence in the panel, the extremes in the key.
   const w = weighted(), wh = $('weightHow'), kw = $('keyWeight'), aw = $('aboutWeight');
   wh.hidden = !w && state.h !== 'net' && state.h !== 'pop'; kw.hidden = !w; aw.textContent = '';
-  if (state.h === 'pop') {
+  if (isHouse()) wh.hidden = true;
+  else if (state.h === 'pop') {
     const E = eff.elections[state.e];
     wh.textContent = `Height is the population each county is apportioned electoral votes for (${E ? E.basis : ''} Census), so a county's volume is its share of the Electoral College whatever its turnout.`;
   } else if (state.h === 'net') {
@@ -342,8 +366,8 @@ function render(opts = {}) {
   if (about.isRankOpen()) about.renderRank();
 
   const e = elections[state.e];
-  const n = [notes.AK, notes.CT, notes.KC, notes.VA];
-  if (officeOf(state.e) !== 'president') n.unshift(`Pale grey: no ${OFFICE_NAME[officeOf(state.e)].toLowerCase()} race with Democrat-vs-Republican county results in ${e.year}.`, ...(e.notes || []));
+  const n = isHouse() ? [...e.notes] : [notes.AK, notes.CT, notes.KC, notes.VA];
+  if (isHouse()) { /* the House notes stand alone */ } else if (officeOf(state.e) !== 'president') n.unshift(`Pale grey: no ${OFFICE_NAME[officeOf(state.e)].toLowerCase()} race with Democrat-vs-Republican county results in ${e.year}.`, ...(e.notes || []));
   $('notes').textContent = n.map((x) => (/[.)]$/.test(x) ? x : x + '.')).join(' ');
   $('source').textContent = 'Source: ' + e.source + (m ? '' : ` Swing: the Democratic margin minus the margin in ${baselineLabel()}. ` + (baselineOf() === 'senprior' ? elections.senprior.source : ''));
   balance.fit();
@@ -357,7 +381,7 @@ function render(opts = {}) {
   nt.textContent = 'This browser is not drawing 3D (WebGL is off or unavailable), so the map is shown as Circles. Everything else works.';
   tourBtn.disabled = vw !== 'terrain';
   $('flat').disabled = vw !== 'terrain';
-  $('reset').disabled = vw === 'dots' || vw === 'scatter';
+  $('reset').disabled = vw === 'dots' || vw === 'scatter' || HOUSE_TABS.includes(vw);
   if (sel) $('selText').textContent = codec.summary(sel);
   showView();
   if (vw === 'terrain') {
@@ -416,6 +440,10 @@ document.querySelectorAll('[data-h]').forEach((b) => b.addEventListener('click',
 document.querySelectorAll('[data-u]').forEach((b) => b.addEventListener('click', () => { state.u = b.dataset.u; render(); }));
 document.querySelectorAll('[data-n]').forEach((b) => b.addEventListener('click', () => { state.n = b.dataset.n; render(); }));
 document.querySelectorAll('[data-c]').forEach((b) => b.addEventListener('click', () => { state.c = b.dataset.c; render(); }));
+// The plausible swing: the slider sets points; Default clears it; State observed uses each state's own median.
+$('psRange').min = PS_MIN; $('psRange').max = PS_MAX;
+$('psRange').addEventListener('input', (ev) => { state.ps = String(+ev.target.value); render({ animate: false }); });
+document.querySelectorAll('[data-ps]').forEach((b) => b.addEventListener('click', () => { state.ps = b.dataset.ps === 'state' ? 'state' : ''; render(); }));
 document.querySelectorAll('button[data-view]').forEach((b) => b.addEventListener('click', () => {
   state.v = b.dataset.view; render(); setCamera(state.v);
 }));
@@ -442,7 +470,7 @@ window.addEventListener('hashchange', () => {
   render();
   if (state.v + state.d !== prev) setCamera(state.v);
 });
-window.__vt = { state, elections, meta, terrain: () => terrain, blocks: () => blocks, views: () => views, sel: () => sel, setSelection, effW, tipHtml: tip.countyHtml,
+window.__vt = { state, elections, meta, house: () => house.now(), terrain: () => terrain, blocks: () => blocks, views: () => views, sel: () => sel, setSelection, effW, tipHtml: tip.countyHtml,
   colours: { GARNET: GARNET + '', SAPPHIRE: SAPPHIRE + '', NEUTRAL: NEUTRAL + '' } };
 sel = codec.decode(state.sel); state.sel = codec.encode(sel);
 ready = true;

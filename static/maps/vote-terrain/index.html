@@ -156,6 +156,12 @@
   .v2d-foot { font-size:11px; color:var(--graphite); }
   .v2d-ref { color:var(--graphite); }
   .v2d-head .lens-i { width:20px; height:20px; font-size:11px; }
+  .v2d-head .swatch { display:inline-block; width:12px; height:10px; border:1px solid var(--rule); vertical-align:-1px; margin:0 3px 0 8px; }
+  .seats-wrap { min-height:0; }
+  .ps-row { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .ps-row input { flex:1; accent-color:var(--ink); }
+  .ps-row output { font-family:'Courier Prime', monospace; font-size:12px; min-width:4.5em; }
+  body.house .county-only { display:none; }
   .sel-chip { display:flex; flex-wrap:wrap; gap:6px; align-items:center; border:1px solid var(--ink); background:rgba(35,48,107,.06); padding:6px 8px; margin:0 0 12px; font-size:12.5px; }
   .sel-chip span { flex:1 1 100%; }
   .sel-chip button { font:inherit; font-size:12px; color:var(--ink); background:var(--paper); border:1px solid var(--rule); padding:3px 8px; cursor:pointer; }
@@ -198,11 +204,14 @@
     .tabs { top:10px; left:10px; transform:none; }
     .tab-why { top:44px; left:10px; transform:none; }
     .tabs button { padding:6px 10px; }
+    /* Seven tabs do not fit a phone: the ones that cannot draw this election step aside. */
+    .tabs { max-width:calc(100vw - 20px); overflow-x:auto; }
+    .tabs button:disabled { display:none; }
     .find { top:52px; }
     .table-wrap { inset:52px 10px 90px; }
     .panel { left:10px; right:10px; width:auto; top:auto; bottom:110px; max-height:34%; padding:10px 12px; }
-    body[data-w=dots] .panel, body[data-w=arrows] .panel, body[data-w=scatter] .panel { max-height:24%; }
-    body[data-w=dots] .key, body[data-w=arrows] .key, body[data-w=scatter] .key { width:150px; padding:8px 10px; }
+    body[data-w=dots] .panel, body[data-w=arrows] .panel, body[data-w=scatter] .panel, body[data-w=strips] .panel, body[data-w=seats] .panel { max-height:24%; }
+    body[data-w=dots] .key, body[data-w=arrows] .key, body[data-w=scatter] .key, body[data-w=strips] .key, body[data-w=seats] .key { width:150px; padding:8px 10px; }
     #locator { display:none !important; }
     h1 { font-size:24px; }
     .about, .rank { left:10px; right:10px; top:10px; width:auto; max-height:calc(100% - 20px); }
@@ -222,7 +231,7 @@
 <div id="v2d"></div>
 <div id="grain" aria-hidden="true"></div>
 <nav class="tabs" id="tabs" aria-label="View">
-  <button data-w="terrain">Terrain</button><button data-w="circles">Circles</button><button data-w="arrows">Arrows</button><button data-w="dots">Dots</button><button data-w="scatter">Scatter</button>
+  <button data-w="terrain">Terrain</button><button data-w="circles">Circles</button><button data-w="arrows">Arrows</button><button data-w="dots">Dots</button><button data-w="scatter">Scatter</button><button data-w="strips">Districts</button><button data-w="seats">Seats and votes</button>
 </nav>
 <p class="tab-why" id="tabWhy" hidden></p>
 <div class="find" id="find" hidden role="dialog" aria-label="Find a county or state">
@@ -253,19 +262,27 @@
   <div class="tools quick"><button id="tour" aria-pressed="false">Tour</button><button id="reset">Reset view</button><button id="tableBtn">Table</button><button id="findBtn">Find</button></div>
   <details class="adjust" id="adjust">
     <summary>Adjust <span class="muted" id="lensState"></span></summary>
-  <div class="group">
+  <div class="group" id="psGroup" hidden>
+    <span class="name" id="ps-name">Plausible swing</span>
+    <div class="ps-row"><input type="range" id="psRange" min="1" max="30" step="0.5" aria-labelledby="ps-name" aria-describedby="psHow"><output id="psOut" for="psRange"></output></div>
+    <div class="seg seg2" role="group" aria-label="Plausible swing">
+      <button data-ps="default">Default</button><button data-ps="state">State observed</button>
+    </div>
+    <p class="how" id="psHow"></p>
+  </div>
+  <div class="group county-only">
     <span class="name" id="s-name">Shape</span>
     <div class="seg" role="group" aria-labelledby="s-name">
       <button data-s="terrain">Terrain</button><button data-s="blocks">Exact counties</button>
     </div>
   </div>
-  <div class="group" id="smoothGroup">
+  <div class="group county-only" id="smoothGroup">
     <span class="name" id="m-name">Smoothing</span>
     <div class="seg" role="group" aria-labelledby="m-name">
       <button data-m="1">Light</button><button data-m="8">Strong</button>
     </div>
   </div>
-  <div class="group">
+  <div class="group county-only">
     <span class="name" id="h-name">Height</span>
     <div class="seg" role="group" aria-label="Height scale" style="margin-bottom:6px">
       <button data-n="area">Per square mile</button><button data-n="county">Per county</button>
@@ -285,7 +302,7 @@
     <p class="how" id="weightHow" hidden></p>
     <p class="how" id="scaleHow" hidden>Per county: height is each county's own total, not its votes per square mile, smoothed a little across county lines. Big counties with many votes stand as plateaus; volume no longer equals votes.</p>
   </div>
-  <div class="group">
+  <div class="group county-only">
     <span class="name" id="c-name">Colour</span>
     <div class="seg" role="group" aria-labelledby="c-name">
       <button data-c="margin">Margin</button><button data-c="swing" id="swingBtn">Swing</button>
@@ -295,7 +312,7 @@
     </div>
     <p class="how" id="swingHow"></p>
   </div>
-  <div class="group">
+  <div class="group county-only">
     <span class="name">View</span>
     <div class="tools">
       <button data-view="west">From the west</button><button data-view="east">From the east</button><button data-view="national">Overhead</button><button data-view="texas">Texas triangle</button><button data-view="maine">Maine</button>
@@ -348,6 +365,6 @@
 <div class="offices" id="offices" role="group" aria-label="Office"></div>
 <nav class="timeline" id="timeline" aria-label="Election"></nav>
 <canvas id="locator" aria-label="Locator: the whole country from above, with the part in view marked. Click to move the view there." role="button" tabindex="0"></canvas>
-<script type="module" src="js/main.js?v=78"></script>
+<script type="module" src="js/main.js?v=79"></script>
 </body>
 </html>

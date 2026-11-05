@@ -49,7 +49,7 @@ export function createModel({ geo, el, bal, eff, state, selection }) {
     const ranked = S.slice().sort((a, b) => factor[b] - factor[a]);
     return (weightCache[key] = { factor, hi: ranked[0], lo: ranked[ranked.length - 1], n: S.length });
   };
-  const weighted = () => (state.h === 'ev' || state.h === 'sen' ? weightsFor(state.e, state.h) : null);
+  const weighted = () => (!elections[state.e].house && (state.h === 'ev' || state.h === 'sen') ? weightsFor(state.e, state.h) : null);
 
   // ---------- effective vote (effective.json, build_effective.py) ----------
   // For county f in state s: electoral votes behind it evc = EV_s * pop_f / pop_s; weight per vote = evc / votes,

@@ -4,24 +4,35 @@ import { SAPPHIRE, GARNET } from './colour.js';
 import { fmt, list, $ } from './util.js';
 import { dataUrl } from './data.js';
 
-export function createBalance({ el, bal, state, selection, onResize }) {
+export function createBalance({ el, bal, state, house, selection, onResize }) {
   const { elections } = el;
   const D_COL = d3.rgb(SAPPHIRE) + '', R_COL = d3.rgb(GARNET) + '';
   const pct = (n, total) => (n / total * 100).toFixed(2) + '%';
   const bar = (d, r, total, unc = 0) => `<div class="bar" role="img" aria-label="Democrats ${d}, Republicans ${r}${unc ? `, ${unc} not called` : ''}, of ${total}">` +
     `<i style="width:${pct(d, total)};background:${D_COL}"></i>${unc ? `<i class="u" style="width:${pct(unc, total)}"></i>` : ''}<i style="width:${pct(r, total)};background:${R_COL}"></i><b></b></div>`;
+  const openOf = (ho) => (ho.leading ? ho.leading.D + ho.leading.R : 0) + ho.uncalled;
   const signed = (n) => (n > 0 ? '+' : n < 0 ? '−' : '±') + Math.abs(n);
   const stName = (st) => bal.stateNames[st] || st;
   const etTime = (iso) => new Date(iso).toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', month: 'short', day: 'numeric', year: 'numeric' });
   // Each election maps to its election day's entry in balance.json.
   const BALKEY = { pres2016: 'pres2016', pres2020: 'pres2020', pres2024: 'pres2024', sen2018: 'd2018', gov2018: 'd2018',
-    sen2020: 'pres2020', sen2022: 'd2022', gov2022: 'd2022', sen2024: 'pres2024', sen2026: 'sen2026', gov2026: 'sen2026' };
+    sen2020: 'pres2020', sen2022: 'd2022', gov2022: 'd2022', sen2024: 'pres2024', sen2026: 'sen2026', gov2026: 'sen2026',
+    house2022: 'd2022', house2024: 'pres2024', house2026: 'sen2026' };
+  // On the House track the House line comes from the district file (house.json): the same counts as the
+  // House history office for 2022 and 2024 (build_house.py checks it), and calls and leads for 2026.
+  const withHouse = (b) => {
+    if (!house.isHouse()) return b;
+    const y = String(elections[state.e].year), s = house.data.seats[y];
+    return { ...b, house: y === '2026'
+      ? { called: s.called, leading: s.leading, uncalled: s.uncalled, uncalledSeats: s.uncalledSeats, before: b.house.before, asof: house.data.asof2026 }
+      : { ...b.house, D: s.D, R: s.R } };
+  };
   // A smallest-change line is a button: it selects its states.
   const flip = (states, text) => { const sel = selection();
     return `<button class="flip" data-states="${states.join(',')}" aria-pressed="${!!(sel && sel.states && sel.states.join(',') === states.join(','))}">${text}</button>`; };
 
   function render() {
-    const b = bal.elections[BALKEY[state.e]], body = $('bopBody'), lines = $('bopLines');
+    const b0 = bal.elections[BALKEY[state.e]], b = b0 && withHouse(b0), body = $('bopBody'), lines = $('bopLines');
     if (!b) { body.innerHTML = lines.innerHTML = ''; return; }
     lines.innerHTML = compact(b);
     $('bopTitle').textContent = `Balance of power, ${elections[state.e].year}`;   // the election day, whatever the office in view
@@ -47,10 +58,11 @@ export function createBalance({ el, bal, state, selection, onResize }) {
         `<p>Republicans ${ho.R}, Democrats ${ho.D}${435 - ho.D - ho.R ? `, ${435 - ho.D - ho.R} vacant` : ''}. Republicans ${signed(ho.R - ho.prev.R)} seats.</p>`;
     }
     if (b.house && b.house.called) {
-      const ho = b.house, d = ho.called.D, r = ho.called.R;
-      h += `<h3>House, called so far</h3>${bar(d, r, 435, ho.uncalled)}` +
-        `<p>Democrats ${d}, Republicans ${r}, ${ho.uncalled} not called. ${d >= 218 ? 'Democrats have a majority.' : r >= 218 ? 'Republicans have a majority.' : ''}</p>` +
-        `<p class="muted">Before the election: Republicans ${ho.before.R}, Democrats ${ho.before.D}.</p>`;
+      const ho = b.house, d = ho.called.D, r = ho.called.R, open = openOf(ho);
+      h += `<h3>House, called so far</h3>${bar(d, r, 435, open)}` +
+        `<p>Democrats ${d}, Republicans ${r}, ${open} not called. ${d >= 218 ? 'Democrats have a majority.' : r >= 218 ? 'Republicans have a majority.' : ''}</p>` +
+        (ho.leading ? `<p>Leading in the races not called: Democrats ${ho.leading.D}, Republicans ${ho.leading.R}${ho.uncalled ? `; no leader counted in ${list(ho.uncalledSeats)} (Louisiana's open primary goes to a Dec. 12 runoff)` : ''}.</p>` : '') +
+        `<p class="muted">Before the election: Republicans ${ho.before.R}, Democrats ${ho.before.D}.${ho.asof ? ` House figures from the district file, unofficial as of ${etTime(ho.asof)} ET.` : ''}</p>`;
     }
     if (b.unofficial_asof) h += `<p class="muted">Unofficial, as of ${etTime(b.unofficial_asof)} ET (AP via CNN).</p>`;
     if (b.smallest) {
@@ -66,7 +78,7 @@ export function createBalance({ el, bal, state, selection, onResize }) {
     }
     const S = bal.sources;
     const first = b.president ? `<a href="${b.president.source}">National Archives</a>, ` : BALKEY[state.e] === 'sen2026' ? `<a href="${S.cnn_sen}">AP via CNN</a>, ` : '';
-    h += `<p class="src">Sources: ${first}<a href="${S.senate}">U.S. Senate</a>, <a href="${S.house}">House history office</a>` +
+    h += `<p class="src">Sources: ${first}<a href="${S.senate}">U.S. Senate</a>, <a href="${S.house}">House history office</a>${house.isHouse() ? `, <a href="${dataUrl('house.json')}">the district file</a>` : ''}` +
       (b.smallest && b.smallest.president ? `, <a href="${S.countypres}">MIT Election Lab</a>` : '') +
       (b.smallest && b.smallest.senate ? `, <a href="${b.smallest.senate.source.split(' ')[0]}">${/medsl|MEDSL|github/.test(b.smallest.senate.source) ? 'MIT Election Lab Senate file' : 'FEC'}</a>` : '') +
       (b.president ? '' : '. Governors by party are not shown: no single official source was at hand') + `. Every figure and its source: <a href="${dataUrl('balance.json')}">balance.json</a>.</p>`;
@@ -82,7 +94,7 @@ export function createBalance({ el, bal, state, selection, onResize }) {
     if (b.senate && b.senate.holdover) { const s = b.senate, d = s.holdover.D + s.called.D, r = s.holdover.R + s.called.R;
       h += `<p class="line">Senate, called: D ${d} · R ${r}${s.uncalled.length ? ` · ${s.uncalled.length} open` : ''}${bar(d, r, 100, s.uncalled.length)}</p>`; }
     if (b.house && b.house.R != null) h += `<p class="line">House R ${b.house.R} · D ${b.house.D}${bar(b.house.D, b.house.R, 435, 435 - b.house.D - b.house.R)}</p>`;
-    if (b.house && b.house.called) h += `<p class="line">House, called: D ${b.house.called.D} · R ${b.house.called.R} · ${b.house.uncalled} open${bar(b.house.called.D, b.house.called.R, 435, b.house.uncalled)}</p>`;
+    if (b.house && b.house.called) h += `<p class="line">House, called: D ${b.house.called.D} · R ${b.house.called.R} · ${openOf(b.house)} open${bar(b.house.called.D, b.house.called.R, 435, openOf(b.house))}</p>`;
     return h;
   }
   // Keep the box below the key: its height is capped to the space between the key and the bottom edge.

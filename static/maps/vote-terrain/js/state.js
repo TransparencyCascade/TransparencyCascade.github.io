@@ -2,10 +2,13 @@
    e election, h height measure, c colour, s shape (terrain | blocks), m smoothing, v camera view,
    d 3d | 2d, u which party is up (net margin), n height scale (area | county), l lens, g ghost of the
    previous race, w view tab, sel the selection: states (s:CA,NV), a rule from a drag (r:, q:, b:) or a
-   list of counties (c:). */
-export const state = { e: 'pres2024', h: 'total', c: 'margin', s: 'terrain', m: '1', v: 'west', d: '3d', u: 'd', n: 'area', l: 'votes', g: '0', w: 'terrain', sel: '' };
-export const TABS = ['terrain', 'circles', 'arrows', 'dots', 'scatter'];
-export const TAB_NAME = { terrain: 'Terrain', circles: 'Circles', arrows: 'Arrows', dots: 'Dots', scatter: 'Scatter' };
+   list of counties (c:). ps: the plausible swing behind the House bands (points, 'state', or empty for the
+   default). */
+import { parsePs } from './house.js';
+export const state = { e: 'pres2024', h: 'total', c: 'margin', s: 'terrain', m: '1', v: 'west', d: '3d', u: 'd', n: 'area', l: 'votes', g: '0', w: 'terrain', sel: '', ps: '' };
+// Districts and Seats and votes draw the House track (results by district); the others need county results.
+export const TABS = ['terrain', 'circles', 'arrows', 'dots', 'scatter', 'strips', 'seats'];
+export const TAB_NAME = { terrain: 'Terrain', circles: 'Circles', arrows: 'Arrows', dots: 'Dots', scatter: 'Scatter', strips: 'Districts', seats: 'Seats and votes' };
 // Lenses: one question each, setting several controls at once. Changing any control in Adjust makes the view "custom".
 export const LENSES = {
   votes: { set: { n: 'area', h: 'total', c: 'margin', g: '0', d: '3d' }, v: 'national',
@@ -31,5 +34,6 @@ export const fromHash = (order) => {
   if (!TABS.includes(state.w)) state.w = 'terrain';
   if (!['margin', 'swing', 'weight'].includes(state.c)) state.c = 'margin';
   state.sel = q.get('sel') || '';
+  state.ps = parsePs(q.get('ps') || '');
 };
 export const toHash = () => history.replaceState(null, '', '#' + new URLSearchParams(state).toString());

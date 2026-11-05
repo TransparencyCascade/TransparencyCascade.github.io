@@ -1,13 +1,45 @@
-/* Table: the numbers behind the view in use, as in the tooltip. */
+/* Table: the numbers behind the view in use, as in the tooltip. On the House track: one row per district
+   (Districts) or per state (Seats and votes). */
 import { fmt, esc, countyLabelOf, $ } from './util.js';
 
-export function createTable({ geo, el, state, model, selection, effW, pctCh, OFFICE_NAME }) {
+export function createTable({ geo, el, state, model, house, selection, effW, pctCh, OFFICE_NAME, stName }) {
   const { meta } = geo, { elections } = el;
   const wrap = $('tableWrap'), table = $('table');
   let sort = { k: 2, dir: -1 };
   const lead = (x) => (x == null ? '' : (x >= 0 ? 'D+' : 'R+') + Math.abs(x).toFixed(1));
   const signedPct = (p) => (p == null ? '' : (p >= 0 ? '+' : '−') + Math.abs(p).toFixed(1) + '%');
+  // House columns: [heading, value, format].
+  const houseCols = (h) => (effW() === 'seats' ? [
+    ['State', (r) => stName(r.st), String], ['Districts', (r) => r.s.districts, fmt],
+    ['Dem. share of two-party vote', (r) => r.s.dshare, (x) => (x == null ? '' : x.toFixed(1) + '%')],
+    ['Dem. seats', (r) => r.s.seatsD, fmt], ['Rep. seats', (r) => r.s.seatsR, fmt],
+    ['Dem. share of seats', (r) => (r.s.seatsD + r.s.seatsR ? r.s.seatsD / (r.s.seatsD + r.s.seatsR) * 100 : null), (x) => (x == null ? '' : x.toFixed(1) + '%')],
+    ['Captured seats', (r) => r.s.captured, fmt], ['Captured votes', (r) => r.s.capv, fmt],
+    ['Captured, % of votes', (r) => (r.s.T ? r.s.capv / r.s.T * 100 : null), (x) => (x == null ? '' : x.toFixed(1) + '%')],
+    ['Efficiency gap', (r) => r.s.eg, (x) => (x == null ? 'not computed' : `${Math.abs(x).toFixed(1)}, more ${x >= 0 ? 'Dem.' : 'Rep.'} votes wasted`)],
+  ] : [
+    ['District', (r) => `${r.st}-${r.n}`, String], ['Votes', (r) => r.T, fmt], ['Republican', (r) => r.R, fmt], ['Democratic', (r) => r.D, fmt],
+    ['Margin', (r) => r.m, lead], ['Winner', (r) => (r.w ? r.w + (h.year === '2026' && r.status !== 'called' ? ' (leading)' : '') : 'undecided'), String],
+    ['Band', (r) => (r.band === 'apart' ? `apart: ${r.reason}` : r.band), String],
+    ['At risk below', (r) => h.lines[r.st].atRisk, (x) => x.toFixed(1)], ['Captured above', (r) => h.lines[r.st].captured, (x) => x.toFixed(1)],
+    ['Captured votes', (r) => r.capv || null, (x) => (x == null ? '' : fmt(x))],
+  ]);
+  const renderHouse = () => {
+    const h = house.now(), sel = selection(), seats = effW() === 'seats';
+    const sts = sel ? new Set(sel.states || [...sel.counties].map((f) => meta[f].st)) : null;
+    let rs = seats ? Object.entries(h.states).map(([st, s]) => ({ st, s })) : h.districts.slice();
+    if (sts) rs = rs.filter((r) => sts.has(r.st));
+    const cols = houseCols(h);
+    if (sort.k >= cols.length) sort = { k: 1, dir: -1 };
+    const get = cols[sort.k][1];
+    rs.sort((x, y) => { const a = get(x), c = get(y); if (a == null) return 1; if (c == null) return -1; return (typeof a === 'string' ? a.localeCompare(c, 'en', { numeric: true }) : a - c) * sort.dir; });
+    $('tableTitle').textContent = `${sts ? 'Selected states' : seats ? 'Every state' : 'Every district'}, ${h.label}${h.unofficial ? ' (unofficial)' : ''}`;
+    $('tableNote').textContent = `${fmt(rs.length)} ${seats ? (rs.length === 1 ? 'state' : 'states') : rs.length === 1 ? 'district' : 'districts'}. Plausible swing: ${h.plausible.label}. Click a heading to sort.`;
+    table.innerHTML = '<thead><tr>' + cols.map((c, i) => `<th data-k="${i}"${i === sort.k ? ` aria-sort="${sort.dir > 0 ? 'ascending' : 'descending'}"` : ''}>${c[0]}</th>`).join('') + '</tr></thead><tbody>' +
+      rs.map((r) => '<tr>' + cols.map((c) => `<td>${esc(c[2](c[1](r)))}</td>`).join('') + '</tr>').join('') + '</tbody>';
+  };
   const render = () => {
+    if (house.isHouse()) return renderHouse();
     const b = model.baselineOf(), w = effW(), sel = selection();
     let rs = model.rowsNow().filter((r) => r.v);
     if (sel) rs = rs.filter((r) => sel.counties.has(r.f));

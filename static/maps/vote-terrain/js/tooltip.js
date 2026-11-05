@@ -3,7 +3,7 @@ import { fmt, clamp, lead, countyLabelOf, $ } from './util.js';
 
 export function createTooltip({ geo, el, bal, state, model }) {
   const { meta } = geo, { elections, notes } = el;
-  const OFFICE_NAME = { president: 'President', senate: 'Senate', governor: 'Governor' };
+  const OFFICE_NAME = { president: 'President', senate: 'Senate', governor: 'Governor', house: 'House' };
   const tip = document.createElement('div');
   tip.className = 'vt-tip'; tip.hidden = true; document.body.appendChild(tip);
   const place = (html, x, y) => {
