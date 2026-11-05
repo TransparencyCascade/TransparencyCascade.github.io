@@ -40,7 +40,6 @@
   button.link { font:inherit; font-size:11.5px; color:var(--ink); background:none; border:0; padding:0; text-decoration:underline; text-underline-offset:2px; cursor:pointer; }
   h1 { font-family:'Archivo Narrow', sans-serif; font-weight:600; font-size:26px; line-height:1; letter-spacing:-.01em; margin:0;
        text-shadow:1.5px 0 .5px rgba(35,48,107,.18); }
-  .dek { margin:0 0 18px; color:var(--graphite); }
   .group { margin:0 0 16px; }
   .group > .name { display:block; font-weight:700; margin-bottom:6px; }
   .seg { display:flex; border:1px solid var(--rule); }
@@ -48,15 +47,13 @@
                 padding:6px 4px; cursor:pointer; }
   .seg button:first-child { border-left:0; }
   .seg button[aria-pressed=true] { background:var(--ink); color:var(--paper); }
-  .row { display:flex; gap:8px; align-items:center; margin-top:8px; font-size:13px; }
-  select { font:inherit; color:var(--ink); background:var(--paper); border:1px solid var(--rule); padding:3px 4px; flex:1; }
   .tools { display:flex; flex-wrap:wrap; gap:6px; }
   .tools button { font:inherit; font-size:13px; color:var(--ink); background:transparent; border:1px solid var(--rule); padding:5px 9px; cursor:pointer; }
   .tools button[aria-pressed=true] { background:var(--ink); color:var(--paper); }
   .how { color:var(--graphite); font-size:12px; margin:8px 0 0; }
   .note { color:var(--graphite); font-size:12px; margin:10px 0 0; }
   .src { color:var(--graphite); font-size:12px; border-top:1px solid var(--rule); margin-top:12px; padding-top:8px; }
-  button:focus-visible, select:focus-visible { outline:2px solid var(--focus); outline-offset:2px; }
+  button:focus-visible { outline:2px solid var(--focus); outline-offset:2px; }
 
   /* Key, beside the map */
   .key { position:fixed; right:12px; top:12px; width:182px; background:var(--paper); border:1px solid var(--rule); padding:8px 10px; font-size:11.5px; }
@@ -85,7 +82,7 @@
   .bop .flip { font:inherit; color:inherit; text-align:left; background:transparent; border:0; border-left:2px solid var(--rule); padding:2px 0 2px 8px; margin:0; cursor:pointer; width:100%; }
   .bop .flip:hover { border-left-color:var(--ink); }
   .bop .flip[aria-pressed=true] { border-left-color:var(--ink); background:rgba(35,48,107,0.07); }
-  .deck-tooltip { font-family:'Courier Prime', monospace !important; font-size:13px !important; background:var(--paper) !important;
+  .deck-tooltip, .vt-tip { font-family:'Courier Prime', monospace !important; font-size:13px !important; background:var(--paper) !important;
                   color:var(--ink) !important; border:1px solid var(--rule); padding:8px 10px !important; max-width:320px; line-height:1.4; }
   .seg2 { margin-top:6px; }
   /* Lenses: four questions, each setting the controls below */
@@ -111,10 +108,10 @@
   details.adjust > summary .muted { font-weight:400; color:var(--graphite); }
   .timeline .nav.hint { box-shadow:inset 0 0 0 2px var(--ink); }
   /* Metro labels and the locator */
-  .peak-labels { position:fixed; inset:0; pointer-events:none; z-index:2; }
-  .peak { position:absolute; left:0; top:0; font-size:12px; line-height:1; white-space:nowrap; color:var(--ink);
+  .metro-labels { position:fixed; inset:0; pointer-events:none; z-index:2; }
+  .metro { position:absolute; left:0; top:0; font-size:12px; line-height:1; white-space:nowrap; color:var(--ink);
           background:rgba(243,245,245,.88); border:1px solid var(--rule); padding:3px 5px; visibility:hidden; }
-  .peak::after { content:''; position:absolute; left:50%; top:100%; height:8px; border-left:1px solid rgba(35,48,107,.6); }
+  .metro::after { content:''; position:absolute; left:50%; top:100%; height:8px; border-left:1px solid rgba(35,48,107,.6); }
   #locator { position:fixed; left:20px; bottom:22px; width:168px; height:106px; background:var(--paper); border:1px solid var(--rule); cursor:pointer; z-index:3; }
   /* Balance of power: what the votes decided, for the election on the timeline */
   .bop { position:fixed; right:12px; bottom:22px; width:182px; overflow:auto;
@@ -284,7 +281,7 @@
       <button data-u="d">Democrats up</button><button data-u="r">Republicans up</button>
     </div>
     <p class="how" id="weightHow" hidden></p>
-    <p class="how" id="scaleHow" hidden></p>
+    <p class="how" id="scaleHow" hidden>Per county: height is each county's own total, not its votes per square mile, smoothed a little across county lines. Big counties with many votes stand as plateaus; volume no longer equals votes.</p>
   </div>
   <div class="group">
     <span class="name" id="c-name">Colour</span>
@@ -349,8 +346,6 @@
 <div class="offices" id="offices" role="group" aria-label="Office"></div>
 <nav class="timeline" id="timeline" aria-label="Election"></nav>
 <canvas id="locator" aria-label="Locator: the whole country from above, with the part in view marked. Click to move the view there." role="button" tabindex="0"></canvas>
-<script src="views2d.js?v=74"></script>
-<script type="module" src="terrain.js?v=74"></script>
-<script src="app.js?v=74"></script>
+<script type="module" src="js/main.js?v=75"></script>
 </body>
 </html>

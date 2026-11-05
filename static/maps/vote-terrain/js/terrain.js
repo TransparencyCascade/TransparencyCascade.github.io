@@ -3,23 +3,22 @@
    votes (Tobler's pycnophylactic interpolation). Height = k x votes per cell / cell area, the same k as
    the exact-county view; colour = margin or swing through app.js's equal-lightness ramp, blended across
    cells; shading from the surface's own slope; contour lines at 10, 100, 1,000 and 10,000 votes per
-   square mile. Exposes window.VTTerrain for app.js. */
+   square mile. main.js imports it only when WebGL is available. */
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { reduced } from './util.js';
+import { getJSON, getBin } from './data.js';
 
-const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const GROUND = new THREE.Color('#E8ECEC');
 
-async function bin(url, Type) { return new Type(await (await fetch(url)).arrayBuffer()); }
-
-async function init({ container, geo, ramp, ramp2 = null, onHover, labels = [], locator = null }) {
-  const H = await (await fetch('terrain.json')).json();
-  const [owner, cells] = await Promise.all([bin('terrain-counties.bin', Uint16Array), bin('terrain-cells.bin', Uint32Array)]);
+export async function initTerrain({ container, geo, ramp, ramp2, onHover, labels = [], locator = null }) {
+  const H = await getJSON('terrain.json');
+  const [owner, cells] = await Promise.all([getBin('terrain-counties.bin', Uint16Array), getBin('terrain-cells.bin', Uint32Array)]);
   const { cols, rows, cell: CELL, x0, yTop, land: L, k, sqmiPerUnit2, fips } = H;
   const N = cols * rows, cellArea = CELL * CELL;
   // One file per election and smoothing setting, fetched the first time that election is shown.
   const grids = {};                                      // "election@setting" -> Uint16Array
-  const loadGrid = async (e, s) => (grids[`${e}@${s}`] ??= await bin(H.elections[e].file[s], Uint16Array));
+  const loadGrid = async (e, s) => (grids[`${e}@${s}`] ??= await getBin(H.elections[e].file[s], Uint16Array));
 
   // Grid-cell index -> land index (-1 = sea)
   const landOf = new Int32Array(N).fill(-1);
@@ -55,8 +54,8 @@ async function init({ container, geo, ramp, ramp2 = null, onHover, labels = [], 
   const rampTex = new THREE.DataTexture(ramp.data, ramp.size, 1, THREE.RGBAFormat);
   rampTex.colorSpace = THREE.SRGBColorSpace; rampTex.magFilter = rampTex.minFilter = THREE.LinearFilter; rampTex.needsUpdate = true;
   // Second ramp for a per-county value that is not a party measure (weight per vote).
-  const rampTex2 = ramp2 ? new THREE.DataTexture(ramp2.data, ramp2.size, 1, THREE.RGBAFormat) : rampTex;
-  if (ramp2) { rampTex2.colorSpace = THREE.SRGBColorSpace; rampTex2.magFilter = rampTex2.minFilter = THREE.LinearFilter; rampTex2.needsUpdate = true; }
+  const rampTex2 = new THREE.DataTexture(ramp2.data, ramp2.size, 1, THREE.RGBAFormat);
+  rampTex2.colorSpace = THREE.SRGBColorSpace; rampTex2.magFilter = rampTex2.minFilter = THREE.LinearFilter; rampTex2.needsUpdate = true;
   const light = new THREE.Vector3(-0.55, 0.85, 1.25).normalize();
   const material = new THREE.ShaderMaterial({
     uniforms: {
@@ -117,7 +116,7 @@ async function init({ container, geo, ramp, ramp2 = null, onHover, labels = [], 
     const seen = new Map(), key = (q) => q[0].toFixed(1) + ',' + q[1].toFixed(1);
     for (const pc of geo.pieces) {
       const st = geo.meta[pc.f] && geo.meta[pc.f].st; if (!st) continue;
-      for (const ring of (Array.isArray(pc.p[0][0]) ? pc.p : [pc.p])) for (let i = 0; i < ring.length; i++) {
+      for (const ring of pc.p) for (let i = 0; i < ring.length; i++) {
         const a = ring[i], b = ring[(i + 1) % ring.length], ka = key(a), kb = key(b); if (ka === kb) continue;
         const kk = ka < kb ? ka + '|' + kb : kb + '|' + ka, e = seen.get(kk);
         if (e) { if (e.st !== st) e.border = true; } else seen.set(kk, { a, b, st, border: false });
@@ -168,7 +167,7 @@ async function init({ container, geo, ramp, ramp2 = null, onHover, labels = [], 
     const set = new Set(states), seen = new Map(), key = (q) => q[0].toFixed(1) + ',' + q[1].toFixed(1);
     for (const pc of geo.pieces) {
       const st = geo.meta[pc.f] && geo.meta[pc.f].st; if (!set.has(st)) continue;
-      for (const ring of (Array.isArray(pc.p[0][0]) ? pc.p : [pc.p])) for (let i = 0; i < ring.length; i++) {
+      for (const ring of pc.p) for (let i = 0; i < ring.length; i++) {
         const a = ring[i], b = ring[(i + 1) % ring.length], ka = key(a), kb = key(b); if (ka === kb) continue;
         const kk = ka < kb ? ka + '|' + kb : kb + '|' + ka, e = seen.get(kk);
         if (e) e.n++; else seen.set(kk, { a, b, n: 1 });   // an edge used twice inside the set is internal
@@ -232,11 +231,11 @@ async function init({ container, geo, ramp, ramp2 = null, onHover, labels = [], 
   window.addEventListener('resize', resize); resize();
 
   // ---------- state -> arrays ----------
-  let setting = H.defaultSetting, cur = null, flat = false;
+  let setting = H.defaultSetting, flat = false;
   const zCur = new Float32Array(N);                      // current heights, also used for hover
   const decode = (s, e) => {
-    const g = grids[`${e}@${s}`], o = 0, sc = H.elections[e].scale[s];
-    return { T: g.subarray(o, o + L), D: g.subarray(o + L, o + 2 * L), R: g.subarray(o + 2 * L, o + 3 * L), sc };
+    const g = grids[`${e}@${s}`], sc = H.elections[e].scale[s];
+    return { T: g.subarray(0, L), D: g.subarray(L, 2 * L), R: g.subarray(2 * L, 3 * L), sc };
   };
   function target(st, base) {
     const z = new Float32Array(N), v = new Float32Array(N), no = new Float32Array(N), de = new Float32Array(N).fill(-3);
@@ -391,7 +390,7 @@ async function init({ container, geo, ramp, ramp2 = null, onHover, labels = [], 
     outline.clear();
     if (!f) return;
     const mat = new THREE.LineBasicMaterial({ color: 0x23306b, transparent: true, opacity: 0.9 });
-    for (const pc of geo.pieces) if (pc.f === f) for (const ring of (Array.isArray(pc.p[0][0]) ? pc.p : [pc.p])) {
+    for (const pc of geo.pieces) if (pc.f === f) for (const ring of pc.p) {
       const pts = ring.map(([x, y]) => new THREE.Vector3(x, y, heightAt(x, y) + 0.8));
       pts.push(pts[0].clone());
       outline.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat));
@@ -422,7 +421,7 @@ async function init({ container, geo, ramp, ramp2 = null, onHover, labels = [], 
   };
   const centroidOf = (f) => {
     let sx = 0, sy = 0, n = 0;
-    for (const pc of geo.pieces) if (pc.f === f) for (const q of (Array.isArray(pc.p[0][0]) ? pc.p[0] : pc.p)) { sx += q[0]; sy += q[1]; n++; }
+    for (const pc of geo.pieces) if (pc.f === f) for (const q of pc.p[0]) { sx += q[0]; sy += q[1]; n++; }
     return n ? new THREE.Vector3(sx / n, sy / n, 0) : null;
   };
   let motion = null, onMotionEnd = null, lastT = performance.now();
@@ -446,13 +445,13 @@ async function init({ container, geo, ramp, ramp2 = null, onHover, labels = [], 
     let daz = b.az - a.az; while (daz > Math.PI) daz -= 2 * Math.PI; while (daz < -Math.PI) daz += 2 * Math.PI;
     placeCamera(tgt, (a.d + (b.d - a.d) * e) * (1 + lift), a.polar + (b.polar - a.polar) * e, a.az + daz * e);
   }
-  // ---------- metro labels: screen-space, tracking the top of each county's peak ----------
-  const labelBox = document.createElement('div'); labelBox.className = 'peak-labels'; document.body.appendChild(labelBox);
+  // ---------- metro labels: screen-space, tracking the highest cell of each metro's county ----------
+  const labelBox = document.createElement('div'); labelBox.className = 'metro-labels'; document.body.appendChild(labelBox);
   const fipsIdx = new Map(fips.map((f, i) => [f, i + 1]));
-  const peaks = labels.map((lb) => {
+  const metros = labels.map((lb) => {
     const idx = fipsIdx.get(lb.f), cl = [];
     for (let j = 0; j < L; j++) if (owner[j] === idx) cl.push(cells[j]);
-    const el = document.createElement('div'); el.className = 'peak'; el.textContent = lb.name; labelBox.appendChild(el);
+    const el = document.createElement('div'); el.className = 'metro'; el.textContent = lb.name; labelBox.appendChild(el);
     return { ...lb, cells: cl, el };
   }).filter((p) => p.cells.length);
   let obstacles = [], frame = 0;
@@ -462,7 +461,7 @@ async function init({ container, geo, ramp, ramp2 = null, onHover, labels = [], 
     if (frame % 30 === 0) obstacles = [...document.querySelectorAll('.panel, .key, .bop, .timeline, #locator, .tour-caption')]
       .filter((e) => !e.hidden && e.getClientRects().length).map((e) => e.getBoundingClientRect());   // fixed panels have no offsetParent
     const W = renderer.domElement.clientWidth, Hh = renderer.domElement.clientHeight, placed = [];
-    for (const p of peaks) {
+    for (const p of metros) {
       let best = p.cells[0]; for (const g of p.cells) if (zCur[g] > zCur[best]) best = g;
       const c = best % cols, r = (best - c) / cols;
       v3.set(x0 + (c + 0.5) * CELL, yTop - (r + 0.5) * CELL, Math.max(0, zCur[best]) + 2).project(camera);
@@ -533,7 +532,7 @@ async function init({ container, geo, ramp, ramp2 = null, onHover, labels = [], 
       material.uniforms.uRamp.value = st.mode === 'value' ? rampTex2 : rampTex;
       material.uniforms.uContours.value = st.n === 'county' || st.countyMult ? 0 : 1;   // contours are votes per square mile
       const next = target(st, base);
-      cur = st; apply(next, animate);
+      apply(next, animate);
       // Ghost: the baseline election's surface in the same height mode (weights of the baseline election).
       const ghostOn = st.g === '1' && base && !flat;
       if (ghostOn) { const gt = target({ ...st, e: base, mode: 'margin', weights: st.baseWeights || st.weights, countyMult: st.baseCountyMult }, null); setGhost(gt.z, gt.no, next.no); }
@@ -600,10 +599,6 @@ async function init({ container, geo, ramp, ramp2 = null, onHover, labels = [], 
       if (reduced) { const last = keys[keys.length - 1]; stopMotion(); placeCamera(last.p, last.d, last.polar, last.az); }
     },
     stopMotion,
-    settings: H.settings,
-    pick, camera, controls,                                   // for checks
+    pick,
   };
 }
-
-window.VTTerrain = { init };
-window.dispatchEvent(new Event('vt-terrain-ready'));
