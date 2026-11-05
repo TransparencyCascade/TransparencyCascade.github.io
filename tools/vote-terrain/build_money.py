@@ -273,6 +273,132 @@ def load_votes():
     return sen, pres, checks
 
 
+
+# ---------------------------------------------------------------- per-filing summaries (F3X) for the same-date comparison
+# The FEC's committee summary files (webk, committee_summary) carry one row per committee and cycle, as of the file's date, so they cannot say what a
+# cycle held on a given day. The electronically filed reports can: each F3X (PAC and party report) states its coverage dates and the calendar year to
+# date (column B). The FEC publishes every filing in a daily zip (bulk-downloads/electronic/<YYYYMMDD>.zip); only the first few KB of each .fec file are
+# needed (the F3X line is the second line), so each is read with an HTTP range request into the zip, never downloaded whole.
+EFILE = 'https://cg-519a459a-0ea3-42c2-b7bc-fa1143481f74.s3-us-gov-west-1.amazonaws.com/bulk-downloads/electronic/'
+ELECTION_DAY = {2022: '2022-11-08', 2024: '2024-11-05', 2026: '2026-11-03'}
+PRE_GENERAL = {2022: '2022-10-19', 2024: '2024-10-16', 2026: '2026-10-14'}      # the pre-general report's coverage end: 20 days before the election
+# F3X field numbers (FEC format v8, 1-based): column A (this report) and column B (calendar year to date)
+F3X_A = {'receipts': 24, 'disb': 26, 'tin': 36, 'tout': 51, 'cands': 52, 'ie': 53, 'coord': 54}
+F3X_B = {'year': 75, 'receipts': 76, 'disb': 78, 'tin': 86, 'tout': 101, 'cands': 102, 'ie': 103, 'coord': 104}
+F3X_COLS = ['filing', 'day', 'form', 'cmte', 'from', 'thru', 'rpt'] + ['a_' + k for k in F3X_A] + ['b_' + k for k in F3X_B]
+
+
+def _rng(url, a, b, method='GET'):
+    err = None
+    for _ in range(5):
+        try:
+            req = urllib.request.Request(url, headers={'Range': f'bytes={a}-{b}', **UA})
+            return urllib.request.urlopen(req, timeout=90).read()
+        except Exception as e:      # noqa: BLE001 - retried, then raised
+            err = e
+    raise err
+
+
+def _zip_entries(url):
+    """(name, method, compressed size, local header offset) for every member, from the zip's central directory (read with two or three range requests)."""
+    import struct
+    req = urllib.request.Request(url, method='HEAD', headers=UA)
+    n = int(urllib.request.urlopen(req, timeout=90).headers['Content-Length'])
+    tail = _rng(url, max(0, n - 70000), n - 1)
+    i = tail.rfind(b'PK\x05\x06')
+    cnt, csz, coff = struct.unpack('<H', tail[i + 10:i + 12])[0], struct.unpack('<I', tail[i + 12:i + 16])[0], struct.unpack('<I', tail[i + 16:i + 20])[0]
+    if cnt == 0xFFFF or coff == 0xFFFFFFFF:
+        j = tail.rfind(b'PK\x06\x07')
+        z64 = struct.unpack('<Q', tail[j + 8:j + 16])[0]
+        rec = _rng(url, z64, z64 + 55)
+        cnt, csz, coff = struct.unpack('<Q', rec[32:40])[0], struct.unpack('<Q', rec[40:48])[0], struct.unpack('<Q', rec[48:56])[0]
+    cd = _rng(url, coff, coff + csz - 1)
+    out, p = [], 0
+    for _ in range(cnt):
+        (_sig, _vm, _vn, _fl, meth, _mt, _md, _crc, cs, us, nl, el, cl, _dn, _ia, _ea, lo) = struct.unpack('<IHHHHHHIIIHHHHHII', cd[p:p + 46])
+        name = cd[p + 46:p + 46 + nl].decode('latin1')
+        ex = cd[p + 46 + nl:p + 46 + nl + el]
+        if lo == 0xFFFFFFFF or cs == 0xFFFFFFFF:
+            q = 0
+            while q < len(ex):
+                tid, ts = struct.unpack('<HH', ex[q:q + 4])
+                if tid == 1:
+                    f, k = ex[q + 4:q + 4 + ts], 0
+                    if us == 0xFFFFFFFF:
+                        k += 8
+                    if cs == 0xFFFFFFFF:
+                        cs = struct.unpack('<Q', f[k:k + 8])[0]; k += 8
+                    if lo == 0xFFFFFFFF:
+                        lo = struct.unpack('<Q', f[k:k + 8])[0]
+                q += 4 + ts
+        out.append((name, meth, cs, lo)); p += 46 + nl + el + cl
+    return out
+
+
+def _fec_head(url, ent, nbytes=4000):
+    import struct, zlib
+    _name, meth, _cs, lo = ent
+    b = _rng(url, lo, lo + 30 + 300 + nbytes + 1500)
+    nl, el = struct.unpack('<HH', b[26:30])
+    d = b[30 + nl + el:]
+    return d[:nbytes] if meth == 0 else zlib.decompressobj(-15).decompress(d, nbytes)
+
+
+def _f3x_row(name, day, head):
+    """The F3X summary of one .fec file (None when the filing is another form)."""
+    lines = head.split(b'\n')
+    if len(lines) < 3:
+        return None
+    delim = b'\x1c' if lines[0].startswith(b'HDR\x1c') else b','
+    f = lines[1].decode('latin1').split(delim.decode('latin1'))
+    if not f[0].startswith('F3X') or len(f) < 104:
+        return None
+    g = lambda n: f[n - 1].strip()
+    return [name[:-4], day, f[0], g(2), g(14), g(15), g(10)] + [g(n) for n in F3X_A.values()] + [g(n) for n in F3X_B.values()]
+
+
+def get_f3x(c, days=None):
+    """F3X summaries of every PAC and party report filed from 1 January of cycle year c to its election day (see ELECTION_DAY), cached by day in
+    CACHE/f3x/<YYYYMMDD>.psv. Returns {(cmte, filing): dict}."""
+    from concurrent.futures import ThreadPoolExecutor
+    d0, d1 = datetime.date(c, 1, 1), datetime.date.fromisoformat(ELECTION_DAY[c])
+    cdir = os.path.join(CACHE, 'f3x')
+    os.makedirs(cdir, exist_ok=True)
+    dl = [d0 + datetime.timedelta(i) for i in range((d1 - d0).days + 1)]
+
+    def one_day(d):
+        ds = d.strftime('%Y%m%d')
+        path = os.path.join(cdir, ds + '.psv')
+        if os.path.exists(path):
+            return
+        url = EFILE + ds + '.zip'
+        try:
+            ents = _zip_entries(url)
+        except Exception as e:      # noqa: BLE001
+            print(f'  {ds}: no zip ({e})', file=sys.stderr); return
+        got = []
+        with ThreadPoolExecutor(12) as ex:
+            for ent, h in zip(ents, ex.map(lambda e: _fec_head(url, e), ents)):
+                r = _f3x_row(ent[0], d.isoformat(), h)
+                if r:
+                    got.append(r)
+        with open(path + '.tmp', 'w') as fh:
+            fh.write('\n'.join('|'.join(r) for r in got) + ('\n' if got else ''))
+        os.replace(path + '.tmp', path)
+        print(f'  {ds}: {len(ents)} filings, {len(got)} F3X', flush=True)
+    with ThreadPoolExecutor(8) as ex:
+        list(ex.map(one_day, dl))
+    rows = []
+    for d in dl:
+        path = os.path.join(cdir, d.strftime('%Y%m%d') + '.psv')
+        if not os.path.exists(path):
+            raise SystemExit(f'missing {path}: rerun')
+        for ln in open(path):
+            if ln.strip():
+                rows.append(dict(zip(F3X_COLS, ln.rstrip('\n').split('|'))))
+    return rows
+
+
 # ---------------------------------------------------------------- committee totals and donors
 WK_COLS = ['CMTE_ID', 'CMTE_NM', 'CMTE_TP', 'CMTE_DSGN', 'CMTE_FILING_FREQ', 'TTL_RECEIPTS', 'TRANS_FROM_AFF', 'INDV_CONTRIB', 'OTHER_POL_CMTE_CONTRIB',
            'CAND_CONTRIB', 'CAND_LOANS', 'TTL_LOANS_RECEIVED', 'TTL_DISB', 'TRANF_TO_AFF', 'INDV_REFUNDS', 'OTHER_POL_CMTE_REFUNDS', 'CAND_LOAN_REPAY',
@@ -297,6 +423,11 @@ def iso_mdy(s):
     """FEC MMDDYYYY (or M/D/YYYY) to ISO; '' when it is not a date."""
     m = re.match(r'^(\d{1,2})/?(\d{1,2})/?(\d{4})$', s or '')
     return f'{m.group(3)}-{int(m.group(1)):02d}-{int(m.group(2)):02d}' if m else ''
+
+
+def iso_ymd(s):
+    """YYYYMMDD to ISO."""
+    return f'{s[:4]}-{s[4:6]}-{s[6:8]}' if len(s) == 8 else ''
 
 
 def get_webk(c):
@@ -515,6 +646,12 @@ def committee_totals(c, ie_by_cmte, party_coord):
         # What no race can be named for: disbursements less the Schedule E total (and, for parties, coordinated expenditures).
         o['allocatedToARaceUsd'] = round(o['scheduleESummaryUsd'] + o['partyCoordinatedUsd'], 2)
         o['notAllocatedToARaceUsd'] = round(o['disbursementsUsd'] - o['allocatedToARaceUsd'], 2)
+        # Net of transfers, so a dollar passed from one committee to another is counted once (by the committee that spends it). Receipts less
+        # transfers in from affiliated and other party committees (F3X line 12; webk TRANS_FROM_AFF). Disbursements less transfers out to affiliated
+        # and other party committees (line 22; TRANF_TO_AFF) and contributions to federal candidates and other committees (line 23; CONTRIB_TO_OTHER_CMTE).
+        o['netReceiptsUsd'] = round(o['receiptsUsd'] - o['transfersInUsd'], 2)
+        o['netDisbursementsUsd'] = round(o['disbursementsUsd'] - o['transfersOutUsd'] - o['contributionsToOtherCommitteesUsd'], 2)
+        o['netNotAllocatedToARaceUsd'] = round(o['netDisbursementsUsd'] - o['allocatedToARaceUsd'], 2)
         o['notAllocatedIfScheduleEFileUsd'] = round(o['disbursementsUsd'] - o['scheduleEFileUsd'] - o['partyCoordinatedUsd'], 2)
         o['coverageEndLatest'] = max(dates[g]) if dates[g] else ''
         o['top'] = sorted(top[g], key=lambda x: -x['disbursementsUsd'])[:8]
@@ -523,6 +660,59 @@ def committee_totals(c, ie_by_cmte, party_coord):
                                   'receiptsUsd': round(sum(num(r['TTL_RECEIPTS']) for r in tu), 2)}}
     return out, [r for r in rows if r['CMTE_TP'] == 'O']
 
+
+
+def pre_general(c):
+    """The same committees at the same point in cycle c: what the filings on record by election day show through the pre-general report (PRE_GENERAL[c]).
+    For each committee in the groups (webk types, as committee_totals), cycle to date = the last F3X of the year before (calendar year to date, covering
+    through 31 December) + the last F3X of the election year covering through the cutoff (calendar year to date), the latest filing (highest filing
+    number, so an amendment replaces what it amends) for each coverage end. Same fields as committee_totals' net figures."""
+    rows = get_f3x(c)
+    cutoff, y1end = PRE_GENERAL[c], f'{c - 1}-12-31'
+    by = collections.defaultdict(list)
+    for r in rows:
+        if r['cmte'] and len(r['thru']) == 8:
+            by[r['cmte']].append(r)
+    def last(rs, lo, hi):
+        rs = [r for r in rs if lo <= iso_ymd(r['thru']) <= hi]
+        return max(rs, key=lambda r: (r['thru'], int(r['filing']))) if rs else None
+    groups = {g: {k: 0.0 for k in ('receiptsUsd', 'disbursementsUsd', 'transfersInUsd', 'transfersOutUsd', 'contributionsToOtherCommitteesUsd', 'scheduleEUsd', 'partyCoordinatedUsd')} | {'committees': 0, 'withNoReport': 0} for g, _ in GROUPS}
+    webk_rows = {r['CMTE_ID']: r for r in get_webk(c)}
+    recon = {'committees': 0, 'matching': 0, 'ourUsd': 0.0, 'webkUsd': 0.0}
+    for cid, w in webk_rows.items():
+        g = group_of(w)
+        if not g:
+            continue
+        rs = by.get(cid, [])
+        a, b = last(rs, f'{c - 2}-01-01', y1end), last(rs, f'{c}-01-01', cutoff)
+        o = groups[g]
+        o['committees'] += 1
+        if not (a or b):
+            o['withNoReport'] += 1
+            continue
+        for k, f in (('receiptsUsd', 'receipts'), ('disbursementsUsd', 'disb'), ('transfersInUsd', 'tin'), ('transfersOutUsd', 'tout'), ('contributionsToOtherCommitteesUsd', 'cands'), ('scheduleEUsd', 'ie'), ('partyCoordinatedUsd', 'coord')):
+            o[k] += sum(num(x['b_' + f]) for x in (a, b) if x)
+        # Reconcile with the committee summary file: a committee whose last report on the summary ends by election day should match it to the dollar.
+        if iso_mdy(w['CVG_END_DT']) and iso_mdy(w['CVG_END_DT']) <= ELECTION_DAY[c] and g != 'conduit':
+            last_all = last(rs, f'{c}-01-01', ELECTION_DAY[c])
+            ours = sum(num(x['b_disb']) for x in (last(rs, f'{c - 2}-01-01', y1end), last_all) if x)
+            recon['committees'] += 1; recon['ourUsd'] += ours; recon['webkUsd'] += num(w['TTL_DISB'])
+            recon['matching'] += abs(ours - num(w['TTL_DISB'])) < 1.0
+    out = {}
+    for g, o in groups.items():
+        o = {k: round(v, 2) if isinstance(v, float) else v for k, v in o.items()}
+        o['netReceiptsUsd'] = round(o['receiptsUsd'] - o['transfersInUsd'], 2)
+        o['netDisbursementsUsd'] = round(o['disbursementsUsd'] - o['transfersOutUsd'] - o['contributionsToOtherCommitteesUsd'], 2)
+        o['allocatedToARaceUsd'] = round(o['scheduleEUsd'] + o['partyCoordinatedUsd'], 2)
+        o['notAllocatedToARaceUsd'] = round(o['disbursementsUsd'] - o['allocatedToARaceUsd'], 2)
+        o['netNotAllocatedToARaceUsd'] = round(o['netDisbursementsUsd'] - o['allocatedToARaceUsd'], 2)
+        out[g] = o
+    last_day = max((r['day'] for r in rows), default='')
+    out['through'] = cutoff
+    out['filingsOnRecordBy'] = ELECTION_DAY[c] if last_day >= ELECTION_DAY[c] else last_day
+    out['reconcile'] = {'what': 'committees whose last report on the committee summary file ends by election day: total disbursements from the F3X filings here against the summary file', 'committees': recon['committees'],
+                        'matchingToTheDollar': recon['matching'], 'filingsUsd': round(recon['ourUsd'], 2), 'summaryFileUsd': round(recon['webkUsd'], 2)}
+    return out
 
 # ---------------------------------------------------------------- build
 def fig(type_, what, usd, src):
@@ -624,6 +814,10 @@ def sides_of(c, cs, v, cand_ie):
 
 
 def main():
+    if '--f3x-only' in args:
+        for c in (2022, 2024, 2026):
+            print(c, len(get_f3x(c)), 'F3X rows')
+        return
     sen_votes, pres_votes, vote_checks = load_votes()
     out = {'method': (__doc__ or '').strip().split('\n\n')[0], 'cycles': CYCLES, 'senate': [], 'president': [], 'checks': {}, 'unmapped': {}}
     cand_by_cycle = {}
@@ -809,6 +1003,8 @@ def main():
     coverage = {}
     for c in CYCLES:
         tot, sp = committee_totals(c, ie_cm[c], pc_cm[c])
+        if c in ELECTION_DAY:
+            tot['preGeneral'] = pre_general(c)
         out['committees']['cycles'][str(c)] = tot
         ds = donor_stats(c, sp) if c >= 2010 else None
         if ds:
