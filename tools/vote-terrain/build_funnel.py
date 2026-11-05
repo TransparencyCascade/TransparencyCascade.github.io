@@ -226,15 +226,17 @@ def main():
         out_state[str(y)] = {}
         tot = {"v": [0.0] * len(IDS), "miss": [0] * len(IDS), "missReg": [0.0] * len(IDS), "n": 0, "pr": [0.0] * 8}
         for st, A in sorted(st_acc[y].items()):
-            out_state[str(y)][st] = {"n": A["n"], "v": [rnd(x) if A["has"][i] else None for i, x in enumerate(A["v"])], "miss": [A["miss"][i] if A["has"][i] else None for i in range(len(IDS))],
-                                     "missReg": [rnd(A["missReg"][i]) if A["has"][i] else None for i in range(len(IDS))], "pr": [rnd(x) for x in A["pr"]]}
+            # a figure every jurisdiction in the state left out is missing (null), not a sum of nothing; its missing count is kept
+            asked, got = A["has"], [h and A["miss"][i] < A["n"] for i, h in enumerate(A["has"])]
+            out_state[str(y)][st] = {"n": A["n"], "v": [rnd(x) if got[i] else None for i, x in enumerate(A["v"])], "miss": [A["miss"][i] if asked[i] else None for i in range(len(IDS))],
+                                     "missReg": [rnd(A["missReg"][i]) if asked[i] else None for i in range(len(IDS))], "pr": [rnd(x) for x in A["pr"]]}
             for i in range(len(IDS)):
                 tot["v"][i] += A["v"][i]
                 tot["miss"][i] += A["miss"][i]
                 tot["missReg"][i] += A["missReg"][i]
             tot["n"] += A["n"]
             tot["pr"] = [a + b for a, b in zip(tot["pr"], A["pr"])]
-        asked = [k == "cast" or any(y == yy for yy in dict((i[0], i[2]) for i in ITEMS)[k]) for k in IDS]
+        asked = [(k == "cast" or any(y == yy for yy in dict((i[0], i[2]) for i in ITEMS)[k])) and tot["miss"][IDS.index(k)] < tot["n"] for k in IDS]
         nat[str(y)] = {"n": tot["n"], "v": [rnd(x) if asked[i] else None for i, x in enumerate(tot["v"])], "miss": [x if asked[i] else None for i, x in enumerate(tot["miss"])],
                        "missReg": [rnd(x) if asked[i] else None for i, x in enumerate(tot["missReg"])], "pr": [rnd(x) for x in tot["pr"]]}
     # ---- check: people counted against the page's certified turnout ----
