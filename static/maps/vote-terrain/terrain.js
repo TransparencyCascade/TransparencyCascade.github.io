@@ -17,9 +17,9 @@ async function init({ container, geo, ramp, onHover, labels = [], locator = null
   const [owner, cells] = await Promise.all([bin('terrain-counties.bin', Uint16Array), bin('terrain-cells.bin', Uint32Array)]);
   const { cols, rows, cell: CELL, x0, yTop, land: L, k, sqmiPerUnit2, fips } = H;
   const N = cols * rows, cellArea = CELL * CELL;
-  const grids = {};                                      // setting -> Uint16Array of the whole file
-  const loadSetting = async (s) => (grids[s] ??= await bin(`terrain-s${s}.bin`, Uint16Array));
-  await loadSetting(H.defaultSetting);
+  // One file per election and smoothing setting, fetched the first time that election is shown.
+  const grids = {};                                      // "election@setting" -> Uint16Array
+  const loadGrid = async (e, s) => (grids[`${e}@${s}`] ??= await bin(H.elections[e].file[s], Uint16Array));
 
   // Grid-cell index -> land index (-1 = sea)
   const landOf = new Int32Array(N).fill(-1);
@@ -48,6 +48,8 @@ async function init({ container, geo, ramp, onHover, labels = [], locator = null
   geom.setAttribute('aDens', new THREE.BufferAttribute(dens, 1));
   geom.setAttribute('aSea', new THREE.BufferAttribute(sea, 1));
   geom.setAttribute('aNorm', new THREE.BufferAttribute(nrm, 3));
+  const hiAttr = new Float32Array(N).fill(1);            // 1 = in the highlighted states (or no highlight)
+  geom.setAttribute('aHi', new THREE.BufferAttribute(hiAttr, 1));
   geom.setIndex(idx);
 
   const rampTex = new THREE.DataTexture(ramp.data, ramp.size, 1, THREE.RGBAFormat);
@@ -57,19 +59,19 @@ async function init({ container, geo, ramp, onHover, labels = [], locator = null
     uniforms: {
       uRamp: { value: rampTex }, uMax: { value: 70 }, uLight: { value: light },
       uGround: { value: GROUND.clone().convertSRGBToLinear() }, uNoData: { value: new THREE.Color('#EEF1F1').convertSRGBToLinear() },
-      uInk: { value: new THREE.Color('#23306B').convertSRGBToLinear() }, uContours: { value: 1 }, uMinLevel: { value: 1.95 },
+      uInk: { value: new THREE.Color('#23306B').convertSRGBToLinear() }, uContours: { value: 1 }, uMinLevel: { value: 1.95 }, uHiOn: { value: 0 },
     },
     vertexShader: /* glsl */`
-      attribute float aVal; attribute float aNo; attribute float aDens; attribute float aSea; attribute vec3 aNorm;
-      varying vec3 vPos; varying float vVal; varying float vNo; varying float vDens; varying float vSea; varying vec3 vNorm;
+      attribute float aVal; attribute float aNo; attribute float aDens; attribute float aSea; attribute vec3 aNorm; attribute float aHi;
+      varying vec3 vPos; varying float vVal; varying float vNo; varying float vDens; varying float vSea; varying vec3 vNorm; varying float vHi;
       void main() {
-        vPos = position; vVal = aVal; vNo = aNo; vDens = aDens; vSea = aSea; vNorm = aNorm;
+        vPos = position; vVal = aVal; vNo = aNo; vDens = aDens; vSea = aSea; vNorm = aNorm; vHi = aHi;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }`,
     fragmentShader: /* glsl */`
       uniform sampler2D uRamp; uniform float uMax; uniform vec3 uLight; uniform vec3 uGround; uniform vec3 uNoData;
-      uniform vec3 uInk; uniform float uContours; uniform float uMinLevel;
-      varying vec3 vPos; varying float vVal; varying float vNo; varying float vDens; varying float vSea; varying vec3 vNorm;
+      uniform vec3 uInk; uniform float uContours; uniform float uMinLevel; uniform float uHiOn;
+      varying vec3 vPos; varying float vVal; varying float vNo; varying float vDens; varying float vSea; varying vec3 vNorm; varying float vHi;
       void main() {
         vec3 base = vNo > 0.5 ? uNoData : texture2D(uRamp, vec2(clamp(vVal / uMax * 0.5 + 0.5, 0.0, 1.0), 0.5)).rgb;
         // Smooth normals from the height field (not per-facet), so peaks read as rounded hills.
@@ -85,6 +87,8 @@ async function init({ container, geo, ramp, onHover, labels = [], locator = null
         // No contours along the coast (sea cells carry no density) or where there is no race.
         line *= (1.0 - smoothstep(0.0, 0.04, vSea)) * (1.0 - vNo);
         col = mix(col, uInk, line * 0.5);
+        // Highlighted states keep their colour; the rest of the country fades toward the page.
+        if (uHiOn > 0.5) col = mix(col, uGround, 0.55 * (1.0 - clamp(vHi, 0.0, 1.0)));
         // The coast is cut, not painted: past the halfway line between land and sea cells nothing is drawn,
         // so the shoreline follows a smooth line through the grid and the page background shows beyond it.
         if (vSea > 0.5) discard;
@@ -146,6 +150,37 @@ async function init({ container, geo, ramp, onHover, labels = [], locator = null
     line.geometry.attributes.position.needsUpdate = true;
   };
   const stateLines = lineSet(stateSegs.length / 2, 0.34);
+  const drapeSegs = (line, segs, Z, lift) => {
+    const P = line.geometry.attributes.position.array;
+    for (let i = 0, s4 = 0; s4 < segs.length; s4 += 4, i += 6) {
+      P[i] = segs[s4]; P[i + 1] = segs[s4 + 1]; P[i + 2] = sampleZ(Z, segs[s4], segs[s4 + 1]) + lift;
+      P[i + 3] = segs[s4 + 2]; P[i + 4] = segs[s4 + 3]; P[i + 5] = sampleZ(Z, segs[s4 + 2], segs[s4 + 3]) + lift;
+    }
+    line.geometry.attributes.position.needsUpdate = true;
+  };
+  // Highlight: the outline of a set of states (county edges not shared inside the set, coast included),
+  // drawn in full ink on top of the surface.
+  let hiSegs = null, hiLine = null;
+  function outlineOf(states) {
+    const set = new Set(states), seen = new Map(), key = (q) => q[0].toFixed(1) + ',' + q[1].toFixed(1);
+    for (const pc of geo.pieces) {
+      const st = geo.meta[pc.f] && geo.meta[pc.f].st; if (!set.has(st)) continue;
+      for (const ring of (Array.isArray(pc.p[0][0]) ? pc.p : [pc.p])) for (let i = 0; i < ring.length; i++) {
+        const a = ring[i], b = ring[(i + 1) % ring.length], ka = key(a), kb = key(b); if (ka === kb) continue;
+        const kk = ka < kb ? ka + '|' + kb : kb + '|' + ka, e = seen.get(kk);
+        if (e) e.n++; else seen.set(kk, { a, b, n: 1 });   // an edge used twice inside the set is internal
+      }
+    }
+    const out = [];
+    for (const e of seen.values()) if (e.n === 1) {
+      const n = Math.max(1, Math.ceil(Math.hypot(e.b[0] - e.a[0], e.b[1] - e.a[1]) / CELL));
+      for (let i = 0; i < n; i++) {
+        const t0 = i / n, t1 = (i + 1) / n;
+        out.push(e.a[0] + (e.b[0] - e.a[0]) * t0, e.a[1] + (e.b[1] - e.a[1]) * t0, e.a[0] + (e.b[0] - e.a[0]) * t1, e.a[1] + (e.b[1] - e.a[1]) * t1);
+      }
+    }
+    return Float32Array.from(out);
+  }
 
   // Ghost: every eighth grid row and column of the previous election's surface (about 50 miles apart), plus its state borders.
   // The part in front of the current land is drawn firmly; the part buried under it, faintly, so rises
@@ -197,7 +232,7 @@ async function init({ container, geo, ramp, onHover, labels = [], locator = null
   let setting = H.defaultSetting, cur = null, flat = false;
   const zCur = new Float32Array(N);                      // current heights, also used for hover
   const decode = (s, e) => {
-    const g = grids[s], o = H.elections[e].offset / 2, sc = H.elections[e].scale[s];
+    const g = grids[`${e}@${s}`], o = 0, sc = H.elections[e].scale[s];
     return { T: g.subarray(o, o + L), D: g.subarray(o + L, o + 2 * L), R: g.subarray(o + 2 * L, o + 3 * L), sc };
   };
   function target(st, base) {
@@ -267,6 +302,7 @@ async function init({ container, geo, ramp, onHover, labels = [], locator = null
       if (u >= 0.5 || !dur) nod.set(next.no);
       computeNormals();
       drape(stateLines, zCur, 0.4);
+      if (hiSegs) drapeSegs(hiLine, hiSegs, zCur, 0.9);
       for (const name of ['position', 'aVal', 'aDens', 'aNo', 'aNorm']) geom.attributes[name].needsUpdate = true;
       geom.computeBoundingSphere();
       if (u < 1) anim = requestAnimationFrame(step); else anim = null;
@@ -483,7 +519,8 @@ async function init({ container, geo, ramp, onHover, labels = [], locator = null
 
   return {
     async setState(st, { animate = true, base = null } = {}) {
-      if (st.m && Number(st.m) !== setting && H.settings.includes(Number(st.m))) { setting = Number(st.m); await loadSetting(setting); }
+      if (st.m && Number(st.m) !== setting && H.settings.includes(Number(st.m))) setting = Number(st.m);
+      await Promise.all([loadGrid(st.e, setting), base ? loadGrid(base, setting) : null]);
       flat = st.d === '2d';
       material.uniforms.uMax.value = st.mode === 'swing' ? 26 : 70;
       material.uniforms.uContours.value = st.n === 'county' ? 0 : 1;   // contours are votes per square mile
@@ -494,6 +531,32 @@ async function init({ container, geo, ramp, onHover, labels = [], locator = null
       if (ghostOn) { const gt = target({ ...st, e: base, mode: 'margin', weights: st.baseWeights || st.weights }, null); setGhost(gt.z, gt.no, next.no); }
       showGhost(!!ghostOn);
       drawOutline(hovered || pinned);
+    },
+    // Highlight a set of states: outline them, fade the rest, and (fly) frame them from a low angle.
+    highlight(states, { fly = true } = {}) {
+      if (hiLine) { scene.remove(hiLine); hiLine.geometry.dispose(); hiLine = null; hiSegs = null; }
+      if (!states || !states.length) { hiAttr.fill(1); material.uniforms.uHiOn.value = 0; geom.attributes.aHi.needsUpdate = true; return; }
+      const set = new Set(states);
+      hiAttr.fill(0);
+      let x0b = Infinity, x1b = -Infinity, y0b = Infinity, y1b = -Infinity;
+      for (let j = 0; j < L; j++) if (set.has(cellSt[j])) {
+        const g = cells[j]; hiAttr[g] = 1;
+        const x = pos[g * 3], y = pos[g * 3 + 1];
+        x0b = Math.min(x0b, x); x1b = Math.max(x1b, x); y0b = Math.min(y0b, y); y1b = Math.max(y1b, y);
+      }
+      geom.attributes.aHi.needsUpdate = true; material.uniforms.uHiOn.value = 1;
+      hiSegs = outlineOf(states);
+      hiLine = new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(hiSegs.length / 2 * 3), 3)),
+        new THREE.LineBasicMaterial({ color: 0x23306b, transparent: true, opacity: 0.95, depthWrite: false }));
+      hiLine.frustumCulled = false; hiLine.renderOrder = 3; scene.add(hiLine);
+      drapeSegs(hiLine, hiSegs, zCur, 0.9);
+      if (fly && isFinite(x0b)) {
+        stopMotion();
+        const fov = THREE.MathUtils.degToRad(camera.fov), span = Math.max(x1b - x0b, (y1b - y0b) * camera.aspect) * 1.35 + 40;
+        const hfov = 2 * Math.atan(Math.tan(fov / 2) * camera.aspect);
+        moveCamera({ target: new THREE.Vector3((x0b + x1b) / 2, (y0b + y1b) / 2 - 0.08 * (y1b - y0b), 0), dist: span / 2 / Math.tan(hfov / 2) * 1.9,
+          polar: THREE.MathUtils.degToRad(64), az: 0 }, true);
+      }
     },
     view(name, presets, side, animate = true) {
       natDist = cameraFor('national', presets, side).dist;

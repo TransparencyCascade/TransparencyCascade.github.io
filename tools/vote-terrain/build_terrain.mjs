@@ -7,8 +7,11 @@
 // (per county [total, Republican, Democratic]). Writes:
 //   terrain.json            grid header, county order, per-election scales, the volume check
 //   terrain-counties.bin    Uint16 county index for every land cell (1-based; order in terrain.json)
-//   terrain-s<N>.bin        per election: total votes per land cell (Uint16, square-root coded) and the
-//                           Democratic and Republican shares of that total (Uint16 each; 65535 = no data)
+//   terrain-<election>-s<N>.bin  one file per election and smoothing setting, loaded by the page only when
+//                           that election is first shown: total votes per land cell (Uint16, square-root
+//                           coded), then the Democratic and Republican shares of that total (Uint16 each;
+//                           65535 = no data)
+// Lives in tools/ so Hugo does not publish it; reads and writes static/maps/vote-terrain/.
 //
 // Method (Tobler 1979): each county's votes start spread evenly over its cells; then, repeatedly,
 // every land cell becomes the mean of itself and its four neighbours (sea counts as 0), and each
@@ -21,7 +24,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const HERE = path.dirname(fileURLToPath(import.meta.url));
+const HERE = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'static', 'maps', 'vote-terrain');
 const CELL = 2;                              // projected units per cell (about 6 miles)
 // Smoothing settings: smoothing passes between rescales. More iterations add little (the method converges
 // well before 80), but more passes per rescale spread each county's votes further before the volume is
@@ -31,7 +34,7 @@ const ITERATIONS = 80;
 const SHARE = 65534, NODATA = 65535;          // share coding: 0..65534 of the cell's total; 65535 = no data
 const geo = JSON.parse(fs.readFileSync(path.join(HERE, 'geometry.json'), 'utf8'));
 const el = JSON.parse(fs.readFileSync(path.join(HERE, 'elections.json'), 'utf8'));
-const ELECTIONS = [...el.order, 'senprior'];
+const ELECTIONS = [...el.order, 'senprior', 'govprior'];
 
 // ---------- grid ----------
 const pieces = geo.pieces.filter((pc) => !pc.f.startsWith('02'));
@@ -161,7 +164,7 @@ for (const e of ELECTIONS) {
   const O = T.map((t, id) => Math.max(0, t - D[id] - R[id]));
   const sD = smooth(D, SETTINGS), sR = smooth(R, SETTINGS), sO = smooth(O, SETTINGS);
   const sT = Object.fromEntries(SETTINGS.map((s) => [s, sD[s].map((d, j) => d + sR[s][j] + sO[s][j])]));
-  const entry = { label: el.elections[e].label, offset, scale: {} };
+  const entry = { label: el.elections[e].label, offset: 0, scale: {}, file: {} };
   for (const s of SETTINGS) {
     const t = sT[s], d = sD[s], r = sR[s];
     let maxSqrt = 0;
@@ -181,7 +184,8 @@ for (const e of ELECTIONS) {
       carryD[id] = wantD - tv * qD[j] / SHARE; carryR[id] = wantR - tv * qR[j] / SHARE;
     }
     entry.scale[s] = scale;
-    blobs[s].push(Buffer.from(qT.buffer), Buffer.from(qD.buffer), Buffer.from(qR.buffer));
+    entry.file[s] = `terrain-${e}-s${s}.bin`;
+    fs.writeFileSync(path.join(HERE, entry.file[s]), Buffer.concat([Buffer.from(qT.buffer), Buffer.from(qD.buffer), Buffer.from(qR.buffer)]));
     // Volume check on the coded values: each county's decoded total, Democratic and Republican sums.
     const sumT = new Float64Array(fipsList.length + 1), sumD = new Float64Array(fipsList.length + 1), sumR = new Float64Array(fipsList.length + 1);
     for (let j = 0; j < L; j++) {
@@ -205,10 +209,9 @@ for (const e of ELECTIONS) {
 fs.writeFileSync(path.join(HERE, 'terrain-counties.bin'), Buffer.from(new Uint16Array(landCells.map((g) => owner[g])).buffer));
 // Land cell positions: grid index of each land cell (Uint32), so the page can rebuild the grid.
 fs.writeFileSync(path.join(HERE, 'terrain-cells.bin'), Buffer.from(new Uint32Array(landCells).buffer));
-for (const s of SETTINGS) fs.writeFileSync(path.join(HERE, `terrain-s${s}.bin`), Buffer.concat(blobs[s]));
 fs.writeFileSync(path.join(HERE, 'terrain.json'), JSON.stringify(header));
 const worstAll = Math.max(...Object.values(header.check).flatMap((c) => Object.values(c).map((x) => x.maxRelError)));
 console.log('worst per-county volume error across all elections, settings and surfaces:', (worstAll * 100).toFixed(3) + '%');
-for (const f of ['terrain.json', 'terrain-counties.bin', 'terrain-cells.bin', ...SETTINGS.map((s) => `terrain-s${s}.bin`)]) {
+for (const f of ['terrain.json', 'terrain-counties.bin', 'terrain-cells.bin', ...Object.values(header.elections).flatMap((x) => Object.values(x.file))]) {
   console.log(f, (fs.statSync(path.join(HERE, f)).size / 1024).toFixed(0) + ' KB');
 }

@@ -76,6 +76,13 @@
   .timeline .step[aria-pressed=true] span { color:#C9CFE3; }
   .timeline .nav { font-size:18px; padding:10px 14px; }
 
+  .offices { position:fixed; left:50%; bottom:92px; transform:translateX(-50%); display:flex; background:var(--paper); border:1px solid var(--rule); }
+  .offices button { font:inherit; font-size:13px; color:var(--ink); background:transparent; border:0; border-left:1px solid var(--rule); padding:5px 14px; cursor:pointer; }
+  .offices button:first-child { border-left:0; }
+  .offices button[aria-pressed=true] { background:var(--ink); color:var(--paper); }
+  .bop .flip { font:inherit; color:inherit; text-align:left; background:transparent; border:0; border-left:2px solid var(--rule); padding:2px 0 2px 8px; margin:0; cursor:pointer; width:100%; }
+  .bop .flip:hover { border-left-color:var(--ink); }
+  .bop .flip[aria-pressed=true] { border-left-color:var(--ink); background:rgba(35,48,107,0.07); }
   .deck-tooltip { font-family:'Courier Prime', monospace !important; font-size:13px !important; background:var(--paper) !important;
                   color:var(--ink) !important; border:1px solid var(--rule); padding:8px 10px !important; max-width:320px; line-height:1.4; }
   .seg2 { margin-top:6px; }
@@ -126,6 +133,7 @@
     .key { top:10px; right:10px; bottom:auto; width:170px; }
     .bop { top:auto; bottom:84px; left:10px; right:10px; width:auto; max-height:40%; z-index:3; }
     .timeline { left:10px; right:10px; transform:none; bottom:10px; overflow-x:auto; }
+    .offices { left:10px; transform:none; bottom:74px; }
     .timeline .step { min-width:88px; padding:8px 10px; } .timeline .step b { font-size:18px; }
   }
 </style>
@@ -215,9 +223,10 @@
   <div id="bopBody"></div>
 </details>
 
+<div class="offices" id="offices" role="group" aria-label="Office"></div>
 <nav class="timeline" id="timeline" aria-label="Election"></nav>
 <canvas id="locator" aria-label="Locator: the whole country from above, with the part in view marked. Click to move the view there." role="button" tabindex="0"></canvas>
-<script type="module" src="terrain.js?v=56"></script>
+<script type="module" src="terrain.js?v=52"></script>
 <script src="app.js?v=51"></script>
 </body>
 </html>

@@ -4,7 +4,7 @@
 //   VT_MODULES=<dir with node_modules/d3-geo and topojson-client> node build_data.mjs
 //   (one-time: npm i d3-geo@3.1.1 topojson-client@3.1.0 in that dir)
 //
-// Writes, beside this script:
+// Writes into static/maps/vote-terrain/ (the page; this script lives in tools/ so Hugo does not publish it):
 //   geometry.json   counties pre-projected to d3.geoAlbersUsa (equal-area; Alaska and Hawaii insets),
 //                   one item per polygon piece: fips, county name, state, rings (y flipped so north is up),
 //                   the county's projected area (px^2) and true area (sq mi)
@@ -25,6 +25,9 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
+const OUT = path.join(HERE, '..', '..', 'static', 'maps', 'vote-terrain');
+// Senate 2018-2024 and governor county results, built by build_senate_governor.py.
+const EXTRA = process.env.VT_EXTRA || path.join(HERE, 'extra-elections.json');
 const HOME = os.homedir();
 const MODULES = process.env.VT_MODULES || path.join(HERE, 'node_modules');
 const require = createRequire(path.join(MODULES, 'x.js'));
@@ -176,8 +179,51 @@ elections.senprior = {
   label: 'the previous Senate race', office: 'U.S. Senate', data: pdata, baselineOnly: true, priorYears,
   source: 'Previous Senate race by county: Verified Voting 2020 official county results, and MIT Election Data and Science Lab files for 2022 and 2024 (see senate-and-governor-2026-vs-prior-race-by-county-2026-11-04.md).',
 };
-// The baseline for "swing since the last race for the same office".
-const sameOffice = { pres2016: null, pres2020: 'pres2016', pres2024: 'pres2020', sen2026: 'senprior' };
+// ---------- Senate 2018-2024 and governor (build_senate_governor.py) ----------
+const extra = JSON.parse(fs.readFileSync(EXTRA, 'utf8'));
+for (const [key, e] of Object.entries(extra)) {
+  const data = {};
+  for (const [f, v] of Object.entries(e.data)) put(data, f, v, key);
+  elections[key] = { ...e, data };
+}
+elections.sen2026.notes = ['Democrat-vs-Republican races only; 30 states.'];
+
+// Plausibility guard for the precinct-built years: a Senate or governor race cannot draw more votes than
+// the same county's presidential race in the comparable cycle by much. A county over 1.25 times is left
+// out; a state where more than a tenth of the counties fail is left out whole (New York's 2018 and 2022
+// MEDSL files sum some votes twice). Each exclusion is listed in the election's notes.
+const PRES_FOR = { sen2018: 'pres2016', gov2018: 'pres2016', sen2020: 'pres2020', sen2022: 'pres2020', gov2022: 'pres2020', sen2024: 'pres2024', gov2026: 'pres2024' };
+const ST = (f) => meta[f] ? meta[f].st : '?';
+for (const [key, pk] of Object.entries(PRES_FOR)) {
+  const e = elections[key], pd = elections[pk].data, bad = {}, n = {};
+  for (const [f, v] of Object.entries(e.data)) {
+    n[ST(f)] = (n[ST(f)] || 0) + 1;
+    if (pd[f] && pd[f][0] > 0 && v[0] > 1.25 * pd[f][0]) (bad[ST(f)] ||= []).push(f);
+  }
+  e.notes = e.notes || [];
+  for (const [st, fs] of Object.entries(bad)) {
+    if (fs.length > 0.1 * n[st]) {
+      for (const f of Object.keys(e.data)) if (ST(f) === st) delete e.data[f];
+      e.notes.push(`${st}: ${fs.length} of ${n[st]} counties report more votes than the ${elections[pk].label} race; the state is left out`);
+    } else {
+      for (const f of fs) delete e.data[f];
+      e.notes.push(`${st}: left out ${fs.map((f) => meta[f].n).join(', ')} (more votes than the ${elections[pk].label} race)`);
+    }
+  }
+}
+for (const key of ['gov2026', 'gov2022', 'govprior']) {
+  (elections[key].notes ||= []).push('Connecticut reports by planning region, which these county shapes predate; left out.');
+}
+
+// Timeline tracks, and the baseline for "swing since the last race for the same seat".
+const tracks = {
+  president: ['pres2016', 'pres2020', 'pres2024'],
+  senate: ['sen2018', 'sen2020', 'sen2022', 'sen2024', 'sen2026'],
+  governor: ['gov2018', 'gov2022', 'gov2026'],
+};
+const sameOffice = { pres2016: null, pres2020: 'pres2016', pres2024: 'pres2020',
+  sen2018: null, sen2020: null, sen2022: null, sen2024: 'sen2018', sen2026: 'senprior',
+  gov2018: null, gov2022: 'gov2018', gov2026: 'govprior' };
 
 // Exaggeration: one constant across every election, set from the densest county in any of them.
 let maxD = 0, maxF = '', minD = Infinity, minF = '';
@@ -189,9 +235,9 @@ for (const e of Object.values(elections)) for (const [f, [t]] of Object.entries(
 const MAX_HEIGHT = 260;                 // projected px units for the densest county
 const k = MAX_HEIGHT / maxD;            // height = k * votes / area_px
 
-fs.writeFileSync(path.join(HERE, 'geometry.json'), JSON.stringify({ meta, pieces, presets }));
-fs.writeFileSync(path.join(HERE, 'elections.json'), JSON.stringify({
-  order: ['pres2016', 'pres2020', 'pres2024', 'sen2026'], sameOffice, k, maxHeight: MAX_HEIGHT, elections,
+fs.writeFileSync(path.join(OUT, 'geometry.json'), JSON.stringify({ meta, pieces, presets }));
+fs.writeFileSync(path.join(OUT, 'elections.json'), JSON.stringify({
+  order: [...tracks.president, ...tracks.senate, ...tracks.governor], tracks, sameOffice, k, maxHeight: MAX_HEIGHT, elections,
   notes: {
     AK: 'Alaska reports presidential results by state House district, not by borough, so it has no county data here.',
     CT: 'Connecticut is drawn on its eight historic counties, the codes the certified presidential file uses.',

@@ -9,7 +9,10 @@
 (async function () {
   const [geo, el, bal] = await Promise.all(['geometry.json', 'elections.json', 'balance.json'].map((u) => fetch(u).then((r) => r.json())));
   const { meta, pieces, presets } = geo;
-  const { order, sameOffice, k, elections, notes } = el;
+  const { order, tracks, sameOffice, k, elections, notes } = el;
+  // Office tracks: the timeline shows the elections of the office in view.
+  const officeOf = (e) => Object.keys(tracks).find((o) => tracks[o].includes(e)) || 'president';
+  const OFFICE_NAME = { president: 'President', senate: 'Senate', governor: 'Governor' };
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const fmt = (n) => Math.round(n).toLocaleString('en-US');
 
@@ -26,6 +29,7 @@
     worth: { set: { n: 'area', h: 'ev', c: 'margin', g: '0', d: '3d' }, v: 'national',
       how: 'Height is votes scaled by each state\'s share of the Electoral College (or of the Senate) per vote cast. Small states rise; large ones sink.' },
   };
+  let hiKey = null, hiSet = null;                      // highlighted states (a smallest-change line)
   const firstVisit = !location.hash;                    // a shared link opens still; a first visit spins
   const fromHash = () => {
     const q = new URLSearchParams(location.hash.slice(1));
@@ -64,7 +68,13 @@
     const m1 = margin(elections[state.e].data[f]), m0 = margin(elections[b].data[f]);
     return m1 == null || m0 == null ? null : m1 - m0;
   };
+  // Exact counties: outside a highlight, colours fade toward the page.
   const colourOf = (f) => {
+    const c = colourRaw(f);
+    if (!hiSet || hiSet.has(meta[f] && meta[f].st)) return c;
+    return c.map((x, i) => Math.round(x + ([232, 236, 236][i] - x) * 0.55));
+  };
+  const colourRaw = (f) => {
     const v = elections[state.e].data[f];
     if (!v) return NODATA;
     if (isMargin()) return rgb(toward(margin(v), MARGIN_MAX));
@@ -77,7 +87,8 @@
     const key = e + kind; if (weightCache[key]) return weightCache[key];
     const V = {};
     for (const [f, v] of Object.entries(elections[e].data)) { const st = meta[f] && meta[f].st; if (st) V[st] = (V[st] || 0) + v[0]; }
-    const ev = bal.ev[e] || bal.ev.pres2024;
+    // Electoral votes in force: the 2010 apportionment through the 2020 elections, the 2020 one from 2022.
+    const ev = bal.ev[e] || (elections[e].year >= 2022 ? bal.ev.pres2024 : bal.ev.pres2016);
     const S = Object.keys(V).filter((st) => V[st] > 0 && (kind === 'ev' ? ev[st] > 0 : st !== 'DC'));
     const sumV = S.reduce((a, st) => a + V[st], 0), sumP = kind === 'ev' ? S.reduce((a, st) => a + ev[st], 0) : 2 * S.length;
     const factor = {};
@@ -149,7 +160,7 @@
 
   const sunk = (p, h) => (Array.isArray(p[0][0]) ? p.map((ring) => ring.map((q) => [q[0], q[1], h])) : p.map((q) => [q[0], q[1], h]));
   function layers() {
-    const trig = [state.e, state.h, state.c, state.d];
+    const trig = [state.e, state.h, state.c, state.d, hiKey];
     const terrainOn = state.s === 'terrain';
     return [
       new deck.PolygonLayer({
@@ -255,7 +266,8 @@
     const f = object.f, m = meta[f], e = elections[state.e], v = e.data[f];
     const head = `<b>${m.n}${/^(AK|LA)$/.test(m.st) ? '' : ' County'}, ${m.st}</b><br>`;
     if (!v) {
-      const why = m.st === 'AK' ? notes.AK : state.e === 'sen2026' ? 'No Democrat-vs-Republican Senate race counted here in 2026.' : 'No result in the source for this county.';
+      const why = m.st === 'AK' ? notes.AK : officeOf(state.e) === 'president' ? 'No result in the source for this county.'
+        : `No Democrat-vs-Republican ${OFFICE_NAME[officeOf(state.e)].toLowerCase()} race with county results here in ${elections[state.e].year} (see the notes in the panel).`;
       return { html: head + why };
     }
     const mg = margin(v), s = swingOf(f), b = baselineOf();
@@ -271,19 +283,38 @@
   // ---------- controls ----------
   const timeline = document.getElementById('timeline');
   const parts = (o) => { const w = elections[o].label.split(' '); return { year: w.pop(), office: w.join(' ') }; };
-  timeline.innerHTML = '<button class="nav" id="prev" aria-label="Previous election">‹</button>' +
-    order.map((o) => { const p = parts(o); return `<button class="step" data-e="${o}"><b>${p.year}</b><span>${p.office}</span></button>`; }).join('') +
-    '<button class="nav" id="next" aria-label="Next election">›</button>' +
-    '<button class="nav" id="play" aria-label="Play through the elections">▶</button>';
+  const offices = document.getElementById('offices');
+  offices.innerHTML = Object.keys(tracks).map((o) => `<button data-office="${o}">${OFFICE_NAME[o]}</button>`).join('');
+  let builtTrack = null;
+  const buildTimeline = () => {
+    const o = officeOf(state.e); if (o === builtTrack) return; builtTrack = o;
+    timeline.innerHTML = '<button class="nav" id="prev" aria-label="Previous election">‹</button>' +
+      tracks[o].map((e) => { const p = parts(e); return `<button class="step" data-e="${e}"><b>${p.year}</b><span>${p.office}</span></button>`; }).join('') +
+      '<button class="nav" id="next" aria-label="Next election">›</button>' +
+      '<button class="nav" id="play" aria-label="Play through the elections">▶</button>';
+  };
+  buildTimeline();
+  const trk = () => tracks[officeOf(state.e)];
   let timer = null;
   // "the 2020 Senate race" for a state, or "President 2020".
   const baselineLabel = (st) => {
     const b = baselineOf(); if (!b) return '';
     if (b === 'senprior') return st && elections.senprior.priorYears[st] ? `the ${elections.senprior.priorYears[st]} Senate race` : 'the previous Senate race';
+    if (b === 'govprior') return st && elections.govprior.priorYears[st] ? `the ${elections.govprior.priorYears[st]} governor's race` : 'the previous governor\'s race';
     return elections[b].label;
   };
 
-  const go = (i) => { state.e = order[clamp(i, 0, order.length - 1)]; render(); };
+  const go = (i) => { state.e = trk()[clamp(i, 0, trk().length - 1)]; render(); };
+  offices.addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-office]'); if (!b || officeOf(state.e) === b.dataset.office) return;
+    if (terrain) terrain.stopMotion();
+    stop();
+    // Same year where the office had a race; otherwise its latest election.
+    const t = tracks[b.dataset.office], yr = elections[state.e].year;
+    state.e = t.find((e) => elections[e].year === yr) || t[t.length - 1];
+    if (state.c === 'swing' && !sameOffice[state.e]) state.e = t.slice().reverse().find((e) => sameOffice[e]) || state.e;
+    render();
+  });
   const stop = () => { clearInterval(timer); timer = null; document.getElementById('play').textContent = '▶'; };
 
   // ---------- balance of power ----------
@@ -295,10 +326,15 @@
   const list = (xs) => xs.length < 2 ? xs.join('') : xs.slice(0, -1).join(', ') + ' and ' + xs[xs.length - 1];
   const stName = (st) => bal.stateNames[st] || st;
   const etTime = (iso) => new Date(iso).toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', month: 'short', day: 'numeric', year: 'numeric' });
+  // Each election maps to its election day's entry in balance.json.
+  const BALKEY = { pres2016: 'pres2016', pres2020: 'pres2020', pres2024: 'pres2024', sen2018: 'd2018', gov2018: 'd2018',
+    sen2020: 'pres2020', sen2022: 'd2022', gov2022: 'd2022', sen2024: 'pres2024', sen2026: 'sen2026', gov2026: 'sen2026' };
+  // A smallest-change line is a button: it highlights its states on the map.
+  const flip = (states, text) => `<button class="flip" data-states="${states.join(',')}" aria-pressed="${hiKey === states.join(',')}">${text}</button>`;
   function renderBalance() {
-    const b = bal.elections[state.e], el2 = document.getElementById('bopBody'); if (!b) { el2.innerHTML = ''; return; }
+    const b = bal.elections[BALKEY[state.e]], el2 = document.getElementById('bopBody'); if (!b) { el2.innerHTML = ''; return; }
     const yr = elections[state.e].year;
-    document.getElementById('bopTitle').textContent = `Balance of power, ${yr}`;
+    document.getElementById('bopTitle').textContent = `Balance of power, ${yr}`;   // the election day, whatever the office in view
     let h = '';
     if (b.president) {
       const p = b.president, other = 538 - p.ev - p.runnerEv;
@@ -329,18 +365,21 @@
     if (b.unofficial_asof) h += `<p class="muted">Unofficial, as of ${etTime(b.unofficial_asof)} ET (AP via CNN).</p>`;
     if (b.smallest) {
       const sm = b.smallest; h += `<div class="small"><h3>The smallest change</h3>`;
-      if (sm.president) h += `<p>${fmt(sm.president.votes)} voters switching from ${b.president.winner.split(' ').slice(-1)[0] === 'Jr.' ? 'Biden' : b.president.winner.split(' ').slice(-1)[0]} to ${b.president.runner.split(' ').slice(-1)[0]} in ${list(sm.president.states.map(stName))} would have changed the presidency.</p>`;
+      if (sm.president) h += `<p>${flip(sm.president.states, `${fmt(sm.president.votes)} voters switching from ${b.president.winner.split(' ').slice(-1)[0] === 'Jr.' ? 'Biden' : b.president.winner.split(' ').slice(-1)[0]} to ${b.president.runner.split(' ').slice(-1)[0]} in ${list(sm.president.states.map(stName))} would have changed the presidency.`)}</p>`;
       if (sm.senate) {
         const other = b.senate.caucusD > b.senate.R || b.senate.tiebreak && b.senate.tiebreak.includes('(D)') ? 'Republicans' : 'Democrats';
-        const where = sm.senate.races.map((r) => stName(r.state)), runoff = state.e === 'pres2020' && where.includes('Georgia') ? ' (the Jan. 5 runoff)' : '';
-        h += `<p>${fmt(sm.senate.votes)} in ${list(where)}${runoff} would have given ${other} the Senate.</p>`;
+        const where = sm.senate.races.map((r) => stName(r.state)), runoff = BALKEY[state.e] === 'pres2020' && where.includes('Georgia') ? ' (the Jan. 5 runoff)' : '';
+        h += `<p>${flip(sm.senate.races.map((r) => r.state), `${fmt(sm.senate.votes)} in ${list(where)}${runoff} would have given ${other} the Senate.`)}</p>`;
       }
-      if (sm.house) h += `<p>${fmt(sm.house.votes)} in ${list(sm.house.districts.map((d) => d.district))} would have given Democrats the House.</p>`;
-      h += `<p class="muted">Voters moving from winner to runner-up: half the margin plus one, closest races first.${sm.president ? ' 270 needed; Maine and Nebraska district electors held as cast.' : ''}</p></div>`;
+      if (sm.house) h += `<p>${flip([...new Set(sm.house.districts.map((d) => d.district.split('-')[0]))], `${fmt(sm.house.votes)} in ${list(sm.house.districts.map((d) => d.district))} would have given Democrats the House.`)}</p>`;
+      h += `<p class="muted">Voters moving from winner to runner-up: half the margin plus one, closest races first.${sm.president ? ' 270 needed; Maine and Nebraska district electors held as cast.' : ''} Click a line to see its states on the map.</p></div>`;
     }
     const S = bal.sources;
-    h += `<p class="src">Sources: <a href="${b.president ? b.president.source : S.cnn_sen}">${b.president ? 'National Archives' : 'AP via CNN'}</a>, <a href="${S.senate}">U.S. Senate</a>, <a href="${S.house}">House history office</a>` +
-      (b.smallest ? `, <a href="${S.countypres}">MIT Election Lab</a>, <a href="${state.e === 'pres2016' ? S.fec2016 : state.e === 'pres2020' ? S.fec2020 : S.medsl2024sen}">${state.e === 'pres2024' ? 'MIT Election Lab Senate file' : 'FEC'}</a>` : '') + `. Every figure and its source: <a href="balance.json">balance.json</a>.</p>`;
+    const first = b.president ? `<a href="${b.president.source}">National Archives</a>, ` : BALKEY[state.e] === 'sen2026' ? `<a href="${S.cnn_sen}">AP via CNN</a>, ` : '';
+    h += `<p class="src">Sources: ${first}<a href="${S.senate}">U.S. Senate</a>, <a href="${S.house}">House history office</a>` +
+      (b.smallest && b.smallest.president ? `, <a href="${S.countypres}">MIT Election Lab</a>` : '') +
+      (b.smallest && b.smallest.senate ? `, <a href="${b.smallest.senate.source.split(' ')[0]}">${/medsl|MEDSL|github/.test(b.smallest.senate.source) ? 'MIT Election Lab Senate file' : 'FEC'}</a>` : '') +
+      (b.president ? '' : '. Governors by party are not shown: no single official source was at hand') + `. Every figure and its source: <a href="balance.json">balance.json</a>.</p>`;
     el2.innerHTML = h;
     fitBalance();
   }
@@ -353,11 +392,46 @@
   window.addEventListener('resize', fitBalance);
   if (window.innerWidth <= 640) document.getElementById('bop').open = false;
 
+  // ---------- highlight: the states named by a smallest-change line ----------
+  const highlightStates = (states) => {
+    hiKey = states ? states.join(',') : null; hiSet = states ? new Set(states) : null;
+    if (terrain) terrain.highlight(state.s === 'terrain' ? states : null, { fly: state.s === 'terrain' });
+    if (state.s !== 'terrain') {
+      if (states) {                                       // frame the states in the block view
+        let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+        for (const pc of pieces) if (hiSet.has(meta[pc.f] && meta[pc.f].st)) for (const q of (Array.isArray(pc.p[0][0]) ? pc.p[0] : pc.p)) {
+          x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); y0 = Math.min(y0, q[1]); y1 = Math.max(y1, q[1]);
+        }
+        const zoom = Math.log2(Math.min(window.innerWidth * 0.55 / (x1 - x0 + 30), window.innerHeight * 0.6 / (y1 - y0 + 30)));
+        viewState = { ...viewState, target: [(x0 + x1) / 2, (y0 + y1) / 2, 0], zoom: clamp(zoom, LIMITS.minZoom, LIMITS.maxZoom), rotationX: 34, rotationOrbit: 0,
+          transitionDuration: reduced ? 0 : 900, transitionInterpolator: new deck.LinearInterpolator(['target', 'zoom', 'rotationX', 'rotationOrbit']) };
+        deckgl.setProps({ viewState });
+      }
+      deckgl.setProps({ layers: layers() });
+    }
+    document.querySelectorAll('.flip').forEach((b) => b.setAttribute('aria-pressed', b.dataset.states === hiKey));
+  };
+  document.getElementById('bopBody').addEventListener('click', (ev) => {
+    const b = ev.target.closest('.flip'); if (!b) return;
+    highlightStates(hiKey === b.dataset.states ? null : b.dataset.states.split(','));
+  });
+  // A click on the map (not a drag) clears the highlight.
+  for (const id of ['terrain', 'map']) {
+    const el3 = document.getElementById(id); let down = null;
+    el3.addEventListener('pointerdown', (ev) => { down = [ev.clientX, ev.clientY]; });
+    el3.addEventListener('click', (ev) => { if (hiKey && down && Math.hypot(ev.clientX - down[0], ev.clientY - down[1]) < 5) highlightStates(null); });
+  }
+  document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && hiKey) highlightStates(null); });
+
   function render(opts = {}) {
-    const i = order.indexOf(state.e);
+    if (hiKey && opts.keepHighlight !== true && render.lastE && render.lastE !== state.e) highlightStates(null);   // a new election clears it
+    render.lastE = state.e;
+    buildTimeline();
+    const i = trk().indexOf(state.e);
+    offices.querySelectorAll('[data-office]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.office === officeOf(state.e)));
     timeline.querySelectorAll('.step').forEach((s) => s.setAttribute('aria-pressed', s.dataset.e === state.e));
     document.getElementById('prev').disabled = i === 0;
-    document.getElementById('next').disabled = i === order.length - 1;
+    document.getElementById('next').disabled = i === trk().length - 1;
     document.querySelectorAll('[data-s]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.s === state.s));
     document.querySelectorAll('[data-m]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.m === state.m));
     document.getElementById('smoothGroup').hidden = state.s !== 'terrain';
@@ -375,10 +449,12 @@
       b.setAttribute('aria-pressed', b.dataset.c === (isMargin() ? 'margin' : 'swing'));
       if (b.dataset.c === 'swing') b.disabled = !baselineOf();
     });
-    document.getElementById('swingBtn').textContent = baselineOf() ? (baselineOf() === 'senprior' ? 'Swing since last Senate race' : `Swing since ${elections[baselineOf()].year}`) : 'Swing';
-    document.getElementById('swingHow').textContent = baselineOf()
-      ? `Swing compares each county with ${baselineOf() === 'senprior' ? 'its state\'s previous race for the same Senate seat (2020 in most states)' : 'the previous presidential election'}.`
-      : 'No earlier race for this office in the data, so only margin is available.';
+    const bo = baselineOf();
+    document.getElementById('swingBtn').textContent = !bo ? 'Swing' : bo === 'senprior' ? 'Swing since last Senate race' : bo === 'govprior' ? 'Swing since last governor\'s race' : `Swing since ${elections[bo].year}`;
+    document.getElementById('swingHow').textContent = !bo ? 'No earlier race for the same seat in the data, so only margin is available.'
+      : `Swing compares each county with ${bo === 'senprior' ? 'its state\'s previous race for the same Senate seat (2020 in most states)'
+        : bo === 'govprior' ? 'its state\'s previous governor\'s race (2022, or 2024 in New Hampshire and Vermont)'
+        : officeOf(state.e) === 'senate' ? 'the 2018 race for the same Senate seats' : officeOf(state.e) === 'governor' ? 'the 2018 governor\'s race in the same states' : 'the previous presidential election'}.`;
     document.getElementById('flat').setAttribute('aria-pressed', state.d === '2d');
     document.getElementById('ghost').setAttribute('aria-pressed', state.g === '1');
     document.getElementById('ghost').disabled = !baselineOf();
@@ -422,8 +498,8 @@
 
     const e = elections[state.e];
     const n = [notes.AK, notes.CT, notes.KC, notes.VA];
-    if (state.e === 'sen2026') n.unshift('Pale grey counties had no Democrat-vs-Republican Senate race in 2026, or are not yet counted.');
-    document.getElementById('notes').textContent = n.join(' ');
+    if (officeOf(state.e) !== 'president') n.unshift(`Pale grey: no ${OFFICE_NAME[officeOf(state.e)].toLowerCase()} race with Democrat-vs-Republican county results in ${e.year}.`, ...(e.notes || []));
+    document.getElementById('notes').textContent = n.map((x) => (/[.)]$/.test(x) ? x : x + '.')).join(' ');
     document.getElementById('source').textContent = 'Source: ' + e.source + (m ? '' : ` Swing: the Democratic margin minus the margin in ${baselineLabel()}. ` + (baselineOf() === 'senprior' ? elections.senprior.source : ''));
     fitBalance();
     showView();
@@ -436,26 +512,27 @@
     const b = ev.target.closest('button'); if (!b) return;
     if (b.id === 'play') {
       if (timer) return stop();
-      if (order.indexOf(state.e) === order.length - 1) go(0);
+      if (trk().indexOf(state.e) === trk().length - 1) go(0);
       b.textContent = '❚❚';
-      timer = setInterval(() => { const i = order.indexOf(state.e); if (i >= order.length - 1) stop(); else go(i + 1); }, reduced ? 2500 : 2000);
+      timer = setInterval(() => { const i = trk().indexOf(state.e); if (i >= trk().length - 1) stop(); else go(i + 1); }, reduced ? 2500 : 2000);
       return;
     }
     stop();
-    if (b.id === 'prev') go(order.indexOf(state.e) - 1);
-    else if (b.id === 'next') go(order.indexOf(state.e) + 1);
-    else if (b.dataset.e) go(order.indexOf(b.dataset.e));
+    if (b.id === 'prev') go(trk().indexOf(state.e) - 1);
+    else if (b.id === 'next') go(trk().indexOf(state.e) + 1);
+    else if (b.dataset.e) go(trk().indexOf(b.dataset.e));
   });
   // Left and right arrows step through the elections (the map itself pans by dragging).
   document.addEventListener('keydown', (ev) => {
     if (ev.target.closest('select, input')) return;
-    if (ev.key === 'ArrowLeft') { stop(); go(order.indexOf(state.e) - 1); }
-    if (ev.key === 'ArrowRight') { stop(); go(order.indexOf(state.e) + 1); }
+    if (ev.key === 'ArrowLeft') { stop(); go(trk().indexOf(state.e) - 1); }
+    if (ev.key === 'ArrowRight') { stop(); go(trk().indexOf(state.e) + 1); }
   });
   const applyLens = (key) => {
     const L2 = LENSES[key]; if (!L2) return;
     Object.assign(state, L2.set, { l: key, v: L2.v });
-    if (key === 'changed' && !sameOffice[state.e]) state.e = 'pres2024';   // swing needs an earlier race
+    // Swing needs an earlier race for the same seat: the latest election on this office's track that has one.
+    if (key === 'changed' && !sameOffice[state.e]) state.e = trk().slice().reverse().find((e) => sameOffice[e]) || 'pres2024';
     render(); setCamera(state.v);
   };
   document.querySelectorAll('[data-l]').forEach((b) => b.addEventListener('click', () => { if (terrain) terrain.stopMotion(); applyLens(b.dataset.l); }));
