@@ -240,6 +240,7 @@ views = createViews2d({
   sizeUnit: () => { const E = eff.elections[state.e];
     return state.h === 'pop' && E ? { ref: model.V24 / eff.rep[E.basis].E, label: 'residents apportioned one electoral vote' } : { ref: 1e6, label: '1,000,000 votes' }; },
   fill: (f) => `rgb(${model.colourRaw(f).join(',')})`,
+  infoButton: (b, text) => about.infoButton(b, text),
 });
 window.addEventListener('resize', () => { if (effW() !== 'terrain') views.redraw(false); });
 $('tabs').addEventListener('click', (ev) => {

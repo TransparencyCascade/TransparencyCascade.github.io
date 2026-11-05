@@ -7,7 +7,11 @@ import { INK, DIM } from './style.js';
 export function circlesView({ ctx, DUR, head, body, foot, place, inSel, shiftOf, longPress, statePath, W0 }) {
   let svg, g, gSt, gC, box, zoom, k0 = 1, cur = new Map(), lay = null, fitted = null;
   function build() {
-    head.innerHTML = '<span class="v2d-ref" aria-hidden="true"></span>';
+    // How to use it sits behind an "i": read once, it should not take a line of the view.
+    head.innerHTML = '<span class="v2d-ref" aria-hidden="true"></span><button class="lens-i" aria-label="How to use Circles">i</button>';
+    ctx.infoButton(head.querySelector('.lens-i'), () => (window.matchMedia('(pointer: coarse)').matches
+      ? 'Tap a circle to select it; long-press adds. Pinch to zoom; drag to pan.'
+      : 'Drag a box to select; shift adds. Scroll or pinch to zoom; Alt-drag to pan.'));
     body.innerHTML = '';
     svg = d3.select(body).append('svg').attr('class', 'v2d-map v2d-circles');
     g = svg.append('g'); gSt = g.append('g'); gC = g.append('g');
@@ -73,8 +77,7 @@ export function circlesView({ ctx, DUR, head, body, foot, place, inSel, shiftOf,
     // Reference circle, at the map's current scale.
     const unit = ctx.sizeUnit(), ref = unit.ref, rr = Math.sqrt(lay.r * ref) * (d3.zoomTransform(svg.node()).k || k0);
     head.querySelector('.v2d-ref').innerHTML = `<svg width="${Math.ceil(rr * 2 + 4)}" height="${Math.ceil(rr * 2 + 4)}" style="vertical-align:middle"><circle cx="${rr + 2}" cy="${rr + 2}" r="${rr}" fill="none" stroke="${INK}" stroke-width="1.2"/></svg> ${unit.label}`;
-    foot.textContent = window.matchMedia('(pointer: coarse)').matches ? 'Tap a circle to select it; long-press adds. Pinch to zoom; drag to pan.'
-      : 'Drag a box to select; shift adds. Scroll or pinch to zoom; Alt-drag to pan.';
+    foot.textContent = '';
   }
   return { build, draw, reset, zoomTo };
 }
