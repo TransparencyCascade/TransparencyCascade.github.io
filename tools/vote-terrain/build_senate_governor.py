@@ -287,7 +287,8 @@ def main(work, out):
                       "source": "MIT Election Data and Science Lab, 2024-elections-official (GitHub), 2024-senate-county.csv; some states marked unofficial by MEDSL (listed in the notes)."}
 
     # ---------- Governor 2026 and the prior governor race: the checked county file ----------
-    gpath = os.path.expanduser("~/tcp-kb-internal/cascade-research/notes/data/governor-2026-vs-pres24-vs-prior-governor-by-county-unofficial-2026-11-05T0239Z.csv")
+    PULL = "2026-11-05T1646Z"      # keep equal to PULL in build_data.mjs: one pull for Senate, governor and House
+    gpath = os.path.expanduser("~/tcp-kb-internal/cascade-research/notes/data/governor-2026-vs-pres24-vs-prior-governor-by-county-unofficial-" + PULL + ".csv")
     g26, gprior, g22, n26, nprior, priorYears = {}, {}, {}, [], [], {}
     for r in csv.DictReader(open(gpath)):
         st, f = r["state"], fips5(r["county_fips"])
@@ -303,7 +304,7 @@ def main(work, out):
                 g22[f] = rec
     res["gov2026"] = {"label": "Governor 2026", "office": "Governor", "year": 2026, "data": g26, "unofficial": True,
                       "notes": ["Democrat-vs-Republican races only; Alaska reports by state House district and is left out."],
-                      "source": "AP county results via CNN (county-races/2026-GG-<state>.json), unofficial as of 10:35 p.m. ET, Nov. 4, 2026; county rows checked to sum to each race total (governor-2026-vs-pres24-vs-prior-governor-by-county-unofficial-2026-11-05T0239Z.csv)."}
+                      "source": "AP county results via CNN (county-races/2026-GG-<state>.json), unofficial as of 11:46 a.m. ET, Nov. 5, 2026, the same pull as the Senate and House files; county rows checked to sum to each race total (governor-2026-vs-pres24-vs-prior-governor-by-county-unofficial-" + PULL + ".csv)."}
     res["gov2022"] = {"label": "Governor 2022", "office": "Governor", "year": 2022, "data": g22,
                       "notes": ["The 34 states whose 2026 governor's seat was last filled in 2022; New Hampshire and Vermont (two-year terms) are not in this file for 2022."],
                       "source": "Prior-race columns of the county governor file: MIT Election Data and Science Lab 2022 precinct files summed to counties, Tennessee from OpenElections (see senate-and-governor-2026-vs-prior-race-by-county-2026-11-04.md); checked against MEDSL statewide totals only."}

@@ -2,7 +2,7 @@
    margin minus its governor margin, on the flat map and as a strip per state (counties as ticks, the median marked). Grey: the
    two races agree; colour toward the party whose Senate margin ran ahead of the governor's. Hover shows both margins; clicking
    a county or a strip selects its state and opens both races' county totals in the drawer (drawers.js).
-   Arithmetic in ../turnout.js (split). The Senate and governor files were fetched at different times; the foot says when. */
+   Arithmetic in ../turnout.js (split). The Senate and governor files come from one pull of the feed; the foot says when. */
 import { INK, GRAPHITE, RULE, DIM } from './style.js';
 import { toward } from '../colour.js';
 
@@ -30,7 +30,7 @@ export function splitView({ ctx, head, body, foot, place, inSel, shiftOf, county
   function draw() {
     const T = ctx.split(), S = inSel(), { w, h } = place(), narrow = w < 700;
     head.querySelector('.sp-note').textContent = `Senate margin minus governor margin, 2026, unofficial: the ${T.states.length} states with both races${exporting ? '' : ` (${T.states.join(', ')})`}. Grey: the races agree; colour toward the party whose candidate ran further ahead in the Senate race than in the governor race. Pale: not both races on the ballot.`;
-    foot.textContent = `${ctx.sources()} The two files were fetched at different times, so counts may differ in completeness.`;
+    foot.textContent = `${ctx.sources()} Both files are from the same pull; counting is not finished in every race.`;
     const bb = (W0[2] - W0[0]) / (W0[3] - W0[1]), body0 = body.querySelector('.sp-wrap');
     body0.style.flexDirection = narrow ? 'column' : 'row';
     const mapW = narrow ? w : Math.min(w * 0.6, (h - 4) * bb), mapH = mapW / bb;

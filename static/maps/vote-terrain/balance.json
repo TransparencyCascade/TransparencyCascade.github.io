@@ -14,7 +14,7 @@
   "fecpres2016": "Federal Elections 2016, Table 2 (https://www.fec.gov/documents/1890/federalelections2016.xlsx)",
   "fecpres2020": "Federal Elections 2020, Table 2 (https://www.fec.gov/documents/4228/federalelections2020.xlsx)",
   "fecpres2024": "Official 2024 Presidential General Election Results (https://www.fec.gov/documents/5645/2024presgeresults.xlsx)",
-  "house_csv": "cascade-research/notes/data/house-2026-vs-2024-vs-2022-by-district-unofficial-20261105T0222Z.csv (2024 columns from the Clerk of the House, Statistics of the Presidential and Congressional Election of November 5, 2024)",
+  "house_csv": "cascade-research/notes/data/house-2026-vs-2024-vs-2022-by-district-unofficial-20261105T1646Z.csv (2024 columns from the Clerk of the House, Statistics of the Presidential and Congressional Election of November 5, 2024)",
   "cnn_sen": "https://politics.api.cnn.io/results/national-races/2026-SG.json",
   "cnn_house": "https://politics.api.cnn.io/results/national-races/2026-HG.json"
  },
@@ -560,7 +560,7 @@
        "cost": 1653
       }
      ],
-     "source": "cascade-research/notes/data/house-2026-vs-2024-vs-2022-by-district-unofficial-20261105T0222Z.csv (2024 columns from the Clerk of the House, Statistics of the Presidential and Congressional Election of November 5, 2024)"
+     "source": "cascade-research/notes/data/house-2026-vs-2024-vs-2022-by-district-unofficial-20261105T1646Z.csv (2024 columns from the Clerk of the House, Statistics of the Presidential and Congressional Election of November 5, 2024)"
     }
    }
   },
@@ -723,7 +723,7 @@
     },
     "source": "https://politics.api.cnn.io/results/national-races/2026-HG.json (called races); before = 119th Congress at https://history.house.gov/Institution/Party-Divisions/Party-Divisions/"
    },
-   "unofficial_asof": "2026-11-05T04:20:41.537408Z"
+   "unofficial_asof": "2026-11-05T16:45:13.578064Z"
   }
  },
  "noCounty": {
@@ -762,8 +762,8 @@
     "votes": 213733,
     "D": 102962,
     "R": 107171,
-    "unofficial": "2026-11-05T04:20Z",
-    "reporting": 75,
+    "unofficial": "2026-11-05T16:45Z",
+    "reporting": 74,
     "source": "https://politics.api.cnn.io/results/national-races/2026-SG.json"
    }
   }

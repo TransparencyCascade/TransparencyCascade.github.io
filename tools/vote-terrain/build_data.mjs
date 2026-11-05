@@ -38,7 +38,12 @@ const topojson = require('topojson-client');
 
 const TOPO = path.join(HOME, 'TransparencyCascade/static/maps/2026-county-swing/counties-10m.json');
 const PRES = process.env.VT_PRES || '/private/tmp/claude-501/-Users-markr-pyrite/5378b403-e0b8-4886-ba89-1a2632a79931/scratchpad/countypres-data/countypres_2000-2024.csv';
-const SEN26 = path.join(HOME, 'tcp-kb-internal/cascade-research/notes/data/swing-30-dr-senate-states-2026-unofficial-ap-feed-checked-2026-11-04T1917Z.csv');
+// One pull of the AP-via-CNN feeds for Senate, governor and House (build_2026_vs_prior.py --fetch, then
+// build_house_2026_comparison.py --fetch): every 2026 file below carries this stamp, so the ticket-splitting
+// figures compare two races counted at the same moment. PULL_ET is the same instant, as the page text says it.
+const PULL = '2026-11-05T1646Z';
+const PULL_ET = '11:46 a.m. ET, Nov. 5, 2026';
+const SEN26 = path.join(HOME, `tcp-kb-internal/cascade-research/notes/data/senate-2026-vs-prior-senate-by-county-unofficial-${PULL}.csv`);
 
 const ABBR = { '01': 'AL', '02': 'AK', '04': 'AZ', '05': 'AR', '06': 'CA', '08': 'CO', '09': 'CT', '10': 'DE', '11': 'DC', '12': 'FL', '13': 'GA', '15': 'HI', '16': 'ID', '17': 'IL', '18': 'IN', '19': 'IA', '20': 'KS', '21': 'KY', '22': 'LA', '23': 'ME', '24': 'MD', '25': 'MA', '26': 'MI', '27': 'MN', '28': 'MS', '29': 'MO', '30': 'MT', '31': 'NE', '32': 'NV', '33': 'NH', '34': 'NJ', '35': 'NM', '36': 'NY', '37': 'NC', '38': 'ND', '39': 'OH', '40': 'OK', '41': 'OR', '42': 'PA', '44': 'RI', '45': 'SC', '46': 'SD', '47': 'TN', '48': 'TX', '49': 'UT', '50': 'VT', '51': 'VA', '53': 'WA', '54': 'WV', '55': 'WI', '56': 'WY' };
 
@@ -156,21 +161,21 @@ for (const year of ['2016', '2020', '2024']) {
 }
 
 // ---------- 2026 Senate ----------
-const sen = parseCSV(fs.readFileSync(SEN26, 'utf8')).filter((r) => r.counted === 'yes');
+const sen = parseCSV(fs.readFileSync(SEN26, 'utf8')).filter((r) => r.counted === 'yes' && r.flag_2026_not_dem_vs_rep === 'no' && r.state !== 'AK' && r.total_2026);
 const sdata = {};
 for (const r of sen) {
   const fips = r.county_fips.padStart(5, '0');
-  put(sdata, fips, [Number(r.total), Number(r.votes_rep), Number(r.votes_dem)], 'sen2026');
+  put(sdata, fips, [Number(r.total_2026), Number(r.votes_rep_2026), Number(r.votes_dem_2026)], 'sen2026');
 }
 elections.sen2026 = {
   label: 'Senate 2026', office: 'U.S. Senate', year: 2026, data: sdata, unofficial: true,
-  source: 'AP county results via CNN, unofficial as of 2:17 p.m. ET, Nov. 4, 2026 (30 states with a Democrat-vs-Republican race).',
+  source: `AP county results via CNN (county-races/2026-SG-<state>.json; Ohio and Florida 2026-SP), unofficial as of ${PULL_ET}, the same pull as the governor and House files; county rows checked to sum to each race total (senate-2026-vs-prior-senate-by-county-unofficial-${PULL}.csv).`,
 };
 
 // ---------- previous Senate race for each 2026 seat (baseline only, not on the timeline) ----------
 // From the county prior-race file: 2020 for most seats, 2022 for OH, OK and FL, 2024 for NE. Races
 // without both a Democrat and a Republican in the prior year (Arkansas 2020) are left out.
-const SENPRIOR = path.join(HOME, 'tcp-kb-internal/cascade-research/notes/data/senate-2026-vs-prior-senate-by-county-unofficial-2026-11-05T0239Z.csv');
+const SENPRIOR = path.join(HOME, 'tcp-kb-internal/cascade-research/notes/data/senate-2026-vs-prior-senate-by-county-unofficial-' + PULL + '.csv');
 const pdata = {}, priorYears = {};
 for (const r of parseCSV(fs.readFileSync(SENPRIOR, 'utf8'))) {
   if (r.flag_prior_not_dem_vs_rep !== 'no' || !(Number(r.prior_total) > 0)) continue;

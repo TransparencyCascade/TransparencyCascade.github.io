@@ -299,7 +299,7 @@
       "title": "Ticket splitting, 2026 (unofficial)",
       "file": "Senate margin minus governor margin by county, 2026, unofficial",
       "caption": "In the {calc.split.states|n} states with both races on the 2026 ballot (unofficial), different parties led the Senate and governor races in {calc.split.differ|n} of {calc.split.n|n} counties, and the margins were 10 or more points apart in {calc.split.big10|n}. Median county, Senate margin minus governor margin: {calc.split.med|toward}; largest state median: {calc.split.top.name}, {calc.split.top.med|toward}.",
-      "sources": "{elections.sen2026.source} {elections.gov2026.source} The two files were fetched at different times.",
+      "sources": "{elections.sen2026.source} {elections.gov2026.source} Both files are from the same pull; counting is not finished in every race.",
       "state": {
         "e": "sen2026",
         "w": "split"
