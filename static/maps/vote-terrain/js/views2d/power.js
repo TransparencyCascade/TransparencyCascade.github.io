@@ -7,7 +7,7 @@
    conc: each party's counties ordered from most of its votes to fewest, its cumulative share of votes against the
    cumulative share of land (or of counties, state.pa); the marker (state.pq, dragged up and down) reads off how
    many counties hold that share of the chosen party's votes (state.pk) and selects them. */
-import { INK, GRAPHITE, RULE, DIM, TILES } from './style.js';
+import { INK, GRAPHITE, RULE, DIM, TILES, wrapText } from './style.js';
 import { PARTIES } from '../power.js';
 
 const CHARTS = [['rank', 'Weight per vote'], ['tiles', 'Cartogram'], ['conc', 'Concentration']];
@@ -98,7 +98,7 @@ export function powerView({ ctx, head, body, foot, place, shiftOf, DUR }) {
       svg.append('text').attr('x', x(d)).attr('y', pad.t - 10).attr('text-anchor', 'middle').text(d === 0 ? (narrow ? '1×' : '1× average') : lab);
     }
     const title = svg.append('text').attr('class', 'axis-title').attr('x', pad.l).attr('y', ly + 28).text('Doubling scale: each part\'s length is its factor, so the parts add up to the state\'s weight (black tick)');
-    if (title.node().getComputedTextLength() > w - pad.l) title.text('Doubling scale: the parts add up to the black tick');
+    if (title.node().getComputedTextLength() > w - pad.l) { title.text('Doubling scale: the parts add up to the black tick'); wrapText(title, w - pad.l - 4); }
     rows.forEach((d, i) => {
       const y = pad.t + (gapAt != null && i >= gapAt ? i + 1 : i) * rh;
       const on = !S || S.has(d.st);
@@ -182,7 +182,7 @@ export function powerView({ ctx, head, body, foot, place, shiftOf, DUR }) {
       ctl.querySelectorAll('[data-pk]').forEach((b) => b.addEventListener('click', () => { ctx.setPower({ pk: b.dataset.pk }); selectReach(); }));
       ctl.querySelectorAll('[data-pa]').forEach((b) => b.addEventListener('click', () => ctx.setPower({ pa: b.dataset.pa })));
     }
-    const narrow = w < 560, pad = { l: 58, r: narrow ? 16 : 40, t: 52, b: 50 };
+    const narrow = w < 560, pad = { l: 58, r: narrow ? 16 : 40, t: narrow ? 92 : 52, b: 50 };
     // No wider than twice its height, so the curves keep their shape in a wide card.
     const pw = Math.min(w - pad.l - pad.r, (hh - pad.t - pad.b) * 2);
     const x = d3.scaleLinear().domain([0, 1]).range([pad.l, pad.l + pw]), y = d3.scaleLinear().domain([0, 1]).range([hh - pad.b, pad.t]);
@@ -192,7 +192,8 @@ export function powerView({ ctx, head, body, foot, place, shiftOf, DUR }) {
       svg.append('line').attr('x1', x(t)).attr('x2', x(t)).attr('y1', y(0)).attr('y2', y(1)).attr('stroke', RULE).attr('stroke-width', 0.5);
       svg.append('text').attr('x', x(t)).attr('y', y(0) + 16).attr('text-anchor', 'middle').text(pct(t, 0));
     }
-    svg.append('text').attr('x', (x(0) + x(1)) / 2).attr('y', y(0) + 32).attr('text-anchor', 'middle').text(by === 'ca' ? 'Share of the land in counties with results, biggest counties for the party first' : 'Share of counties with results, biggest for the party first');
+    const xTitle = svg.append('text').attr('x', (x(0) + x(1)) / 2).attr('y', y(0) + 32).attr('text-anchor', 'middle').text(by === 'ca' ? 'Share of the land in counties with results, biggest counties for the party first' : 'Share of counties with results, biggest for the party first');
+    wrapText(xTitle, 2 * Math.min((x(0) + x(1)) / 2, w - (x(0) + x(1)) / 2) - 8);
     svg.append('text').attr('x', 0).attr('y', 0).attr('transform', `translate(${x(0) - 44},${(y(0) + y(1)) / 2}) rotate(-90)`).attr('text-anchor', 'middle').text('Share of the party\'s votes');
     svg.append('line').attr('x1', x(0)).attr('y1', y(0)).attr('x2', x(1)).attr('y2', y(1)).attr('stroke', GRAPHITE).attr('stroke-dasharray', '3 4');
     svg.append('text').attr('x', x(0.78)).attr('y', y(0.74) + 14).attr('fill', GRAPHITE).text('even spread');
@@ -204,8 +205,8 @@ export function powerView({ ctx, head, body, foot, place, shiftOf, DUR }) {
         .attr('opacity', pk === P.pk ? 1 : 0.7).attr('d', d3.line().x((p) => x(p[by])).y((p) => y(p.cv)));
     }
     // The marker: a level of the party's votes, read off both curves, dragged up and down by its handle.
-    const mk = svg.append('g').attr('class', 'pw-marker'), sentence = svg.append('text').attr('class', 'axis-title pw-sentence').attr('x', x(0)).attr('y', 14);
-    const sentence2 = svg.append('text').attr('class', 'axis-title pw-sentence').attr('x', x(0)).attr('y', 32);
+    const mk = svg.append('g').attr('class', 'pw-marker'), sentence = svg.append('text').attr('class', 'axis-title pw-sentence').attr('x', narrow ? 4 : x(0)).attr('y', 14);
+    const sentence2 = svg.append('text').attr('class', 'axis-title pw-sentence').attr('x', narrow ? 4 : x(0)).attr('y', 32);
     const drawMarker = (q) => {
       mk.selectAll('*').remove();
       const a = C.reach(e, P.pk, q), o = C.reach(e, P.pk === 'd' ? 'r' : 'd', q);
@@ -222,6 +223,10 @@ export function powerView({ ctx, head, body, foot, place, shiftOf, DUR }) {
       const A = PARTIES[P.pk], O = PARTIES[P.pk === 'd' ? 'r' : 'd'];
       sentence.text(`${q}% of ${A.name} votes came from ${fmt(a.n)} of ${fmt(a.of)} counties, holding ${pct(a.land)} of the land.`);
       sentence2.text(o ? `The same share of ${O.name} votes came from ${fmt(o.n)} counties, holding ${pct(o.land)} of the land.` : '');
+      if (narrow) {   // on a phone the two sentences wrap; the second starts below the first
+        const n1 = wrapText(sentence, w - 12, 14);
+        sentence2.attr('y', 14 + n1 * 14 + 4); wrapText(sentence2, w - 12, 14);
+      }
       if (!exporting) handle.call(d3.drag().on('drag', (ev) => { qDrag = Math.max(1, Math.min(99, Math.round(y.invert(ev.y) * 100))); drawMarker(qDrag); })
         .on('end', () => { if (qDrag != null) { const q2 = qDrag; qDrag = null; ctx.setPower({ pq: String(q2) }); selectReach(); } }));
     };

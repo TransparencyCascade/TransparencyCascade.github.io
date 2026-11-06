@@ -266,6 +266,19 @@ const stop = () => { clearInterval(timer); timer = null; $('play').textContent =
 const balance = createBalance({ el, bal, money: () => moneyData, needMoney: ensureMoney, state, house, selection: () => sel, onResize: () => { if (views && ready && effW() !== 'terrain') views.redraw(false); } });
 const stName = balance.stName;
 
+// ---------- phone: the key and the balance box fold to one line each ----------
+// The flat views start below the lower of the two, so a fold redraws them.
+{
+  const phone = window.matchMedia('(max-width: 640px)');
+  const parts = [[$('keyBox'), $('keyFold')], [$('bop'), $('bopFold')]];
+  const setFold = (box, btn, fold) => { box.classList.toggle('fold', fold); btn.textContent = fold ? '▸' : '▾'; btn.setAttribute('aria-expanded', String(!fold)); };
+  const relayout = () => { if (views && ready && effW() !== 'terrain') views.redraw(false); };
+  const apply = () => { for (const [box, btn] of parts) { btn.hidden = !phone.matches; setFold(box, btn, phone.matches); } relayout(); };
+  for (const [box, btn] of parts) btn.addEventListener('click', () => { setFold(box, btn, !box.classList.contains('fold')); relayout(); });
+  phone.addEventListener('change', apply);
+  for (const [box, btn] of parts) { btn.hidden = !phone.matches; setFold(box, btn, phone.matches); }
+}
+
 // ---------- selection: one set of counties shared by every view, kept across elections and tabs ----------
 const flips = createFlips({ elections, meta, bal });
 const codec = createSelectionCodec({ geo, el, state, model, stName, house, power, overlays, flips, ms, regions: regionData });

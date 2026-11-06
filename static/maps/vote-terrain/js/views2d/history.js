@@ -11,7 +11,7 @@
    a bar and a dot from a zero line, coloured by the party the tipping state leaned toward more than the nation, with
    the tipping state labelled (bias.js; arithmetic in build_history.py).
    The series start where the gathered data starts, and the head says so. */
-import { INK, GRAPHITE, RULE } from './style.js';
+import { INK, GRAPHITE, RULE, wrapText } from './style.js';
 import { PARTY, SIDE, pts, gapSentence, ratioText, sameAsNation } from '../bias.js';
 
 const CHARTS = [['seats', 'Residents per seat'], ['small', 'Smallest change'], ['weight', 'Weight per vote'], ['bias', 'Tipping state vs nation']];
@@ -55,7 +55,7 @@ export function historyView({ ctx, head, body, foot, place, shiftOf }) {
   }
 
   function drawSeats(H, w, hh, S) {
-    const P = H.perSeat, pad = { l: 72, r: 24, t: 24, b: 44 };
+    const P = H.perSeat, narrow = w < 560, pad = { l: 72, r: 24, t: narrow ? 38 : 24, b: 44 };
     const x = d3.scaleLinear().domain([P[0].year - 4, P[P.length - 1].year + 4]).range([pad.l, w - pad.r]);
     const maxV = d3.max(P, (e) => e.states[e.hi].perSeat);
     const y = d3.scaleLinear().domain([0, maxV * 1.05]).range([hh - pad.b, pad.t]).nice();
@@ -63,7 +63,7 @@ export function historyView({ ctx, head, body, foot, place, shiftOf }) {
       svg.append('line').attr('x1', pad.l).attr('x2', w - pad.r).attr('y1', y(t)).attr('y2', y(t)).attr('stroke', RULE).attr('stroke-width', 0.5);
       svg.append('text').attr('x', pad.l - 6).attr('y', y(t) + 4).attr('text-anchor', 'end').text(t >= 1e6 ? (t / 1e6) + 'M' : t ? (t / 1000) + 'k' : '0');
     }
-    svg.append('text').attr('class', 'axis-title').attr('x', pad.l).attr('y', 13).text('Residents per House seat (apportionment population), at each census');
+    wrapText(svg.append('text').attr('class', 'axis-title').attr('x', narrow ? 4 : pad.l).attr('y', 13).text('Residents per House seat (apportionment population), at each census'), w - 8);
     // The 1929 act: between the 1920 and 1930 censuses.
     const capYear = +H.cap.signed.slice(0, 4);
     svg.append('line').attr('x1', x(capYear)).attr('x2', x(capYear)).attr('y1', pad.t + 6).attr('y2', hh - pad.b).attr('stroke', INK).attr('stroke-dasharray', '3 3');
@@ -93,14 +93,14 @@ export function historyView({ ctx, head, body, foot, place, shiftOf }) {
   }
 
   function drawSmallest(H, w, hh) {
-    const L = H.smallest, pad = { l: 72, r: 24, t: 30, b: 46 };
+    const L = H.smallest, narrow = w < 560, pad = { l: 72, r: 24, t: narrow ? 56 : 30, b: 46 };
     const x = d3.scalePoint().domain(L.map((s) => s.year)).range([pad.l, w - pad.r]).padding(0.5);
     const y = d3.scaleLog().domain([100, 10 ** Math.ceil(Math.log10(d3.max(L, (s) => s.votes) * 1.5))]).range([hh - pad.b, pad.t + 24]);
     for (const t of y.ticks().filter((t) => Number.isInteger(Math.log10(t)))) {
       svg.append('line').attr('x1', pad.l).attr('x2', w - pad.r).attr('y1', y(t)).attr('y2', y(t)).attr('stroke', RULE).attr('stroke-width', 0.5);
       svg.append('text').attr('x', pad.l - 6).attr('y', y(t) + 4).attr('text-anchor', 'end').text(t >= 1e6 ? (t / 1e6) + 'M' : t >= 1000 ? (t / 1000) + 'k' : t);
     }
-    svg.append('text').attr('class', 'axis-title').attr('x', pad.l).attr('y', 13).text('The smallest change: fewest votes that would have changed each presidential election (log scale)');
+    wrapText(svg.append('text').attr('class', 'axis-title').attr('x', narrow ? 4 : pad.l).attr('y', 13).text('The smallest change: fewest votes that would have changed each presidential election (log scale)'), w - 8);
     const step = x.step();
     const g = svg.append('g').selectAll('g').data(L).join('g').style('cursor', (s) => (s.election ? 'pointer' : 'default'))
       .on('click', (ev, s) => { if (s.election) ctx.openElection(s.election, s.states); })
@@ -125,13 +125,25 @@ export function historyView({ ctx, head, body, foot, place, shiftOf }) {
         for (const t of [`${s.states.length} states`, String(s.states.length)]) { if (fits(this)) break; this.textContent = t; }
       });
     svg.append('text').attr('x', pad.l - 6).attr('y', hh - pad.b + 32).attr('text-anchor', 'end').text('states');
-    if (!exporting) svg.append('text').attr('x', w - pad.r).attr('y', pad.t + 6).attr('text-anchor', 'end').text('Dot colour: the winner\'s party. Click 2016, 2020 or 2024 to open it.');
+    if (!exporting) svg.append('text').attr('x', w - pad.r).attr('y', pad.t + 6).attr('text-anchor', 'end').text(narrow ? 'Dot colour: winner. Click a year to open it.' : 'Dot colour: the winner\'s party. Click 2016, 2020 or 2024 to open it.');
   }
 
   // The tipping state against the nation: one bar and dot per election from the zero line (a linear scale, so a bar's
   // length is its value). Above zero the tipping state voted more Democratic than the nation, below more Republican.
   function drawBias(H, w, hh) {
-    const B = H.bias, pad = { l: 72, r: 24, t: exporting ? 66 : 82, b: 46 };
+    const B = H.bias, narrow = w < 560, pad = { l: 72, r: 24, t: exporting ? 66 : 82, b: 46 };
+    // The header lines: on a phone they wrap, so the plot starts below them.
+    const head = [['axis-title', null, 'The tipping state\'s two-party margin minus the national two-party margin, in points'],
+      [null, INK, 'Above zero: more Democratic than the nation; below: more Republican.'],
+      [null, GRAPHITE, 'Political scientists measure Electoral College bias in related ways (Erikson, Sigman and Yao, PNAS 117(45), 2020, doi:10.1073/pnas.2013581117); this is a related measure, not their definition.']];
+    if (!exporting) head.push([null, GRAPHITE, 'Colour: that party. Click 2016, 2020 or 2024 to open it in Road to 270.']);
+    let hy = 13;
+    for (const [cls, fill, text] of head) {
+      const t = svg.append('text').attr('x', narrow ? 4 : pad.l).attr('y', hy).text(text);
+      if (cls) t.attr('class', cls); if (fill) t.attr('fill', fill);
+      hy += narrow ? wrapText(t, w - 8, 14) * 14 + 4 : (hy === 13 ? 17 : 16);
+    }
+    if (narrow) { pad.t = hy + 8; hh = Math.max(hh, pad.t + 230 + pad.b); svg.attr('height', hh); }   // the header took the room: the card scrolls instead of squashing the plot
     const x = d3.scalePoint().domain(B.map((b) => b.year)).range([pad.l, w - pad.r]).padding(0.5), step = x.step();
     const m = d3.max(B, (b) => Math.abs(b.gap)), lim = Math.max(1, Math.ceil(m * 1.45));
     const y = d3.scaleLinear().domain([-lim, lim]).range([hh - pad.b, pad.t]);
@@ -140,10 +152,6 @@ export function historyView({ ctx, head, body, foot, place, shiftOf }) {
       svg.append('line').attr('x1', pad.l).attr('x2', w - pad.r).attr('y1', y(t)).attr('y2', y(t)).attr('stroke', RULE).attr('stroke-width', 0.5);
       svg.append('text').attr('x', pad.l - 6).attr('y', y(t) + 4).attr('text-anchor', 'end').text(tickText(t));
     }
-    svg.append('text').attr('class', 'axis-title').attr('x', pad.l).attr('y', 13).text('The tipping state\'s two-party margin minus the national two-party margin, in points');
-    svg.append('text').attr('x', pad.l).attr('y', 30).attr('fill', INK).text('Above zero: more Democratic than the nation; below: more Republican.');
-    svg.append('text').attr('x', pad.l).attr('y', 46).attr('fill', GRAPHITE).text('Political scientists measure Electoral College bias in related ways (Erikson, Sigman and Yao, PNAS 117(45), 2020, doi:10.1073/pnas.2013581117); this is a related measure, not their definition.');
-    if (!exporting) svg.append('text').attr('x', pad.l).attr('y', 62).attr('fill', GRAPHITE).text('Colour: that party. Click 2016, 2020 or 2024 to open it in Road to 270.');
     const g = svg.append('g').selectAll('g').data(B).join('g').style('cursor', 'pointer')
       .on('click', (ev, b) => (b.election ? ctx.openRoad(b.election) : ctx.select({ kind: 'states', states: [b.tip.st] }, { add: shiftOf(ev) })))
       .on('mousemove', (ev, b) => ctx.hoverHtml(`<b>${b.year}</b>: ${SIDE[b.winner]} won the Electoral College ${b.winner === 'D' ? b.evD : b.evR} to ${b.winner === 'D' ? b.evR : b.evD}<br>` +
@@ -166,7 +174,7 @@ export function historyView({ ctx, head, body, foot, place, shiftOf }) {
   }
 
   function drawWeight(H, w, hh) {
-    const W = H.weight, pad = { l: 72, r: 24, t: 24, b: 30 }, gap = 34;
+    const W = H.weight, narrow = w < 560, pad = { l: 72, r: 24, t: 24, b: 30 }, gap = narrow ? 46 : 34;
     const x = d3.scalePoint().domain(W.map((d) => d.year)).range([pad.l, w - pad.r]).padding(0.5);
     const step = x.step(), ph = (hh - pad.t - pad.b - gap) / 2;
     const panels = [
@@ -181,12 +189,12 @@ export function historyView({ ctx, head, body, foot, place, shiftOf }) {
     ];
     for (const p of panels) {
       const bottom = p.top + ph;
-      const y = d3.scaleLinear().domain([0, d3.max(W, p.v) * 1.18]).range([bottom, p.top + 26]).nice();
+      const y = d3.scaleLinear().domain([0, d3.max(W, p.v) * 1.18]).range([bottom, p.top + (narrow ? 40 : 26)]).nice();
       for (const t of y.ticks(4)) {
         svg.append('line').attr('x1', pad.l).attr('x2', w - pad.r).attr('y1', y(t)).attr('y2', y(t)).attr('stroke', RULE).attr('stroke-width', 0.5);
         svg.append('text').attr('x', pad.l - 6).attr('y', y(t) + 4).attr('text-anchor', 'end').text(t ? t + '×' : '0');
       }
-      svg.append('text').attr('class', 'axis-title').attr('x', pad.l).attr('y', p.top + 4).text(p.title);
+      wrapText(svg.append('text').attr('class', 'axis-title').attr('x', narrow ? 4 : pad.l).attr('y', p.top + 4).text(p.title), w - 8);
       svg.append('path').datum(W).attr('fill', 'none').attr('stroke', INK).attr('stroke-width', 2.5).attr('d', d3.line().x((d) => x(d.year)).y((d) => y(p.v(d))));
       const g = svg.append('g').selectAll('g').data(W).join('g').style('cursor', 'pointer')
         .on('click', (ev, d) => (d.election ? ctx.openElection(d.election, p.states(d)) : ctx.select({ kind: 'states', states: p.states(d) }, { add: shiftOf(ev) })))

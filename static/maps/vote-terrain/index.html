@@ -134,7 +134,7 @@
   .bop header { display:flex; justify-content:space-between; align-items:baseline; gap:6px; }
   .bop header b { font-family:'Archivo Narrow', sans-serif; font-weight:600; font-size:15px; white-space:nowrap; }
   .bop.open header b { font-size:19px; }
-  .bop header button { font:inherit; font-size:13px; line-height:1; color:var(--ink); background:transparent; border:1px solid var(--rule); padding:2px 6px; cursor:pointer; }
+  .bop header button { min-width:24px; min-height:24px; font:inherit; font-size:13px; line-height:1; color:var(--ink); background:transparent; border:1px solid var(--rule); padding:2px 6px; cursor:pointer; }
   .bop .line { margin:5px 0 0; } .bop .line .bar { height:6px; margin:2px 0 0; } .bop .line .bar b { top:-2px; bottom:-2px; }
   .bop h3 { font-size:12px; font-weight:700; margin:10px 0 3px; }
   .bop p { margin:0 0 3px; }
@@ -249,7 +249,7 @@
   .sim-list .sim-cap { margin:0 0 4px; }
   .sim-row { display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:8px; align-items:center; padding:2px 0; border-bottom:1px solid var(--rule); cursor:pointer; }
   .sim-row.faint { opacity:.55; }
-  .sim-lock { font:inherit; font-size:11px; color:var(--ink); background:transparent; border:1px solid var(--rule); padding:1px 6px; cursor:pointer; }
+  .sim-lock { font:inherit; font-size:11px; color:var(--ink); background:transparent; border:1px solid var(--rule); padding:1px 6px; min-height:24px; min-width:40px; cursor:pointer; }
   .sim-lock[aria-pressed=true] { background:var(--ink); color:var(--paper); }
   body.export .sim-lock, body.export .sim-range, body.export .pw-ctl { display:none !important; }
   /* Power: the cartogram's scrubber and the concentration marker */
@@ -342,7 +342,7 @@
   table.cl tbody tr { cursor:pointer; } table.cl tbody tr:hover td { background:rgba(35,48,107,.05); } table.cl tr.on td { background:rgba(35,48,107,.1); }
   .cl-chip { display:inline-block; width:10px; height:10px; margin-right:6px; vertical-align:-1px; }
   body.export table.cl th { cursor:default; }
-  .v2d-head .v2d-showall { font:inherit; font-size:12px; color:var(--ink); background:var(--paper); border:1px solid var(--rule); padding:4px 10px; cursor:pointer; }
+  .v2d-head .v2d-showall { min-height:24px; font:inherit; font-size:12px; color:var(--ink); background:var(--paper); border:1px solid var(--rule); padding:4px 10px; cursor:pointer; }
   .sel-chip { display:flex; flex-wrap:wrap; gap:6px; align-items:center; border:1px solid var(--ink); background:rgba(35,48,107,.06); padding:6px 8px; margin:0 0 12px; font-size:12.5px; }
   .sel-chip span { flex:1 1 100%; }
   .sel-chip button { font:inherit; font-size:12px; color:var(--ink); background:var(--paper); border:1px solid var(--rule); padding:3px 8px; cursor:pointer; }
@@ -377,6 +377,7 @@
   .rank .rrow .pbar { grid-column:1 / -1; margin:2px 0 1px; height:7px; }
   .rank .rrow[aria-pressed=true] { background:rgba(35,48,107,.08); font-weight:700; }
   .rank .rrow:hover { background:rgba(35,48,107,.05); }
+  .fold-btn { font:inherit; font-size:13px; line-height:1; color:var(--ink); background:transparent; border:1px solid var(--rule); padding:2px 6px; min-width:26px; min-height:26px; cursor:pointer; margin-left:auto; }
   @media (max-width: 900px) {
     .key { top:auto; bottom:96px; right:12px; }
     .bop { top:14px; bottom:auto; right:12px; max-height:45%; }
@@ -394,9 +395,17 @@
     /* touch targets of at least 24 px */
     .panel .link, .panel-min { padding-top:5px; padding-bottom:5px; } .lens-i { width:26px; height:26px; } .panel summary { padding:4px 0; }
     .v2d-label select, .v2d-head select, .v2d-head button { min-height:26px; }
+    #v2d .v2d-root[data-view=history] .v2d-body { overflow-y:auto; overflow-x:hidden; display:block; }   /* a chart that needs more than the room scrolls */
     .v2d-head .v2d-seg { max-width:100%; overflow-x:auto; }   /* a long chart picker scrolls instead of running off the screen */
     .lens-i, .panel .lens-i { min-width:26px; }
     .tabs button:disabled { display:none; }
+    /* the key and the balance box fold to one line each; a tap on the arrow opens them */
+    .fold-btn { display:inline-block; } .fold-btn[hidden] { display:none; }
+    .key .title { align-items:center; } .key .title #keyTitle { min-width:0; flex:1; }
+    body .key.fold, body[data-w] .key.fold { width:184px; padding:4px 10px; } .key.fold .lens-i { display:none; } .key .lens-i { height:26px; } .key.fold .title { margin-bottom:0; } .key.fold #keyBody { display:none; }
+    .key.fold #keyTitle { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .bop header { flex-wrap:wrap; align-items:center; } .bop.fold header { flex-wrap:nowrap; } .bop.fold header b { font-size:14px; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+    .bop.fold { padding:4px 10px; overflow:hidden; } .bop.fold #bopLines, .bop.fold #bopBody, .bop.fold #bopToggle { display:none; }
     .find { top:52px; }
     .table-wrap { inset:52px 10px 90px; }
     .panel { left:10px; right:10px; width:auto; top:auto; bottom:110px; max-height:34%; padding:10px 12px; }
@@ -597,13 +606,15 @@
 </aside>
 
 <div class="key" id="keyBox" aria-live="polite">
-  <div class="title"><span id="keyTitle">Swing</span><button class="lens-i" id="keyInfo" aria-label="More about the key">i</button></div>
+  <div class="title"><span id="keyTitle">Swing</span><button class="fold-btn" id="keyFold" aria-controls="keyBody" aria-expanded="true" aria-label="Show or hide the key" hidden>▾</button><button class="lens-i" id="keyInfo" aria-label="More about the key">i</button></div>
+  <div id="keyBody">
   <div class="ramp" id="ramp"></div>
   <div class="ramp-labels" id="rampLabels"></div>
   <div class="vol" id="keyHeight"></div>
   <div class="vol" id="keyWeight" hidden></div>
   <div class="vol" id="keyOv" hidden><span class="ov-sym" aria-hidden="true" style="display:inline-block;vertical-align:1px;margin-right:6px"></span><span id="keyOvText"></span></div>
   <button class="link" id="rankBtn" hidden aria-controls="rank">State ranking</button>
+  </div>
 </div>
 
 <aside class="about rank" id="rank" hidden role="dialog" aria-labelledby="rankTitle">
@@ -616,7 +627,7 @@
 <aside class="about drawer" id="drawer" hidden role="complementary" aria-label="Close-up"></aside>
 
 <section class="bop" id="bop" aria-labelledby="bopTitle">
-  <header><b id="bopTitle">Balance of power</b><button id="bopToggle" aria-expanded="false" aria-controls="bopBody">More</button></header>
+  <header><b id="bopTitle">Balance of power</b><button class="fold-btn" id="bopFold" aria-controls="bopLines" aria-expanded="true" aria-label="Show or hide the balance of power" hidden>▾</button><button id="bopToggle" aria-expanded="false" aria-controls="bopBody">More</button></header>
   <div id="bopLines"></div>
   <div id="bopBody" hidden></div>
 </section>
@@ -624,6 +635,6 @@
 <div class="offices" id="offices" role="group" aria-label="Office"></div>
 <nav class="timeline" id="timeline" aria-label="Election"></nav>
 <canvas id="locator" aria-label="Locator: the whole country from above, with the part in view marked. Click to move the view there." role="button" tabindex="0"></canvas>
-<script type="module" src="js/main.js?v=96"></script>
+<script type="module" src="js/main.js?v=97"></script>
 </body>
 </html>
