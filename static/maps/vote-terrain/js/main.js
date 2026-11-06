@@ -481,13 +481,19 @@ views = createViews2d({
   const nameCharts = () => { queued = false; const w = effW(), tn = TAB_NAME[w] || 'Chart', e = elections[state.e];
     document.querySelectorAll('#v2d svg, #v2d canvas').forEach((s) => { const r = s.getBoundingClientRect(); if (r.width < 200 || r.height < 100 || s.closest('button')) return;
       if (s.dataset.keys) { s.setAttribute('role', 'group'); s.setAttribute('aria-label', `${tn} chart${e ? ', ' + e.label : ''}. Tab enters the marks; arrow keys move between them and Enter selects. The same figures are in the table: press T or the Table button.`); return; }
-      s.setAttribute('role', 'img'); s.setAttribute('aria-label', `${tn} chart${e ? ', ' + e.label : ''}. The same figures are in the table: press T or the Table button.`); }); };
+      s.setAttribute('role', 'img'); s.setAttribute('aria-label', `${tn} chart${e ? ', ' + e.label : ''}. The same figures are in the table: press T or the Table button.`); }); markScrollers(); };
+  // A region that scrolls is a tab stop with a name, so a keyboard can scroll it.
+  const SCROLLERS = [['.v2d-body', 'Chart area'], ['.v2d-rows', 'Rows'], ['.v2d-foot', 'Sources'], ['.cl-wrap', 'Closest races'], ['.sp-rows', 'Races']];
+  const markScrollers = () => document.querySelectorAll('#v2d').forEach((root) => SCROLLERS.forEach(([q, name]) => root.querySelectorAll(q).forEach((n) => {
+    if (n.scrollHeight > n.clientHeight + 1 || n.scrollWidth > n.clientWidth + 1) { n.tabIndex = 0; n.setAttribute('role', 'region'); n.setAttribute('aria-label', `${name}, scrolls`); }
+    else { n.removeAttribute('tabindex'); n.removeAttribute('role'); n.removeAttribute('aria-label'); } })));
+  window.addEventListener('resize', () => requestAnimationFrame(markScrollers));
   new MutationObserver(() => { if (!queued) { queued = true; requestAnimationFrame(nameCharts); } }).observe($('v2d'), { childList: true, subtree: true }); }
 let panelTab = null;
 // Phone: the controls panel is a bottom sheet with three heights (peek, half, full). The handle is a button: a tap or Enter cycles them,
 // Arrow Up and Down step, a drag snaps to the nearest. The chart's region ends above the peek, so a taller sheet covers the chart (region()).
 const SHEETS = ['peek', 'half', 'full'], SHEET_SAY = { peek: 'peek, controls hidden', half: 'half height', full: 'full height' };
-const PEEK_H = 64;
+const PEEK_H = 72;
 const sheetOf = () => $('panel').dataset.sheet;
 const setSheet = (sh, say) => {
   const p = $('panel'); p.dataset.sheet = sh; p.classList.toggle('min', sh === 'peek');

@@ -19,6 +19,7 @@
     --graphite:#5B6168;
     --rule:rgba(35,48,107,0.28);
     --focus:#23306B;
+    --label-on-fill:#0B1030;   /* text on the chart's equal-lightness fills: 4.9:1 or better on every ramp colour (the fills stay as they are) */
   }
   * { box-sizing:border-box; }
   [hidden] { display:none !important; }   /* the hidden attribute wins over component display rules */
@@ -245,8 +246,8 @@
   .v2d-body .sim-bar-lab { font-size:11px; fill:var(--graphite); }
   .sim-main { display:flex; gap:12px; min-height:0; }
   .sim-tiles { flex:none; }
-  .v2d-body .sim-tile-st { font-size:11px; font-weight:700; fill:#fff; paint-order:stroke; stroke:rgba(35,48,107,.55); stroke-width:2px; }
-  .v2d-body .sim-tile-n { font-size:9px; fill:#fff; paint-order:stroke; stroke:rgba(35,48,107,.55); stroke-width:2px; }
+  .v2d-body .sim-tile-st { font-size:11px; font-weight:700; fill:var(--label-on-fill); }
+  .v2d-body .sim-tile-n { font-size:9px; fill:var(--label-on-fill); }
   .sim-list { font-size:12px; color:var(--graphite); padding-right:4px; }
   .sim-list h4 { font:700 12px 'Courier Prime', monospace; color:var(--ink); margin:8px 0 4px; }
   .sim-list .sim-cap { margin:0 0 4px; }
@@ -268,7 +269,7 @@
   #v2d .v2d-root[data-view=road] .v2d-foot, #v2d .v2d-root[data-view=closest] .v2d-foot { max-height:4.5em; overflow-y:auto; overflow-wrap:anywhere; }
   .v2d-body .rd-line { font-size:13px; fill:var(--ink); }
   .v2d-body .rd-lab { font-size:12px; font-weight:700; fill:var(--ink); }
-  .v2d-body .rd-in { font-size:11px; font-weight:700; fill:#fff; paint-order:stroke; stroke:rgba(35,48,107,.55); stroke-width:2px; }
+  .v2d-body .rd-in { font-size:11px; font-weight:700; fill:var(--label-on-fill); }
   .v2d-body .rd-out { font-size:11px; fill:var(--ink); }
   .v2d-body .rd-in, .v2d-body .rd-out, .v2d-body .rd-line, .v2d-body .rd-lab { pointer-events:none; }
   .v2d-body .rd-row { font-size:12px; fill:var(--ink); }
@@ -411,7 +412,8 @@
     .table-wrap { inset:52px 10px 90px; }
     /* The controls panel is a bottom sheet with three heights. It sits above the timeline; the chart's region ends above the peek, so the sheet covers the chart rather than squeezing it. */
     .panel { left:10px; right:10px; width:auto; top:auto; bottom:110px; max-height:none; padding:0 12px 10px; z-index:5; height:var(--sheet-h); transition:height .18s ease; overscroll-behavior:contain; }
-    .panel[data-sheet=peek] { --sheet-h:64px; overflow:hidden; padding-bottom:0; }
+    .panel[data-sheet=peek] { --sheet-h:72px; overflow:hidden; padding-bottom:0; }
+    .panel .head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
     .panel[data-sheet=half] { --sheet-h:42dvh; }
     .panel[data-sheet=full] { --sheet-h:calc(100dvh - 110px - 46px); }
     .panel.dragging { transition:none; }
@@ -453,7 +455,7 @@
 </div>
 <div class="table-wrap" id="tableWrap" hidden role="dialog" aria-label="Table of the places in view">
   <header><b id="tableTitle">Table</b><span id="tableNote"></span><button id="tableClose">Close</button></header>
-  <div class="scroll"><table id="table"></table></div>
+  <div class="scroll" tabindex="0" role="region" aria-label="Table rows, scrolls"><table id="table"></table></div>
 </div>
 
 <div class="panel" id="panel" data-sheet="half">
