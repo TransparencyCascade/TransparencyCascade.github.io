@@ -25,7 +25,6 @@ Measures, for county f in state s and an election with county votes:
 import csv
 import io
 import json
-import math
 import os
 import sys
 import urllib.request

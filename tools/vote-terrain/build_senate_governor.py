@@ -289,7 +289,7 @@ def main(work, out):
     # ---------- Governor 2026 and the prior governor race: the checked county file ----------
     PULL = "2026-11-05T1646Z"      # keep equal to PULL in build_data.mjs: one pull for Senate, governor and House
     gpath = os.path.expanduser("~/tcp-kb-internal/cascade-research/notes/data/governor-2026-vs-pres24-vs-prior-governor-by-county-unofficial-" + PULL + ".csv")
-    g26, gprior, g22, n26, nprior, priorYears = {}, {}, {}, [], [], {}
+    g26, gprior, g22, priorYears = {}, {}, {}, {}
     for r in csv.DictReader(open(gpath)):
         st, f = r["state"], fips5(r["county_fips"])
         if st == "AK" or not f:

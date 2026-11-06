@@ -229,8 +229,8 @@ def load_votes():
         for (cand, p), v in party[k].items():
             if p in ('DEMOCRAT', 'REPUBLICAN') and v >= side.get(cand, ('', 0))[1]:
                 side[cand] = (p, v)
-        d = [(cs[c], c) for c, (p, v) in side.items() if p == 'DEMOCRAT']
-        r_ = [(cs[c], c) for c, (p, v) in side.items() if p == 'REPUBLICAN']
+        d = [(cs[c], c) for c, (p, _) in side.items() if p == 'DEMOCRAT']
+        r_ = [(cs[c], c) for c, (p, _) in side.items() if p == 'REPUBLICAN']
         if d and r_:
             sen[k] = (int(max(d)[0]), int(max(r_)[0]), max(d)[1], max(r_)[1], 'mit-senate')
         else:
@@ -882,9 +882,6 @@ def main():
                     unm[c]['house IE not used (no House output)'] += usd
                 else:
                     unm[c]['IE row with no candidate id and no office'] += usd
-            srcie = f'ie{c}'
-        else:
-            srcie = 'pas208'
         for tp, cid, usd, cmte in pas2_rows(c):
             x = cands.get(cid)
             if tp == '24C':

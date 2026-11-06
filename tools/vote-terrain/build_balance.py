@@ -300,7 +300,7 @@ def smallest_house_2024(k):
 def class_ii():
     t = text("classII.html")
     out = {}
-    for _name, p, st in re.findall(r"([A-ZÀ-ÿ][\w.\-' À-ÿ]+?, [\w.\-' À-ÿ]+?)\s*\(([RDI])\s*-\s*([A-Z]{2})\)", t):
+    for _, p, st in re.findall(r"([A-ZÀ-ÿ][\w.\-' À-ÿ]+?, [\w.\-' À-ÿ]+?)\s*\(([RDI])\s*-\s*([A-Z]{2})\)", t):
         out[st] = p
     return out
 

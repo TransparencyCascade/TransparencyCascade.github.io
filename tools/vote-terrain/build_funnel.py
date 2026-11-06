@@ -44,7 +44,6 @@ page without an EAVS row and the reverse; the registered and removed totals agai
 (cascade-research/notes/data/eavs-removals-registration-jurisdiction-harmonized-2008-2024-2026-11-05.csv) when present.
 """
 import csv
-import glob
 import json
 import os
 import re
@@ -128,14 +127,12 @@ def read_year(y):
 def main():
     elections = json.load(open(os.path.join(WEB, "elections.json")))["elections"]
     eff = json.load(open(os.path.join(WEB, "effective.json")))
-    ycount = {}   # per year: unit key -> accumulators
     codes = defaultdict(Counter)   # (year, item) -> missing code counts
     st_acc = {y: defaultdict(lambda: {"v": [0.0] * len(IDS), "miss": [0] * len(IDS), "missReg": [0.0] * len(IDS), "n": 0, "pr": [0.0] * 10, "has": [0] * len(IDS)}) for y in YEARS}
     co_acc = {y: defaultdict(lambda: {"v": [0.0] * len(IDS), "bad": [False] * len(IDS), "n": 0}) for y in YEARS}
     jur_count = Counter()
     not_in_county = defaultdict(list)
     for y in YEARS:
-        avail = {k: (y in m) for k, _, m in ITEMS}
         for st, fips, name, r in read_year(y):
             if st not in FIPS_ST.values():
                 continue

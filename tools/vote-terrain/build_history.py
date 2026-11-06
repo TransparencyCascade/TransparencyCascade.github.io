@@ -131,7 +131,7 @@ def tipping_vs_nation(pres_csv, pledged_csv, elections_path, sim_path):
             ss = p["states"]
             sim_tip = sorted(((st, D, R, e) for st, (D, R, e) in ss.items() if (D > R) == (win == "D")), key=lambda t: (t[1] - t[2]) / (t[1] + t[2]), reverse=(win == "D"))
             cc = fx[win]
-            for st, D, R, e in sim_tip:
+            for st, _, _, e in sim_tip:
                 cc += e
                 if cc >= 270:
                     assert st == tip["st"], (y, "tipping state differs from simulator.json", st, tip["st"])
