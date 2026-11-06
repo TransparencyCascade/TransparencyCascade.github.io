@@ -95,7 +95,36 @@ export function createViews2d(ctx) {
     longPress(svg.node(), (ev) => { const t = ev.touches && ev.touches[0]; const d = t && near()(t.clientX, t.clientY); if (d) onHit(d, true); });
   };
 
-  const env = { ctx, meta, DUR, head, body, foot, place, inSel, shiftOf, longPress, dragGuard, nearest, hitLayer,
+  // Roving focus over a chart's marks: the keyboard route to what a mouse or touch does. One mark is in the tab order; the arrow keys
+  // move between marks (Home and End jump), and Enter or Space runs the mark's click handler with the key event, so Shift still adds.
+  // A redraw that the key caused hands focus back to the same mark. Charts without it stay reachable through the table (T).
+  let roveKeep = null;
+  const plain = (html) => html.replace(/<br>/g, '. ').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+  const rove = (svgNode, key, nodes, { tip, label, activate }) => {
+    svgNode.dataset.keys = key;
+    if (!nodes.length) return;
+    let at = roveKeep && roveKeep.key === key ? Math.min(roveKeep.i, nodes.length - 1) : 0;
+    const keep = roveKeep && roveKeep.key === key;
+    const tabs = () => nodes.forEach((n, i) => n.setAttribute('tabindex', i === at ? '0' : '-1'));
+    const showTip = (n) => { if (!tip) return; const r = n.getBoundingClientRect(); ctx.hoverHtml(tip(n.__data__, n), r.left + r.width / 2, r.top + r.height / 2); };
+    nodes.forEach((n, i) => {
+      const d = n.__data__;
+      n.setAttribute('role', 'button'); n.setAttribute('aria-label', (label ? label(d, n) : plain(tip(d, n))).replace(/\.?$/, '.') + ' Press Enter to select.');
+      n.addEventListener('focus', () => { at = i; tabs(); showTip(n); });
+      n.addEventListener('blur', () => ctx.hover(null));
+      n.addEventListener('keydown', (ev) => {
+        const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[ev.key];
+        if (step || ev.key === 'Home' || ev.key === 'End') {
+          ev.preventDefault(); ev.stopPropagation();   // not the page's own arrow keys (the elections)
+          nodes[ev.key === 'Home' ? 0 : ev.key === 'End' ? nodes.length - 1 : Math.max(0, Math.min(nodes.length - 1, i + step))].focus();
+        } else if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ev.stopPropagation(); roveKeep = { key, i }; ctx.hover(null); activate(ev, d, n); setTimeout(() => { if (roveKeep && roveKeep.key === key) roveKeep = null; }, 900); }
+      });
+    });
+    tabs();
+    if (keep) nodes[at].focus({ preventScroll: true });
+  };
+
+  const env = { ctx, meta, DUR, head, body, foot, place, inSel, shiftOf, rove, longPress, dragGuard, nearest, hitLayer,
     countyPath, centroid, bboxOf, statePath, W0, statesOf, rows: () => ctx.rows() };
   const views = { dots: dotsView(env), arrows: arrowsView(env), scatter: scatterView(env), circles: circlesView(env), strips: stripsView(env), seats: seatsView(env), history: historyView(env), sim: simView(env), power: powerView(env), road: roadView(env), closest: closestView(env), dropoff: dropoffView(env), split: splitView(env), money: moneyView(env), people: peopleView(env), funnel: funnelView(env) };
   let current = null;

@@ -13,7 +13,7 @@ const MAX = 70;                        // margins beyond 70 points are drawn at 
 export const lead = (m) => (m == null ? '' : m === 0 ? 'even' : `${m > 0 ? 'D' : 'R'}+${Math.abs(m).toFixed(1)}`);
 export const distName = (d) => `${d.st}-${d.n === 'AL' ? 'AL' : d.n}`;
 
-export function stripsView({ ctx, DUR, head, body, foot, place, shiftOf }) {
+export function stripsView({ ctx, DUR, head, body, foot, place, shiftOf, rove }) {
   const { fmt } = ctx;
   let axisSvg, rowsBox, gRows, sortKey = 'seats', showAll = false;
   const exporting = document.body.classList.contains('export');
@@ -88,8 +88,9 @@ export function stripsView({ ctx, DUR, head, body, foot, place, shiftOf }) {
     const gm = ge.merge(g);
     (animate && DUR ? gm.transition().duration(DUR) : gm).attr('transform', (r, i) => `translate(0,${3 + i * RH})`);
     gm.attr('opacity', (r) => (S && !S.has(r.st) ? DIM : 1));
+    const pickRow = (ev, r) => ctx.select({ kind: 'states', states: [r.st] }, { add: shiftOf(ev) });
     gm.select('.hit').attr('width', w).attr('height', RH).style('cursor', 'pointer')
-      .on('click', (ev, r) => ctx.select({ kind: 'states', states: [r.st] }, { add: shiftOf(ev) }))
+      .on('click', pickRow)
       .on('mousemove', (ev, r) => ctx.hoverHtml(rowHtml(r, h), ev.clientX, ev.clientY)).on('mouseleave', () => ctx.hover(null));
     gm.select('.contestable').attr('x', (r) => xs(-r.L.captured)).attr('width', (r) => xs(r.L.captured) - xs(-r.L.captured)).attr('y', 2).attr('height', RH - 4).attr('fill', BAND_FILL.contestable).attr('pointer-events', 'none');
     gm.select('.atrisk').attr('x', (r) => xs(-r.L.atRisk)).attr('width', (r) => xs(r.L.atRisk) - xs(-r.L.atRisk)).attr('y', 2).attr('height', RH - 4).attr('fill', BAND_FILL.atRisk).attr('pointer-events', 'none');
@@ -113,6 +114,8 @@ export function stripsView({ ctx, DUR, head, body, foot, place, shiftOf }) {
         .on('mousemove', (ev, d) => ctx.hoverHtml(districtHtml(d, r, h), ev.clientX, ev.clientY)).on('mouseleave', () => ctx.hover(null))
         .on('click', (ev) => { ev.stopPropagation(); ctx.select({ kind: 'states', states: [r.st] }, { add: shiftOf(ev) }); });
     });
+    // Keyboard: arrow keys move between the state rows (a row stands for its districts: a click on any of them selects the state).
+    rove(gRows.node(), 'strips', gm.select('.hit').nodes(), { tip: (r) => rowHtml(r, h), activate: pickRow });
     // Counts across the map (or across the selected states when only they are drawn), in the head.
     const n = (b) => h.districts.filter((d) => d.band === b && (!only || S.has(d.st))).length;
     head.querySelector('.strips-count').innerHTML =

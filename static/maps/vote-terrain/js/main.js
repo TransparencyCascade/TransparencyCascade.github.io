@@ -480,6 +480,7 @@ views = createViews2d({
 { let queued = false;
   const nameCharts = () => { queued = false; const w = effW(), tn = TAB_NAME[w] || 'Chart', e = elections[state.e];
     document.querySelectorAll('#v2d svg, #v2d canvas').forEach((s) => { const r = s.getBoundingClientRect(); if (r.width < 200 || r.height < 100 || s.closest('button')) return;
+      if (s.dataset.keys) { s.setAttribute('role', 'group'); s.setAttribute('aria-label', `${tn} chart${e ? ', ' + e.label : ''}. Tab enters the marks; arrow keys move between them and Enter selects. The same figures are in the table: press T or the Table button.`); return; }
       s.setAttribute('role', 'img'); s.setAttribute('aria-label', `${tn} chart${e ? ', ' + e.label : ''}. The same figures are in the table: press T or the Table button.`); }); };
   new MutationObserver(() => { if (!queued) { queued = true; requestAnimationFrame(nameCharts); } }).observe($('v2d'), { childList: true, subtree: true }); }
 let panelTab = null;

@@ -11,7 +11,7 @@ import { rowFor, natLine, tipLine, gapSentence, ratioLine } from '../bias.js';
 const BARS = [['pres', 'President'], ['sen', 'Senate']];
 const GROUND = '#E8ECEC';
 
-export function roadView({ ctx, head, body, foot, place, shiftOf, DUR }) {
+export function roadView({ ctx, head, body, foot, place, shiftOf, rove, DUR }) {
   const { fmt } = ctx;
   const exporting = document.body.classList.contains('export');
   let svg, prev = new Map();
@@ -112,15 +112,17 @@ export function roadView({ ctx, head, body, foot, place, shiftOf, DUR }) {
       svg.append('text').attr('class', 'axis-title').attr('x', pad.l).attr('y', top + 12).text(`Fewest votes to flip, among the ${r.byFlip.length} ${evw ? 'states' : 'races'} with a result:`);
       near.forEach((s, i) => {
         const y = top + 20 + i * 20 + 14, row = svg.append('g').attr('class', 'rd-near').attr('data-st', s.st).style('cursor', exporting ? null : 'pointer');
-        row.append('rect').attr('x', 0).attr('y', y - 14).attr('width', w).attr('height', 20).attr('fill', 'transparent');
+        row.datum(s); row.append('rect').attr('x', 0).attr('y', y - 14).attr('width', w).attr('height', 20).attr('fill', 'transparent');
         row.append('rect').attr('x', pad.l).attr('y', y - 9).attr('width', 11).attr('height', 11).attr('fill', fill(s));
         row.append('text').attr('class', 'rd-row').attr('x', pad.l + 18).attr('y', y).attr('font-weight', S && S.has(s.st) ? 700 : null).text(narrow ? `${s.st}: ${fmt(s.flip)} to flip` : `${s.name}${evw ? `, ${s.size} electoral votes` : ''}: margin ${fmt(s.votes)} votes, ${pts(s.points)} points; ${fmt(s.flip)} votes to flip${s === t ? '; tipping point' : ''}`);
         if (!exporting) row.on('click', (ev) => ctx.select({ kind: 'states', states: [s.st] }, { add: shiftOf(ev) })).on('mousemove', (ev) => ctx.hoverHtml(tipHtml(r, s), ev.clientX, ev.clientY)).on('mouseleave', () => ctx.hover(null));
       });
     }
     if (!exporting) {
-      rects.on('mousemove', (ev, s) => ctx.hoverHtml(tipHtml(r, s), ev.clientX, ev.clientY)).on('mouseleave', () => ctx.hover(null))
-        .on('click', (ev, s) => { if (s.st) ctx.select({ kind: 'states', states: [s.st] }, { add: shiftOf(ev) }); });
+      const pick = (ev, s) => { if (s.st) ctx.select({ kind: 'states', states: [s.st] }, { add: shiftOf(ev) }); };
+      rects.on('mousemove', (ev, s) => ctx.hoverHtml(tipHtml(r, s), ev.clientX, ev.clientY)).on('mouseleave', () => ctx.hover(null)).on('click', pick);
+      // Keyboard: the segments that name a state, then the closest-results rows, as one sequence (the same selection as a click).
+      rove(svg.node(), 'road', [...rects.filter((s) => s.st).nodes(), ...svg.selectAll('g.rd-near').nodes()], { tip: (s) => tipHtml(r, s), activate: pick });
     }
     const left = S ? r.segs.filter((s) => s.st && S.has(s.st)).length : 0;
     ctx.viewNote(S ? `${fmt(left)} of the ${r.segs.filter((s) => s.st).length} ${evw ? 'states' : 'races'} in this bar are in the selection.` : '');

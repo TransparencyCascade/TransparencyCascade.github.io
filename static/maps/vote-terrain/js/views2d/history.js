@@ -20,7 +20,7 @@ const shown = (i, count, n) => (count - 1 - i) % n === 0;
 
 const CHARTS = [['seats', 'Residents per seat'], ['small', 'Smallest change'], ['weight', 'Weight per vote'], ['bias', 'Tipping state vs nation']];
 
-export function historyView({ ctx, head, body, foot, place, shiftOf }) {
+export function historyView({ ctx, head, body, foot, place, shiftOf, rove }) {
   const { fmt } = ctx;
   let svg;
   const exporting = document.body.classList.contains('export');
@@ -108,12 +108,16 @@ export function historyView({ ctx, head, body, foot, place, shiftOf }) {
     }
     wrapText(svg.append('text').attr('class', 'axis-title').attr('x', narrow ? 4 : pad.l).attr('y', 13).text('The smallest change: fewest votes that would have changed each presidential election (log scale)'), w - 8);
     const step = x.step();
-    const g = svg.append('g').selectAll('g').data(L).join('g').style('cursor', (s) => (s.election ? 'pointer' : 'default'))
-      .on('click', (ev, s) => { if (s.election) ctx.openElection(s.election, s.states); })
-      .on('mousemove', (ev, s) => ctx.hoverHtml(`<b>${s.year}</b>: ${s.winner} over ${s.runner}<br>Smallest change ${fmt(s.votes)} votes in ${s.states.length} state${s.states.length > 1 ? 's' : ''}:<br>` +
+    const openSmall = (ev, s) => { if (s.election) ctx.openElection(s.election, s.states); };
+    const smallTip = (s) => `<b>${s.year}</b>: ${s.winner} over ${s.runner}<br>Smallest change ${fmt(s.votes)} votes in ${s.states.length} state${s.states.length > 1 ? 's' : ''}:<br>` +
         Object.entries(s.perState).sort((a, b) => b[1] - a[1]).map(([st, n]) => `${ctx.stateName(st)} ${fmt(n)}`).join(', ') +
-        (s.election ? `<br><span style="color:${GRAPHITE}">Click to open ${s.year} with these states selected</span>` : ''), ev.clientX, ev.clientY))
+        (s.election ? `<br><span style="color:${GRAPHITE}">Click to open ${s.year} with these states selected</span>` : '');
+    const g = svg.append('g').selectAll('g').data(L).join('g').style('cursor', (s) => (s.election ? 'pointer' : 'default'))
+      .on('click', openSmall)
+      .on('mousemove', (ev, s) => ctx.hoverHtml(smallTip(s), ev.clientX, ev.clientY))
       .on('mouseleave', () => ctx.hover(null));
+    // Keyboard: the elections the page has (the others do nothing on a click either).
+    if (!exporting) rove(svg.node(), 'hist-small', g.filter((s) => s.election).nodes(), { tip: smallTip, activate: openSmall });
     // A faint guide per election from the dot down to its year, so each dot reads against the axis without a bar.
     g.append('line').attr('x1', (s) => x(s.year)).attr('x2', (s) => x(s.year)).attr('y1', (s) => y(Math.max(100, s.votes)) + 8).attr('y2', hh - pad.b)
       .attr('stroke', RULE).attr('stroke-dasharray', '2 3');
@@ -160,14 +164,16 @@ export function historyView({ ctx, head, body, foot, place, shiftOf }) {
       svg.append('line').attr('x1', pad.l).attr('x2', w - pad.r).attr('y1', y(t)).attr('y2', y(t)).attr('stroke', RULE).attr('stroke-width', 0.5);
       svg.append('text').attr('x', pad.l - 6).attr('y', y(t) + 4).attr('text-anchor', 'end').text(tickText(t));
     }
-    const g = svg.append('g').selectAll('g').data(B).join('g').style('cursor', 'pointer')
-      .on('click', (ev, b) => (b.election ? ctx.openRoad(b.election) : ctx.select({ kind: 'states', states: [b.tip.st] }, { add: shiftOf(ev) })))
-      .on('mousemove', (ev, b) => ctx.hoverHtml(`<b>${b.year}</b>: ${SIDE[b.winner]} won the Electoral College ${b.winner === 'D' ? b.evD : b.evR} to ${b.winner === 'D' ? b.evR : b.evD}<br>` +
+    const pickBias = (ev, b) => (b.election ? ctx.openRoad(b.election) : ctx.select({ kind: 'states', states: [b.tip.st] }, { add: shiftOf(ev) }));
+    const biasTip = (b) => `<b>${b.year}</b>: ${SIDE[b.winner]} won the Electoral College ${b.winner === 'D' ? b.evD : b.evR} to ${b.winner === 'D' ? b.evR : b.evD}<br>` +
         `National popular vote: ${SIDE[b.nat.votes > 0 ? 'D' : 'R']} by ${fmt(Math.abs(b.nat.votes))} votes, ${pts(b.nat.points)} points of the two-party vote<br>` +
         `Tipping state: ${ctx.stateName(b.tip.st)} (${b.tip.ev} electoral votes), ${PARTY[b.tip.votes > 0 ? 'D' : 'R']} by ${fmt(Math.abs(b.tip.votes))} votes, ${pts(b.tip.points)} points<br>` +
         `${gapSentence(b)}<br>The national vote margin was ${ratioText(b.ratio)} times the tipping state's vote margin<br>` +
-        `<span style="color:${GRAPHITE}">${b.source === 'FEC' ? 'FEC certified totals' : 'MIT state totals'}. Click to ${b.election ? `open ${b.year} in Road to 270` : 'select the state'}</span>`, ev.clientX, ev.clientY))
+        `<span style="color:${GRAPHITE}">${b.source === 'FEC' ? 'FEC certified totals' : 'MIT state totals'}. Click to ${b.election ? `open ${b.year} in Road to 270` : 'select the state'}</span>`;
+    const g = svg.append('g').selectAll('g').data(B).join('g').style('cursor', 'pointer').on('click', pickBias)
+      .on('mousemove', (ev, b) => ctx.hoverHtml(biasTip(b), ev.clientX, ev.clientY))
       .on('mouseleave', () => ctx.hover(null));
+    if (!exporting) rove(svg.node(), 'hist-bias', g.nodes(), { tip: biasTip, activate: pickBias });
     const col = (b) => ctx.colour(b.gap > 0 ? 40 : -40, true);
     g.append('rect').attr('x', (b) => x(b.year) - Math.min(18, step * 0.28)).attr('width', Math.min(36, step * 0.56)).attr('y', (b) => Math.min(y(0), y(b.gap))).attr('height', (b) => Math.max(1, Math.abs(y(b.gap) - y(0))))
       .attr('fill', col).attr('fill-opacity', 0.55);
@@ -196,6 +202,7 @@ export function historyView({ ctx, head, body, foot, place, shiftOf }) {
         tip: (d) => `<b>${d.year}</b> (census ${d.census})<br>${ctx.stateName(d.ev.hi)}: ${d.ev.hiEv} electoral votes, ${fmt(d.ev.hiVotes)} votes cast<br>${ctx.stateName(d.ev.lo)}: ${d.ev.loEv} electoral votes, ${fmt(d.ev.loVotes)} votes cast<br>A vote in ${ctx.stateName(d.ev.hi)} carried ${d.ev.ratio.toFixed(2)}× the electoral weight of one in ${ctx.stateName(d.ev.lo)}`,
         states: (d) => [d.ev.hi, d.ev.lo] },
     ];
+    const weightNodes = [], weightTips = new Map();
     for (const p of panels) {
       const bottom = p.top + ph;
       const y = d3.scaleLinear().domain([0, d3.max(W, p.v) * 1.18]).range([bottom, p.top + (narrow ? 40 : 26)]).nice();
@@ -205,16 +212,20 @@ export function historyView({ ctx, head, body, foot, place, shiftOf }) {
       }
       wrapText(svg.append('text').attr('class', 'axis-title').attr('x', narrow ? 4 : pad.l).attr('y', p.top + 4).text(p.title), w - 8);
       svg.append('path').datum(W).attr('fill', 'none').attr('stroke', INK).attr('stroke-width', 2.5).attr('d', d3.line().x((d) => x(d.year)).y((d) => y(p.v(d))));
-      const g = svg.append('g').selectAll('g').data(W).join('g').style('cursor', 'pointer')
-        .on('click', (ev, d) => (d.election ? ctx.openElection(d.election, p.states(d)) : ctx.select({ kind: 'states', states: p.states(d) }, { add: shiftOf(ev) })))
-        .on('mousemove', (ev, d) => ctx.hoverHtml(p.tip(d) + `<br><span style="color:${GRAPHITE}">Click to select ${d.election ? `them in ${d.year}` : 'these states'}</span>`, ev.clientX, ev.clientY))
+      const pickW = (ev, d) => (d.election ? ctx.openElection(d.election, p.states(d)) : ctx.select({ kind: 'states', states: p.states(d) }, { add: shiftOf(ev) }));
+      const tipW = (d) => p.tip(d) + `<br><span style="color:${GRAPHITE}">Click to select ${d.election ? `them in ${d.year}` : 'these states'}</span>`;
+      const g = svg.append('g').selectAll('g').data(W).join('g').style('cursor', 'pointer').on('click', pickW)
+        .on('mousemove', (ev, d) => ctx.hoverHtml(tipW(d), ev.clientX, ev.clientY))
         .on('mouseleave', () => ctx.hover(null));
+      // Keyboard: the years of this panel (the panels are one sequence, the upper first).
+      if (!exporting) { weightNodes.push(...g.nodes().map((n) => { n.dataset.panel = p.key; return n; })); weightTips.set(p.key, tipW); }
       g.append('circle').attr('cx', (d) => x(d.year)).attr('cy', (d) => y(p.v(d))).attr('r', 4.5).attr('fill', INK);
       g.append('text').attr('x', (d) => x(d.year)).attr('y', (d) => y(p.v(d)) - 10).attr('text-anchor', 'middle').attr('fill', INK).attr('font-weight', 700)
         .text((d, i) => (shown(i, W.length, tickEvery(step)) ? p.v(d).toFixed(p.key === 'senate' ? 0 : 1) + '×' : ''));
       // The two states, under each point, when there is room; the hover always names them.
       if (step >= 44) g.append('text').attr('x', (d) => x(d.year)).attr('y', (d) => y(p.v(d)) + 18).attr('text-anchor', 'middle').text(p.lab);
     }
+    if (!exporting) rove(svg.node(), 'hist-weight', weightNodes, { tip: (d, n) => weightTips.get(n.dataset.panel)(d), activate: (ev, d, n) => n.dispatchEvent(new MouseEvent('click', { shiftKey: ev.shiftKey, bubbles: true })) });
     const every = tickEvery(step);
     W.forEach((d, i) => { if (shown(i, W.length, every)) svg.append('text').attr('x', x(d.year)).attr('y', hh - pad.b + 16).attr('text-anchor', 'middle').text(d.year); });
   }
