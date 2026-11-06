@@ -95,12 +95,14 @@ export function moneyView({ ctx, head, body, foot, place, shiftOf }) {
     }
     note(gd, pad.l, h1 - 22, ['Bar and figure: the cycle\'s median. Colour: the winner\'s party.', '* 2026 is partial and unofficial (dots outlined).']);
     // The outside money no race can be named for, beside it (below it on a phone).
-    const op = { l: 46, r: 8, t: 28, b: 54 };
+    const op = { l: 46, r: 8, t: 40, b: 66 };
     const net = S.mg === 'net', pre = S.mp === 'pre';
     const rowsC = (pre ? M.PRE_CYCLES : cycles).map((c) => ({ c, v: M.outside(D, c, net, pre), gross: M.outside(D, c, false, pre) })).filter((d) => d.v);
     const bx = d3.scaleBand().domain(rowsC.map((d) => d.c)).range([op.l, wr - op.r]).padding(0.22);
     const by = d3.scaleLinear().domain([0, d3.max(rowsC, (d) => Math.max(0, d.v.notAllocated) + Math.max(0, d.v.allocated)) * 1.12]).range([h2 - op.b, op.t + 8]).nice();
-    gb.append('text').attr('class', 'axis-title').attr('x', 4).attr('y', 13).text(`Super and hybrid PACs, ${net ? 'net' : 'gross'}, ${pre ? 'to the pre-general report' : 'whole cycle'}`);
+    const tt = gb.append('text').attr('class', 'axis-title').attr('x', 4).attr('y', 13);
+    tt.append('tspan').text(`Super and hybrid PACs, ${net ? 'net' : 'gross'},`);
+    tt.append('tspan').attr('x', 4).attr('dy', 14).text(pre ? 'through the pre-general report' : 'whole cycle');
     for (const t of by.ticks(5)) {
       gb.append('line').attr('x1', op.l).attr('x2', wr - op.r).attr('y1', by(t)).attr('y2', by(t)).attr('stroke', RULE).attr('stroke-width', 0.5);
       gb.append('text').attr('x', op.l - 5).attr('y', by(t) + 4).attr('text-anchor', 'end').text(t ? '$' + t / 1e9 + 'B' : '0');
@@ -113,7 +115,7 @@ export function moneyView({ ctx, head, body, foot, place, shiftOf }) {
     bars.append('text').attr('x', (d) => bx(d.c) + bx.bandwidth() / 2).attr('y', h2 - op.b + 16).attr('text-anchor', 'middle').text((d) => (d.c === 2026 && !pre ? '26*' : pre ? String(d.c) : String(d.c).slice(2)));
     bars.append('text').attr('x', (d) => bx(d.c) + bx.bandwidth() / 2).attr('y', (d) => by(Math.max(0, d.v.notAllocated) + d.v.allocated) - 4).attr('text-anchor', 'middle').attr('fill', INK).attr('font-size', 9.5).attr('font-weight', 700)
       .text((d) => (d.v.notAllocated > 5e7 ? (d.v.notAllocated / 1e9).toFixed(2) : ''));
-    note(gb, op.l, h2 - 22, ['Dark: no race named. Pale: Schedule E.', pre ? 'Label: the dark part, $B. Same report in each cycle.' : 'Label: the dark part, $B. * partial.']);
+    note(gb, op.l, h2 - 35, ['Dark: no race named.', 'Pale: Schedule E.', pre ? 'Label: dark part, $B; same report each cycle.' : 'Label: dark part, $B. * partial.']);
   }
   const raceTip = (D, r, S) => {
     const f = M.figures(r), cov = D.coverage[r.cycle];

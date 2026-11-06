@@ -236,7 +236,7 @@
   /* Simulator */
   .sim-top { flex:none; }
   #v2d .v2d-root[data-view=sim] .v2d-body, #v2d .v2d-root[data-view=power] .v2d-body { overflow-y:auto; overflow-x:hidden; display:block; }
-  #v2d .v2d-root[data-view=sim] .v2d-foot { max-height:4.5em; overflow-y:auto; overflow-wrap:anywhere; }
+  #v2d .v2d-root[data-view=sim] .v2d-foot { line-height:1.35; max-height:4.05em; overflow-y:auto; overflow-wrap:anywhere; }
   .sim-readout-row { display:flex; flex-wrap:wrap; gap:4px 16px; align-items:baseline; }
   .sim-readout { font:700 15px 'Courier Prime', monospace; color:var(--ink); }
   .sim-label { font-size:12px; color:var(--graphite); }
@@ -266,7 +266,7 @@
   .flip-row select { flex:1; min-width:0; font:inherit; font-size:12px; color:var(--ink); background:var(--paper); border:1px solid var(--rule); padding:4px 4px; }
   #v2d .v2d-root[data-view=road] .v2d-body { overflow-y:auto; overflow-x:hidden; display:block; }
   #v2d .v2d-root[data-view=closest] .v2d-body { overflow:hidden; }
-  #v2d .v2d-root[data-view=road] .v2d-foot, #v2d .v2d-root[data-view=closest] .v2d-foot { max-height:4.5em; overflow-y:auto; overflow-wrap:anywhere; }
+  #v2d .v2d-root[data-view=road] .v2d-foot, #v2d .v2d-root[data-view=closest] .v2d-foot { line-height:1.35; max-height:4.05em; overflow-y:auto; overflow-wrap:anywhere; }
   .v2d-body .rd-line { font-size:13px; fill:var(--ink); }
   .v2d-body .rd-lab { font-size:12px; font-weight:700; fill:var(--ink); }
   .v2d-body .rd-in { font-size:11px; font-weight:700; fill:var(--label-on-fill); }
@@ -650,6 +650,6 @@
 <div class="offices" id="offices" role="group" aria-label="Office"></div>
 <nav class="timeline" id="timeline" aria-label="Election"></nav>
 <canvas id="locator" aria-label="Locator: the whole country from above, with the part in view marked. Click to move the view there." role="button" tabindex="0"></canvas>
-<script type="module" src="js/main.js?v=97"></script>
+<script type="module" src="js/main.js?v=98"></script>
 </body>
 </html>

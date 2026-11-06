@@ -202,6 +202,7 @@ if (!glFailed) terrainModule
   .catch(() => noGL());
 // WebGL missing or lost: switch to Circles, keep the state, say why in the panel.
 let noGLDone = false, ready = false;
+let tabWhyTimer = 0;
 function noGL() {
   if (noGLDone) return; noGLDone = glFailed = true;
   if (blocks) { blocks.destroy(); blocks = null; }
@@ -756,7 +757,12 @@ function render(opts = {}) {
   if (panelTab !== vw) { panelTab = vw; setSheet(window.innerWidth <= 640 && vw !== 'terrain' ? 'peek' : 'half'); }
   const pressed = document.querySelector('#tabs [aria-pressed=true]'); if (pressed && pressed.scrollIntoView && window.innerWidth <= 640) pressed.scrollIntoView({ inline: 'center', block: 'nearest' });
   const tw = $('tabWhy');
-  tw.textContent = vw !== state.w ? `${TAB_NAME[state.w]} ${tabWhy(state.w)}; showing ${TAB_NAME[vw]}.` : ''; tw.hidden = vw === state.w;
+  // The reason sits just under the tabs (one or two rows) and clears after a few seconds, since it covers the view's own controls.
+  const why = vw !== state.w ? `${TAB_NAME[state.w]} ${tabWhy(state.w)}; showing ${TAB_NAME[vw]}.` : '';
+  if (why !== tw.textContent) {
+    tw.textContent = why; tw.hidden = !why; clearTimeout(tabWhyTimer);
+    if (why) { tw.style.top = Math.round($('tabs').getBoundingClientRect().bottom + 6) + 'px'; tabWhyTimer = setTimeout(() => { tw.hidden = true; }, 6000); }
+  }
   const nt = $('notice');
   nt.hidden = !glFailed;
   if (glFailed) $('locator').style.display = 'none';   // the locator is drawn by the terrain

@@ -28,7 +28,7 @@ export const LENSES = {
   won: { set: { n: 'area', h: 'net', u: 'd', c: 'margin', g: '0', d: '3d' }, v: 'west',
     how: 'Mountains are where Democrats won more votes than Republicans, valleys where Republicans did. Their volumes net to the margin across the map.' },
   changed: { set: { n: 'area', h: 'total', c: 'swing', g: '1', d: '3d' }, v: 'west',
-    how: 'Colour is the swing since the last race for the same office. The faint grid is that race\'s land: where it shows above the surface, fewer votes were cast this time. Press play to step through the elections.' },
+    how: 'Colour is the swing since the last race for the same office. On Terrain, the faint grid is that race\'s land: where it shows above the surface, fewer votes were cast this time. Press play to step through the elections.' },
   worth: { set: { n: 'area', h: 'ev', c: 'weight', g: '0', d: '3d' }, v: 'national',
     how: 'Height is votes scaled by each state\'s share of the Electoral College (or of the Senate) per vote cast, or the population each county is apportioned for. Colour is the electoral weight of one vote cast there, against the national average.' },
 };
@@ -40,6 +40,8 @@ export const fromHash = (order) => {
   if (!['terrain', 'blocks'].includes(state.s)) state.s = 'terrain';
   if (!['1', '8'].includes(state.m)) state.m = '1';
   if (!LENSES[state.l] && state.l !== 'custom') state.l = 'votes';
+  // A link that names a lens but not all its settings (a hand-written one) takes the lens's settings for the rest.
+  if (LENSES[state.l]) for (const [k, v] of Object.entries(LENSES[state.l].set)) if (!q.get(k)) state[k] = v;
   if (!['0', '1'].includes(state.g)) state.g = '0';
   // Phones open on Circles: the flat view that reads at that width.
   if (!q.get('w') && window.innerWidth <= 640) state.w = 'circles';
