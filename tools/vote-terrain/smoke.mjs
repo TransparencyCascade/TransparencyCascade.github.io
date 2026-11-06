@@ -140,34 +140,34 @@ const MONEY_DONORS_PROBE = (cy) => (async () => {
     ok: Math.abs(t10 - D.top10Usd) < 1 && Math.abs(D.top10Usd / receipts - D.top10ShareOfReceipts) < 5e-4 && rowsShown[0] === top.name + ', ' + top.state && sorted && D.named.every((n) => n.cashUsd >= 1e6 || n.memoAttributedUsd >= 1e6) && D.named.every((n) => (n.largestLines.length ? n.largestLines[0] : n.largestMemoLines[0]).filing) }; })();
 const SCENARIOS = [
   { name: 't-default', hash: 'w=terrain' },
-  { name: 't-overhead', hash: 'v=national' },
-  { name: 't-strong', hash: 'm=8&v=national' },
+  { name: 't-overhead', hash: 'w=terrain&v=national' },
+  { name: 't-strong', hash: 'w=terrain&m=8&v=national' },
   { name: 't-lens-won', hash: 'w=terrain', act: key('2') },
   { name: 't-lens-changed', hash: 'w=terrain', act: key('3') },
   { name: 't-lens-worth', hash: 'w=terrain', act: seq(key('4'), click('#rankBtn')) },
   { name: 't-worth-people', hash: 'w=terrain', act: seq(key('4'), click('[data-wh=pop]')) },
   { name: 't-worth-senate', hash: 'w=terrain', act: seq(key('4'), click('[data-wh=sen]')) },
-  { name: 't-sen2026-swing', hash: 'e=sen2026&c=swing&v=national' },
-  { name: 't-gov2026', hash: 'e=gov2026&v=national' },
-  { name: 't-gov2018-swing', hash: 'e=gov2018&c=swing&v=national' },
-  { name: 't-ghost', hash: 'e=pres2020&c=swing&g=1&l=custom' },
-  { name: 't-county-scale', hash: 'n=county&v=national&l=custom' },
-  { name: 't-net-r', hash: 'h=net&u=r&v=national&l=custom' },
-  { name: 't-flat', hash: 'd=2d&l=custom' },
-  { name: 't-texas', hash: 'v=texas' },
-  { name: 't-east', hash: 'v=east' },
-  { name: 't-sel-states', hash: 'sel=s:TX,OK&v=national' },
-  { name: 't-sel-frame', hash: 'v=national', act: async (page) => { await page.evaluate(() => window.__vt.setSelection({ states: ['MI'] }, { frame: true })); } },
-  { name: 't-hover', hash: 'v=national', act: hover(700, 470), tip: true },
-  { name: 't-click-select', hash: 'v=national', act: async (page) => { await page.mouse.click(700, 470); } },
-  { name: 'b-blocks', hash: 's=blocks&v=national&l=custom' },
-  { name: 'b-blocks-west', hash: 's=blocks&l=custom' },
-  { name: 'b-blocks-net', hash: 's=blocks&h=net&v=texas&l=custom' },
-  { name: 'b-blocks-sel', hash: 's=blocks&sel=s:CA&v=national&l=custom' },
-  { name: 'b-blocks-flat', hash: 's=blocks&d=2d&l=custom' },
-  { name: 'b-blocks-worth', hash: 's=blocks&h=ev&c=weight&v=national&l=custom' },
-  { name: 'b-blocks-hover', hash: 's=blocks&v=national&l=custom', act: hover(700, 470), tip: true },
-  { name: 'b-blocks-frame', hash: 's=blocks&v=national&l=custom', act: async (page) => { await page.evaluate(() => window.__vt.setSelection({ states: ['OH'] }, { frame: true })); } },
+  { name: 't-sen2026-swing', hash: 'w=terrain&e=sen2026&c=swing&v=national' },
+  { name: 't-gov2026', hash: 'w=terrain&e=gov2026&v=national' },
+  { name: 't-gov2018-swing', hash: 'w=terrain&e=gov2018&c=swing&v=national' },
+  { name: 't-ghost', hash: 'w=terrain&e=pres2020&c=swing&g=1&l=custom' },
+  { name: 't-county-scale', hash: 'w=terrain&n=county&v=national&l=custom' },
+  { name: 't-net-r', hash: 'w=terrain&h=net&u=r&v=national&l=custom' },
+  { name: 't-flat', hash: 'w=terrain&d=2d&l=custom' },
+  { name: 't-texas', hash: 'w=terrain&v=texas' },
+  { name: 't-east', hash: 'w=terrain&v=east' },
+  { name: 't-sel-states', hash: 'w=terrain&sel=s:TX,OK&v=national' },
+  { name: 't-sel-frame', hash: 'w=terrain&v=national', act: async (page) => { await page.evaluate(() => window.__vt.setSelection({ states: ['MI'] }, { frame: true })); } },
+  { name: 't-hover', hash: 'w=terrain&v=national', act: hover(700, 470), tip: true },
+  { name: 't-click-select', hash: 'w=terrain&v=national', act: async (page) => { await page.mouse.click(700, 470); } },
+  { name: 'b-blocks', hash: 'w=terrain&s=blocks&v=national&l=custom' },
+  { name: 'b-blocks-west', hash: 'w=terrain&s=blocks&l=custom' },
+  { name: 'b-blocks-net', hash: 'w=terrain&s=blocks&h=net&v=texas&l=custom' },
+  { name: 'b-blocks-sel', hash: 'w=terrain&s=blocks&sel=s:CA&v=national&l=custom' },
+  { name: 'b-blocks-flat', hash: 'w=terrain&s=blocks&d=2d&l=custom' },
+  { name: 'b-blocks-worth', hash: 'w=terrain&s=blocks&h=ev&c=weight&v=national&l=custom' },
+  { name: 'b-blocks-hover', hash: 'w=terrain&s=blocks&v=national&l=custom', act: hover(700, 470), tip: true },
+  { name: 'b-blocks-frame', hash: 'w=terrain&s=blocks&v=national&l=custom', act: async (page) => { await page.evaluate(() => window.__vt.setSelection({ states: ['OH'] }, { frame: true })); } },
   { name: 'c-circles', hash: 'w=circles' },
   { name: 'c-circles-people', hash: 'w=circles&h=pop&l=worth' },
   { name: 'c-circles-sen2026', hash: 'w=circles&e=sen2026' },
@@ -184,23 +184,23 @@ const SCENARIOS = [
   { name: 's-scatter-raw', hash: 'w=scatter', act: seq(click('[data-x=raw]'), click('[data-k=state]')) },
   { name: 's-scatter-quad', hash: 'w=scatter&sel=q:nw' },
   { name: 's-scatter-box', hash: 'w=scatter&sel=b:-10.0,10.0,0.0,30.0' },
-  { name: 'x-table', hash: 'sel=s:DE&v=national', act: key('t') },
+  { name: 'x-table', hash: 'w=terrain&sel=s:DE&v=national', act: key('t') },
   { name: 'x-table-scatter', hash: 'w=scatter&sel=s:RI', act: seq(key('t'), click('#table th[data-k="0"]')) },
-  { name: 'x-find', hash: 'v=national', act: async (page) => { await page.keyboard.press('/'); await page.keyboard.type('cook'); } },
-  { name: 'x-find-pick', hash: 'v=national', act: async (page) => { await page.keyboard.press('/'); await page.keyboard.type('maricopa'); await page.keyboard.press('Enter'); } },
-  { name: 'x-about', hash: 'v=national', act: click('#aboutBtn') },
-  { name: 'x-keys', hash: 'v=national', act: seq(key('ArrowLeft'), key('v')) },
-  { name: 'x-office', hash: 'v=national', act: click('[data-office=governor]') },
-  { name: 'x-office-swing', hash: 'c=swing&e=pres2020&v=national', act: click('[data-office=senate]') },
-  { name: 'x-flip', hash: 'e=pres2020&v=national', act: seq(click('#bopToggle'), click('#bopBody .flip')) },
-  { name: 'x-bop-2026', hash: 'e=sen2026&v=national', act: click('#bopToggle') },
-  { name: 'x-escape', hash: 'sel=s:NV&v=national', act: key('Escape') },
-  { name: 'x-play', hash: 'e=pres2016&v=national', act: async (page) => { await page.click('#play'); await page.waitForTimeout(2800); await page.click('#play'); } },
-  { name: 'x-reset', hash: 'v=texas&l=won', act: click('#reset') },
+  { name: 'x-find', hash: 'w=terrain&v=national', act: async (page) => { await page.keyboard.press('/'); await page.keyboard.type('cook'); } },
+  { name: 'x-find-pick', hash: 'w=terrain&v=national', act: async (page) => { await page.keyboard.press('/'); await page.keyboard.type('maricopa'); await page.keyboard.press('Enter'); } },
+  { name: 'x-about', hash: 'w=terrain&v=national', act: click('#aboutBtn') },
+  { name: 'x-keys', hash: 'w=terrain&v=national', act: seq(key('ArrowLeft'), key('v')) },
+  { name: 'x-office', hash: 'w=terrain&v=national', act: click('[data-office=governor]') },
+  { name: 'x-office-swing', hash: 'w=terrain&c=swing&e=pres2020&v=national', act: click('[data-office=senate]') },
+  { name: 'x-flip', hash: 'w=terrain&e=pres2020&v=national', act: seq(click('#bopToggle'), click('#bopBody .flip')) },
+  { name: 'x-bop-2026', hash: 'w=terrain&e=sen2026&v=national', act: click('#bopToggle') },
+  { name: 'x-escape', hash: 'w=terrain&sel=s:NV&v=national', act: key('Escape') },
+  { name: 'x-play', hash: 'w=terrain&e=pres2016&v=national', act: async (page) => { await page.click('#play'); await page.waitForTimeout(2800); await page.click('#play'); } },
+  { name: 'x-reset', hash: 'w=terrain&v=texas&l=won', act: click('#reset') },
   { name: 'p-phone', hash: '', viewport: { width: 390, height: 844 } },
   { name: 'p-phone-terrain', hash: 'w=terrain', viewport: { width: 390, height: 844 } },
   // Exact counties: Per county and Republicans up change the block heights (Los Angeles, Cook, Loving TX).
-  { name: 'b-blocks-scale-party', hash: 's=blocks&v=national&l=custom', probe: async (page) => {
+  { name: 'b-blocks-scale-party', hash: 'w=terrain&s=blocks&v=national&l=custom', probe: async (page) => {
     const hs = () => page.evaluate(() => ['06037', '17031', '48301'].map((f) => +window.__vt.blocks().heightOf(f).toFixed(4)));
     const out = { area: await hs() };
     await page.click('summary'); await page.click('[data-n=county]'); await settle(page); out.county = await hs();
@@ -209,7 +209,7 @@ const SCENARIOS = [
     out.allChange = out.area.join() !== out.county.join() && out.county.join() !== out.netD.join() && out.netD.every((h, i) => h === -out.netR[i]);
     return out; } },
   // County-equivalent names in the tip: DC, a parish, independent cities and the counties that share their names.
-  { name: 'x-county-names', hash: 'v=national', probe: (page) => page.evaluate(() =>
+  { name: 'x-county-names', hash: 'w=terrain&v=national', probe: (page) => page.evaluate(() =>
     ['11001', '22001', '51760', '51159', '24510', '24005', '29510', '32510', '51036'].map((f) => window.__vt.tipHtml(f).split('<br>')[0].replace(/<[^>]+>/g, ''))) },
   // Arrows and Circles fit their map after leaving the tab, a resize while away, and coming back.
   ...['arrows', 'circles'].map((w) => ({ name: `a-${w}-refit`, hash: `w=${w}`, probe: async (page) => {
@@ -236,7 +236,7 @@ const SCENARIOS = [
   { name: 'h-table-strips', hash: 'e=house2026&w=strips&sel=s:OH', act: key('t') },
   { name: 'h-table-seats', hash: 'e=house2024&w=seats', act: key('t') },
   { name: 'h-bop', hash: 'e=house2026&w=strips', act: click('#bopToggle') },
-  { name: 'h-office', hash: 'e=pres2024&v=national', act: click('[data-office=house]') },
+  { name: 'h-office', hash: 'w=terrain&e=pres2024&v=national', act: click('[data-office=house]') },
   { name: 'h-terrain-asked', hash: 'e=house2026&w=terrain' },
   { name: 'h-phone', hash: 'e=house2026&w=strips', viewport: { width: 390, height: 844 } },
   // The plausible swing is the one knob behind the bands: the slider writes ps= and moves the lines and counts.
@@ -417,7 +417,7 @@ const SCENARIOS = [
         Math.abs(C[C.length - 1].cv - 1) < 1e-9 && Math.abs(C[C.length - 1].ca - 1) < 1e-9 && half.n === n }; }) },
   // Overlays: marks on every county view, the comparison card, its selection rule and a direct recount of the comparison.
   { name: 'o-monitors-circles', hash: 'e=sen2026&w=circles&c=swing&ov=monitors' },
-  { name: 'o-detention-terrain', hash: 'e=sen2026&c=swing&v=national&ov=detention', probe: (page) => page.evaluate(() => ({ marks: document.querySelectorAll('.ov-mark').length, key: document.getElementById('keyOvText').textContent })) },
+  { name: 'o-detention-terrain', hash: 'w=terrain&e=sen2026&c=swing&v=national&ov=detention', probe: (page) => page.evaluate(() => ({ marks: document.querySelectorAll('.ov-mark').length, key: document.getElementById('keyOvText').textContent })) },
   { name: 'o-monitors-dots', hash: 'e=sen2026&w=dots&ov=monitors', probe: (page) => page.evaluate(() => ({ rings: document.querySelectorAll('#v2d circle.ov').length })) },
   { name: 'o-detention-arrows', hash: 'e=sen2026&w=arrows&ov=detention', probe: (page) => page.evaluate(() => ({ marks: document.querySelectorAll('#v2d .ov-marks path').length })) },
   { name: 'o-monitors-pres2024', hash: 'e=pres2024&w=circles&c=swing&ov=monitors', probe: (page) => page.evaluate(() => ({ card: document.getElementById('ovText').textContent })) },
@@ -461,7 +461,7 @@ const SCENARIOS = [
   { name: 'n-nogl-sim', hash: 'e=pres2024&w=sim&sw=1.8', gl: false },
   { name: 'n-nogl-house', hash: 'e=house2026&w=seats', gl: false },
   { name: 'n-nogl', hash: 'w=terrain', gl: false },
-  { name: 'n-nogl-blocks', hash: 's=blocks', gl: false },
+  { name: 'n-nogl-blocks', hash: 'w=terrain&s=blocks', gl: false },
   { name: 'n-nogl-dots', hash: 'w=dots', gl: false },
   // Road to 270 (and 51), Closest races, flips and bellwethers, and Scatter's margin-against-swing chart.
   { name: 'r-road-2024', hash: 'e=pres2024&w=road' },
@@ -585,7 +585,7 @@ const SCENARIOS = [
   { name: 'u-dropoff-table', hash: 'e=sen2026&w=dropoff&sel=s:ME', act: key('t') },
   { name: 'u-dropoff-unavailable', hash: 'e=pres2024&w=dropoff' },
   { name: 'u-dropoff-phone', hash: 'e=sen2026&w=dropoff', viewport: { width: 390, height: 844 } },
-  { name: 'u-colour-terrain', hash: 'e=sen2026&c=drop&v=national&l=custom' },
+  { name: 'u-colour-terrain', hash: 'w=terrain&e=sen2026&c=drop&v=national&l=custom' },
   { name: 'u-colour-circles', hash: 'e=sen2026&w=circles&c=drop&l=custom' },
   { name: 'u-colour-circles-gov', hash: 'e=gov2026&w=circles&c=drop&l=custom' },
   { name: 'u-colour-circles-2022', hash: 'e=sen2022&w=circles&c=drop&l=custom' },
@@ -593,7 +593,7 @@ const SCENARIOS = [
     probe: (page) => page.evaluate(() => ({ w: window.__vt.effW(), c: window.__vt.state.c, key: document.getElementById('keyTitle').textContent, labels: document.getElementById('rampLabels').textContent })) },
   { name: 'u-colour-menu', hash: 'e=sen2026&w=circles', act: seq(click('#adjust summary'), click('[data-c=drop]')), probe: (page) => page.evaluate(() => ({ c: window.__vt.state.c, l: window.__vt.state.l, how: document.getElementById('dropHow').textContent })) },
   { name: 'u-colour-hover', hash: 'e=sen2026&w=circles&c=drop&l=custom', act: hover(640, 400), tip: true },
-  { name: 'u-colour-blocks', hash: 'e=sen2026&s=blocks&c=drop&v=national&l=custom' },
+  { name: 'u-colour-blocks', hash: 'w=terrain&e=sen2026&s=blocks&c=drop&v=national&l=custom' },
   // The drop-off from the files by a second route: the race per state, the counties, the all-county share, the 2022 band's bins.
   { name: 'u-dropoff-data', hash: 'e=sen2026&w=dropoff', probe: (page) => page.evaluate(async () => {
     const E = (await (await fetch('elections.json')).json()).elections, v = window.__vt, out = {};
@@ -635,7 +635,7 @@ const SCENARIOS = [
       ok: both.length === T.rows.length && worst < 1e-9 && sts.join() === T.states.join() && sts.join() === inter.join() && document.querySelectorAll('#v2d .sp-rows line.t').length === T.rows.length }; }) },
   // The County history card: opened by a double-click, the tooltip's History, or hk= in the link; follows the timeline year.
   { name: 'h2-card', hash: 'e=gov2026&w=circles&hk=04013' },
-  { name: 'h2-card-terrain', hash: 'e=pres2024&v=national&hk=48201' },
+  { name: 'h2-card-terrain', hash: 'w=terrain&e=pres2024&v=national&hk=48201' },
   { name: 'h2-card-phone', hash: 'e=gov2026&w=circles&hk=04013', viewport: { width: 390, height: 844 } },
   { name: 'h2-dblclick', hash: 'e=gov2026&w=circles', act: async (page) => { const b = await page.evaluate(() => { const c = d3.selectAll('#v2d circle').filter((f) => f === '04013').node().getBoundingClientRect(); return { x: c.x + c.width / 2, y: c.y + c.height / 2 }; });
     await page.mouse.move(b.x - 20, b.y - 20); await page.mouse.move(b.x, b.y); await page.waitForTimeout(150); await page.mouse.dblclick(b.x, b.y); }, probe: (page) => page.evaluate(() => ({ hk: window.__vt.state.hk, card: document.getElementById('histCard').hidden })) },
@@ -750,8 +750,8 @@ const SCENARIOS = [
     const dark = [...document.querySelectorAll('#v2d svg.mn-chart .mn-notalloc')].map((r) => +r.getAttribute('height')), big = cyc.reduce((a, c) => (net(c) > net(a) ? c : a), cyc[0]), i = cyc.indexOf(big);
     return { bars: dark.length, big, ok: dark.length === cyc.length && cyc.every((c, j) => Math.abs(dark[j] / dark[i] - Math.max(0, net(c)) / net(big)) < 0.02) }; }) },
   // Lazy loading: money.json is not fetched until the Money tab, a money saved view or the open balance box's cost line asks for it.
-  { name: 'z-lazy-closed', hash: 'e=pres2024&v=national', probe: (page) => page.evaluate(() => ({ money: performance.getEntriesByType('resource').filter((r) => /money\.json/.test(r.name)).length, people: performance.getEntriesByType('resource').filter((r) => /people\.(json|bin)/.test(r.name)).length })) },
-  { name: 'z-lazy-bop-open', hash: 'e=pres2024&v=national', act: click('#bopToggle'), probe: (page) => page.evaluate(() => ({ money: performance.getEntriesByType('resource').filter((r) => /money\.json/.test(r.name)).length, cost: !!document.querySelector('#bopBody .cost') })) },
+  { name: 'z-lazy-closed', hash: 'w=terrain&e=pres2024&v=national', probe: (page) => page.evaluate(() => ({ money: performance.getEntriesByType('resource').filter((r) => /money\.json/.test(r.name)).length, people: performance.getEntriesByType('resource').filter((r) => /people\.(json|bin)/.test(r.name)).length })) },
+  { name: 'z-lazy-bop-open', hash: 'w=terrain&e=pres2024&v=national', act: click('#bopToggle'), probe: (page) => page.evaluate(() => ({ money: performance.getEntriesByType('resource').filter((r) => /money\.json/.test(r.name)).length, cost: !!document.querySelector('#bopBody .cost') })) },
   { name: 'z-lazy-money-tab', hash: 'w=money', probe: (page) => page.evaluate(() => ({ money: performance.getEntriesByType('resource').filter((r) => /money\.json/.test(r.name)).length })) },
   { name: 'z-lazy-people-tab', hash: 'w=people', probe: (page) => page.evaluate(() => ({ people: performance.getEntriesByType('resource').filter((r) => /people\.(json|bin)/.test(r.name)).length, money: performance.getEntriesByType('resource').filter((r) => /money\.json/.test(r.name)).length })) },
   // People: the dot map. Counts are recomputed here from elections.json (votes by party over votes per dot, within a half percent; each county's dots are rounded at random).
