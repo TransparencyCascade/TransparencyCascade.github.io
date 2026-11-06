@@ -14,6 +14,10 @@
 import { INK, GRAPHITE, RULE, wrapText } from './style.js';
 import { PARTY, SIDE, pts, gapSentence, ratioText, sameAsNation } from '../bias.js';
 
+// Year labels thinned to what fits: every nth from the latest back, n from the spacing between marks (phones show every second or third).
+const tickEvery = (step, minStep = 38) => Math.max(1, Math.ceil(minStep / Math.max(1, step)));
+const shown = (i, count, n) => (count - 1 - i) % n === 0;
+
 const CHARTS = [['seats', 'Residents per seat'], ['small', 'Smallest change'], ['weight', 'Weight per vote'], ['bias', 'Tipping state vs nation']];
 
 export function historyView({ ctx, head, body, foot, place, shiftOf }) {
@@ -85,10 +89,12 @@ export function historyView({ ctx, head, body, foot, place, shiftOf }) {
     svg.append('text').attr('x', x(last.year) - 6).attr('y', y(last.perSeat) - 10).attr('text-anchor', 'end').attr('fill', INK).attr('font-weight', 700).text(`${fmt(last.perSeat)} per seat`);
     svg.append('text').attr('x', x(P[0].year) + 6).attr('y', y(P[0].perSeat) - 10).attr('fill', INK).attr('font-weight', 700).text(`${fmt(P[0].perSeat)}`);
     // Census years, with the House size beneath each.
-    for (const e of P) {
+    const every = tickEvery(x(P[1].year) - x(P[0].year));
+    P.forEach((e, i) => {
+      if (!shown(i, P.length, every)) return;
       svg.append('text').attr('x', x(e.year)).attr('y', hh - pad.b + 16).attr('text-anchor', 'middle').text(e.year);
       svg.append('text').attr('x', x(e.year)).attr('y', hh - pad.b + 31).attr('text-anchor', 'middle').attr('fill', INK).text(e.seats);
-    }
+    });
     svg.append('text').attr('x', pad.l - 6).attr('y', hh - pad.b + 31).attr('text-anchor', 'end').text('seats');
   }
 
@@ -115,14 +121,16 @@ export function historyView({ ctx, head, body, foot, place, shiftOf }) {
       .attr('fill', (s) => ctx.colour(s.winnerParty === 'D' ? 40 : -40, true)).attr('stroke', '#fff').attr('stroke-width', 1);
     // Each label must fit its column (measured, since cards draw text larger): the figure in full, else rounded
     // ("2.69M"); the states named, else counted, else just the count.
+    const every = tickEvery(step), on = (s) => shown(L.indexOf(s), L.length, every);   // where marks crowd, labels sit on the year labels shown (the hover names the rest)
     const fits = (t) => t.getComputedTextLength() <= step - 6;
     const short = (n) => (n >= 1e6 ? (n / 1e6).toFixed(2) + 'M' : n >= 1e3 ? (n / 1e3).toPrecision(3) + 'k' : String(n));
     g.append('text').attr('x', (s) => x(s.year)).attr('y', (s) => y(Math.max(100, s.votes)) - 13).attr('text-anchor', 'middle').attr('fill', INK).attr('font-weight', 700)
-      .text((s) => fmt(s.votes)).each(function (s) { if (!fits(this)) this.textContent = short(s.votes); });
-    g.append('text').attr('x', (s) => x(s.year)).attr('y', hh - pad.b + 16).attr('text-anchor', 'middle').text((s) => s.year);
+      .text((s) => (on(s) ? fmt(s.votes) : '')).each(function (s) { if (on(s) && !fits(this)) this.textContent = short(s.votes); });
+    g.append('text').attr('x', (s) => x(s.year)).attr('y', hh - pad.b + 16).attr('text-anchor', 'middle').text((s) => (on(s) ? s.year : ''));
     g.append('text').attr('x', (s) => x(s.year)).attr('y', hh - pad.b + 32).attr('text-anchor', 'middle').attr('fill', INK)
-      .text((s) => s.states.join(' ')).each(function (s) {
-        for (const t of [`${s.states.length} states`, String(s.states.length)]) { if (fits(this)) break; this.textContent = t; }
+      .text((s) => (on(s) ? s.states.join(' ') : '')).each(function (s) {
+        if (!on(s)) return;
+        for (const t of [`${s.states.length} states`, String(s.states.length)]) { if (fits(this) && this.getComputedTextLength() <= step * every - 6) break; this.textContent = t; }
       });
     svg.append('text').attr('x', pad.l - 6).attr('y', hh - pad.b + 32).attr('text-anchor', 'end').text('states');
     if (!exporting) svg.append('text').attr('x', w - pad.r).attr('y', pad.t + 6).attr('text-anchor', 'end').text(narrow ? 'Dot colour: winner. Click a year to open it.' : 'Dot colour: the winner\'s party. Click 2016, 2020 or 2024 to open it.');
@@ -169,8 +177,9 @@ export function historyView({ ctx, head, body, foot, place, shiftOf }) {
     const fits = (t) => t.getComputedTextLength() <= step - 4;
     g.append('text').attr('x', (b) => x(b.year)).attr('y', (b) => (b.gap > 0 ? y(b.gap) - 12 : y(b.gap) + 20)).attr('text-anchor', 'middle').attr('fill', INK).attr('font-weight', 700)
       .text((b) => `${b.tip.st} ${pts(b.gap)}`).each(function (b) { if (!fits(this)) this.textContent = b.tip.st; });
-    g.append('text').attr('x', (b) => x(b.year)).attr('y', hh - pad.b + 16).attr('text-anchor', 'middle').text((b) => b.year);
-    g.append('text').attr('x', (b) => x(b.year)).attr('y', hh - pad.b + 32).attr('text-anchor', 'middle').attr('fill', GRAPHITE).text((b) => (b.election ? 'open' : ''));
+    const every = tickEvery(step), on = (b) => shown(B.indexOf(b), B.length, every);
+    g.append('text').attr('x', (b) => x(b.year)).attr('y', hh - pad.b + 16).attr('text-anchor', 'middle').text((b) => (on(b) ? b.year : ''));
+    g.append('text').attr('x', (b) => x(b.year)).attr('y', hh - pad.b + 32).attr('text-anchor', 'middle').attr('fill', GRAPHITE).text((b) => (b.election && on(b) ? 'open' : ''));
   }
 
   function drawWeight(H, w, hh) {
@@ -202,11 +211,12 @@ export function historyView({ ctx, head, body, foot, place, shiftOf }) {
         .on('mouseleave', () => ctx.hover(null));
       g.append('circle').attr('cx', (d) => x(d.year)).attr('cy', (d) => y(p.v(d))).attr('r', 4.5).attr('fill', INK);
       g.append('text').attr('x', (d) => x(d.year)).attr('y', (d) => y(p.v(d)) - 10).attr('text-anchor', 'middle').attr('fill', INK).attr('font-weight', 700)
-        .text((d) => p.v(d).toFixed(p.key === 'senate' ? 0 : 1) + '×');
+        .text((d, i) => (shown(i, W.length, tickEvery(step)) ? p.v(d).toFixed(p.key === 'senate' ? 0 : 1) + '×' : ''));
       // The two states, under each point, when there is room; the hover always names them.
       if (step >= 44) g.append('text').attr('x', (d) => x(d.year)).attr('y', (d) => y(p.v(d)) + 18).attr('text-anchor', 'middle').text(p.lab);
     }
-    for (const d of W) svg.append('text').attr('x', x(d.year)).attr('y', hh - pad.b + 16).attr('text-anchor', 'middle').text(d.year);
+    const every = tickEvery(step);
+    W.forEach((d, i) => { if (shown(i, W.length, every)) svg.append('text').attr('x', x(d.year)).attr('y', hh - pad.b + 16).attr('text-anchor', 'middle').text(d.year); });
   }
   return { build, draw };
 }
