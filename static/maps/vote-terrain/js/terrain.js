@@ -29,16 +29,77 @@ export async function initTerrain({ container, geo, ramp, ramp2, onHover, labels
   // ---------- mesh: a vertex per grid cell centre, quads where any corner is land ----------
   const pos = new Float32Array(N * 3), val = new Float32Array(N), nod = new Float32Array(N), dens = new Float32Array(N), sea = new Float32Array(N);
   const nrm = new Float32Array(N * 3).fill(0); for (let g = 0; g < N; g++) nrm[g * 3 + 2] = 1;   // smooth per-vertex normals
+  // Sea field: a weighted 3x3 blur of the sea mask (centre 7, edges 1, diagonals 0.5, out of 13; off the grid
+  // counts as sea). A land vertex scores at most 6/13 and a sea vertex at least 7/13, so the 0.5 cut always
+  // falls between a land and a sea vertex: no land is lost and no sea added, but the line follows the
+  // neighbourhood instead of zigzagging across each quad.
+  const isSea = (r, c) => (r < 0 || c < 0 || r >= rows || c >= cols || landOf[r * cols + c] < 0 ? 1 : 0);
   for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
     const g = r * cols + c;
     pos[g * 3] = x0 + (c + 0.5) * CELL; pos[g * 3 + 1] = yTop - (r + 0.5) * CELL; pos[g * 3 + 2] = 0;
-    sea[g] = landOf[g] < 0 ? 1 : 0;
+    sea[g] = (7 * isSea(r, c) + isSea(r - 1, c) + isSea(r + 1, c) + isSea(r, c - 1) + isSea(r, c + 1)
+      + 0.5 * (isSea(r - 1, c - 1) + isSea(r - 1, c + 1) + isSea(r + 1, c - 1) + isSea(r + 1, c + 1))) / 13;
   }
+  // Coastal sea vertices (sea cells with land among their 8 neighbours) and those land neighbours: each update
+  // gives them the mean of their land neighbours' values, so the surface meets the cut at the coast's own
+  // height instead of diving toward the sea floor halfway across the last quad. They are never drawn past the cut.
+  const coast = [], coastN = [], farSea = new Uint8Array(N);
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const g = r * cols + c; if (landOf[g] >= 0) continue;
+    const nb = [];
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+      const rr = r + dr, cc = c + dc;
+      if ((dr || dc) && rr >= 0 && cc >= 0 && rr < rows && cc < cols && landOf[rr * cols + cc] >= 0) nb.push(rr * cols + cc);
+    }
+    if (nb.length) { coast.push(g); coastN.push(nb); } else farSea[g] = 1;
+  }
+  // Their neighbours that are land or coastal sea: two relaxation passes over those even out the extended
+  // values along the shore (each sea vertex otherwise sees a different set of land cells, so heights at the
+  // cut would jitter from one vertex to the next). Land values never change.
+  const coastAll = coast.map((g) => {
+    const c = g % cols, r = (g - c) / cols, nb = [];
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+      const rr = r + dr, cc = c + dc, h = rr * cols + cc;
+      if ((dr || dc) && rr >= 0 && cc >= 0 && rr < rows && cc < cols && !farSea[h]) nb.push(h);
+    }
+    return nb;
+  });
+  const tmpC = new Float32Array(coast.length);
+  const extendCoast = (...arrs) => {
+    for (const A of arrs) {
+      for (let i = 0; i < coast.length; i++) { const nb = coastN[i]; let s = 0; for (const h of nb) s += A[h]; A[coast[i]] = s / nb.length; }
+      for (let pass = 0; pass < 2; pass++) {
+        for (let i = 0; i < coast.length; i++) { const nb = coastAll[i]; let s = 0; for (const h of nb) s += A[h]; tmpC[i] = s / nb.length; }
+        for (let i = 0; i < coast.length; i++) A[coast[i]] = tmpC[i];
+      }
+    }
+  };
   const idx = [];
   for (let r = 0; r < rows - 1; r++) for (let c = 0; c < cols - 1; c++) {
     const a = r * cols + c, b = a + 1, d = a + cols, e = d + 1;
-    if (sea[a] && sea[b] && sea[d] && sea[e]) continue;
+    if (landOf[a] < 0 && landOf[b] < 0 && landOf[d] < 0 && landOf[e] < 0) continue;
     idx.push(a, d, b, b, d, e);
+  }
+  // Skirt: the exact 0.5 line of the sea field across the same triangles, as segments of crossings
+  // (vertex i, vertex j, t). A wall hangs from each segment's surface edge to the ground (z = 0), so tall
+  // coastal land reads as a solid block cut at the shore, not a floating sheet.
+  const cross = [];                                      // per segment: i0, j0, t0, i1, j1, t1
+  const skNorm = [];                                     // outward (seaward) horizontal normal per segment
+  for (let q = 0; q < idx.length; q += 3) {
+    const tri = [idx[q], idx[q + 1], idx[q + 2]], hits = [];
+    let seaV = -1;
+    for (let m = 0; m < 3; m++) {
+      const i = tri[m], j = tri[(m + 1) % 3];
+      if (sea[i] > 0.5) seaV = i;
+      if ((sea[i] - 0.5) * (sea[j] - 0.5) < 0) hits.push(i, j, (0.5 - sea[i]) / (sea[j] - sea[i]));
+    }
+    if (hits.length !== 6) continue;
+    cross.push(...hits);
+    const px = (i, j, t) => [pos[i * 3] + (pos[j * 3] - pos[i * 3]) * t, pos[i * 3 + 1] + (pos[j * 3 + 1] - pos[i * 3 + 1]) * t];
+    const [ax, ay] = px(hits[0], hits[1], hits[2]), [bx, by] = px(hits[3], hits[4], hits[5]);
+    let nx = by - ay, ny = ax - bx; const ln = Math.hypot(nx, ny) || 1; nx /= ln; ny /= ln;
+    if (nx * (pos[seaV * 3] - (ax + bx) / 2) + ny * (pos[seaV * 3 + 1] - (ay + by) / 2) < 0) { nx = -nx; ny = -ny; }
+    skNorm.push(nx, ny);
   }
   const geom = new THREE.BufferGeometry();
   geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
@@ -86,20 +147,96 @@ export async function initTerrain({ container, geo, ramp, ramp2, onHover, labels
         float fw = max(fwidth(vDens), 1e-4);
         float dist = abs(fract(vDens + 0.5) - 0.5);
         float line = (1.0 - smoothstep(0.0, fw * 1.4, dist)) * step(uMinLevel, vDens) * step(vDens, 4.05) * uContours;
-        // No contours along the coast (sea cells carry no density) or where there is no race.
-        line *= (1.0 - smoothstep(0.0, 0.04, vSea)) * (1.0 - vNo);
+        // Contours thin out just inside the coastal cut (the last stretch carries extended, not measured,
+        // density) and vanish where there is no race.
+        line *= (1.0 - smoothstep(0.38, 0.5, vSea)) * (1.0 - vNo);
         col = mix(col, uInk, line * 0.5);
         // Highlighted states keep their colour; the rest of the country fades toward the page.
         if (uHiOn > 0.5) col = mix(col, uGround, 0.65 * (1.0 - clamp(vHi, 0.0, 1.0)));   // unselected places at about a third of their colour
         // The coast is cut, not painted: past the halfway line between land and sea cells nothing is drawn,
         // so the shoreline follows a smooth line through the grid and the page background shows beyond it.
-        if (vSea > 0.5) discard;
+        if (vSea > 0.504) discard;   // a hair past the skirt's top edge, so no background shows between them
         gl_FragColor = vec4(col, 1.0);
         #include <colorspace_fragment>
       }`,
   });
   material.polygonOffset = true; material.polygonOffsetFactor = 1; material.polygonOffsetUnits = 1;   // draped lines draw on top
   const mesh = new THREE.Mesh(geom, material);
+
+  // ---------- skirt: the wall under the coastal cut ----------
+  // Four vertices per cut segment (two on the surface, two on the ground); x and y are fixed, the top z and the
+  // colour follow the surface each frame. Coloured as a side, not as data: the margin colour darkened, lit only
+  // by which way the wall faces, fading into the ground toward its foot.
+  const nSeg = cross.length / 6;
+  const skPos = new Float32Array(nSeg * 12), skVal = new Float32Array(nSeg * 4), skNo = new Float32Array(nSeg * 4);
+  const skHi = new Float32Array(nSeg * 4).fill(1), skTop = new Float32Array(nSeg * 4), skN = new Float32Array(nSeg * 8), skIdx = [];
+  // A crossing is shared by the two triangles on either side of its edge: average the walls' normals there, so
+  // the light runs smoothly along the shore instead of banding segment by segment.
+  const edgeKey = (i, j) => (i < j ? i * N + j : j * N + i), edgeN = new Map();
+  for (let s = 0; s < nSeg; s++) for (let e2 = 0; e2 < 2; e2++) {
+    const kk = edgeKey(cross[s * 6 + e2 * 3], cross[s * 6 + e2 * 3 + 1]), a = edgeN.get(kk) || [0, 0];
+    a[0] += skNorm[s * 2]; a[1] += skNorm[s * 2 + 1]; edgeN.set(kk, a);
+  }
+  for (let s = 0; s < nSeg; s++) {
+    for (let e2 = 0; e2 < 2; e2++) {
+      const i = cross[s * 6 + e2 * 3], j = cross[s * 6 + e2 * 3 + 1], t = cross[s * 6 + e2 * 3 + 2];
+      const x = pos[i * 3] + (pos[j * 3] - pos[i * 3]) * t, y = pos[i * 3 + 1] + (pos[j * 3 + 1] - pos[i * 3 + 1]) * t;
+      for (const [vtx, top] of [[s * 4 + e2, 1], [s * 4 + 2 + e2, 0]]) {
+        skPos[vtx * 3] = x; skPos[vtx * 3 + 1] = y; skTop[vtx] = top;
+        const nn = edgeN.get(edgeKey(i, j)), ln = Math.hypot(nn[0], nn[1]) || 1;
+        skN[vtx * 2] = nn[0] / ln; skN[vtx * 2 + 1] = nn[1] / ln;
+      }
+    }
+    const b = s * 4; skIdx.push(b, b + 2, b + 1, b + 1, b + 2, b + 3);
+  }
+  const skGeom = new THREE.BufferGeometry();
+  skGeom.setAttribute('position', new THREE.BufferAttribute(skPos, 3));
+  skGeom.setAttribute('aVal', new THREE.BufferAttribute(skVal, 1));
+  skGeom.setAttribute('aNo', new THREE.BufferAttribute(skNo, 1));
+  skGeom.setAttribute('aHi', new THREE.BufferAttribute(skHi, 1));
+  skGeom.setAttribute('aTop', new THREE.BufferAttribute(skTop, 1));
+  skGeom.setAttribute('aN', new THREE.BufferAttribute(skN, 2));
+  skGeom.setIndex(skIdx);
+  const U = material.uniforms;                           // shared uniform objects: ramp, scale and highlight follow the surface
+  const skirtMat = new THREE.ShaderMaterial({
+    uniforms: { uRamp: U.uRamp, uMax: U.uMax, uLight: U.uLight, uGround: U.uGround, uNoData: U.uNoData, uHiOn: U.uHiOn },
+    side: THREE.DoubleSide,
+    vertexShader: /* glsl */`
+      attribute float aVal; attribute float aNo; attribute float aHi; attribute float aTop; attribute vec2 aN;
+      varying float vVal; varying float vNo; varying float vHi; varying float vTop; varying vec2 vN;
+      void main() {
+        vVal = aVal; vNo = aNo; vHi = aHi; vTop = aTop; vN = aN;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }`,
+    fragmentShader: /* glsl */`
+      uniform sampler2D uRamp; uniform float uMax; uniform vec3 uLight; uniform vec3 uGround; uniform vec3 uNoData; uniform float uHiOn;
+      varying float vVal; varying float vNo; varying float vHi; varying float vTop; varying vec2 vN;
+      void main() {
+        vec3 base = vNo > 0.5 ? uNoData : texture2D(uRamp, vec2(clamp(vVal / uMax * 0.5 + 0.5, 0.0, 1.0), 0.5)).rgb;
+        float face = dot(vN, normalize(uLight.xy));
+        // About a third darker than the surface at its top edge, deepening toward a quiet grey at the foot.
+        vec3 col = base * (0.66 + 0.08 * face);
+        col = mix(col, uGround * 0.62, 0.45 * (1.0 - vTop));
+        if (uHiOn > 0.5) col = mix(col, uGround, 0.65 * (1.0 - clamp(vHi, 0.0, 1.0)));
+        gl_FragColor = vec4(col, 1.0);
+        #include <colorspace_fragment>
+      }`,
+  });
+  skirtMat.polygonOffset = true; skirtMat.polygonOffsetFactor = 1; skirtMat.polygonOffsetUnits = 1;
+  const skirt = new THREE.Mesh(skGeom, skirtMat); skirt.frustumCulled = false;
+  const lerpAt = (A, s, e2) => { const o = s * 6 + e2 * 3, i = cross[o], j = cross[o + 1], t = cross[o + 2]; return A[i] + (A[j] - A[i]) * t; };
+  function updateSkirt() {
+    for (let s = 0; s < nSeg; s++) for (let e2 = 0; e2 < 2; e2++) {
+      const top = s * 4 + e2, bot = top + 2, z = lerpAt(zCur, s, e2), v = lerpAt(val, s, e2), no = lerpAt(nod, s, e2);
+      skPos[top * 3 + 2] = z; skPos[bot * 3 + 2] = 0;
+      skVal[top] = skVal[bot] = v; skNo[top] = skNo[bot] = no;
+    }
+    for (const name of ['position', 'aVal', 'aNo']) skGeom.attributes[name].needsUpdate = true;
+  }
+  function updateSkirtHi() {
+    for (let s = 0; s < nSeg; s++) for (let e2 = 0; e2 < 2; e2++) { const h = lerpAt(hiAttr, s, e2); skHi[s * 4 + e2] = skHi[s * 4 + 2 + e2] = h; }
+    skGeom.attributes.aHi.needsUpdate = true;
+  }
 
   // ---------- scene, camera, controls ----------
   const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -110,7 +247,7 @@ export async function initTerrain({ container, geo, ramp, ramp2, onHover, labels
   const scene = new THREE.Scene();
   // Everything drawn on the map sits in one group, so a card can scale every height together (fitHeights).
   const world = new THREE.Group(); scene.add(world);
-  world.add(mesh);
+  world.add(mesh); world.add(skirt);
   const outline = new THREE.Group(); world.add(outline);
 
   // ---------- draped lines: state borders on the surface, and the ghost of the previous election ----------
@@ -283,14 +420,18 @@ export async function initTerrain({ container, geo, ramp, ramp2, onHover, labels
         }
       }
     }
+    extendCoast(z, v, no, de);
     return { z, v, no, de };
   }
   // Central differences on the height grid; row r+1 lies south (lower y).
   function computeNormals() {
     for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
       const g = r * cols + c;
-      const zl = zCur[c > 0 ? g - 1 : g], zr = zCur[c < cols - 1 ? g + 1 : g];
-      const zn = zCur[r > 0 ? g - cols : g], zs = zCur[r < rows - 1 ? g + cols : g];
+      // Open sea (not touching land) stands at 0 and is never drawn: read the slope one-sided there, so the
+      // extended coastal vertices keep the coast's own shading up to the cut.
+      const at = (h) => (farSea[h] ? zCur[g] : zCur[h]);
+      const zl = at(c > 0 ? g - 1 : g), zr = at(c < cols - 1 ? g + 1 : g);
+      const zn = at(r > 0 ? g - cols : g), zs = at(r < rows - 1 ? g + cols : g);
       const dx = (zr - zl) / (2 * CELL), dy = (zn - zs) / (2 * CELL);
       const inv = 1 / Math.hypot(dx, dy, 1);
       nrm[g * 3] = -dx * inv; nrm[g * 3 + 1] = -dy * inv; nrm[g * 3 + 2] = inv;
@@ -310,6 +451,7 @@ export async function initTerrain({ container, geo, ramp, ramp2, onHover, labels
       }
       if (u >= 0.5 || !dur) nod.set(next.no);
       computeNormals();
+      updateSkirt();
       drape(stateLines, zCur, 0.4);
       if (hiSegs) drapeSegs(hiLine, hiSegs, zCur, 0.9);
       for (const name of ['position', 'aVal', 'aDens', 'aNo', 'aNorm']) geom.attributes[name].needsUpdate = true;
@@ -386,7 +528,8 @@ export async function initTerrain({ container, geo, ramp, ramp2, onHover, labels
     for (let i = 0; i <= steps; i++) {
       const t = tA + (tB - tA) * (i / steps), x = o.x + d.x * t, y = o.y + d.y * t, z = o.z + d.z * t;
       const g = ownerAt(x, y); if (g < 0) continue;
-      if (z <= zCur[g] + 0.01) { const j = landOf[g]; return j < 0 ? null : fips[owner[j] - 1]; }
+      const j = landOf[g];
+      if (z <= (j < 0 ? 0 : zCur[g]) + 0.01) return j < 0 ? null : fips[owner[j] - 1];   // sea: the ground, not its extended coast height
     }
     return null;
   }
@@ -611,7 +754,7 @@ export async function initTerrain({ container, geo, ramp, ramp2, onHover, labels
     highlight(states, { fly = true, counties = null, animate = true, fit = 1.9, labels = null } = {}) {
       if (hiLine) { world.remove(hiLine); hiLine.geometry.dispose(); hiLine = null; hiSegs = null; }
       clearStateLabels(); selBox = null;
-      if ((!states || !states.length) && (!counties || !counties.size)) { hiAttr.fill(1); material.uniforms.uHiOn.value = 0; geom.attributes.aHi.needsUpdate = true; return; }
+      if ((!states || !states.length) && (!counties || !counties.size)) { hiAttr.fill(1); material.uniforms.uHiOn.value = 0; geom.attributes.aHi.needsUpdate = true; updateSkirtHi(); return; }
       const set = new Set(states || []);
       const inSel = counties && counties.size ? (j) => counties.has(fips[owner[j] - 1]) : (j) => set.has(cellSt[j]);
       hiAttr.fill(0);
@@ -621,7 +764,8 @@ export async function initTerrain({ container, geo, ramp, ramp2, onHover, labels
         const x = pos[g * 3], y = pos[g * 3 + 1];
         x0b = Math.min(x0b, x); x1b = Math.max(x1b, x); y0b = Math.min(y0b, y); y1b = Math.max(y1b, y);
       }
-      geom.attributes.aHi.needsUpdate = true; material.uniforms.uHiOn.value = 1;
+      extendCoast(hiAttr);                                 // the cut of a selected coast keeps its full colour
+      geom.attributes.aHi.needsUpdate = true; material.uniforms.uHiOn.value = 1; updateSkirtHi();
       selBox = isFinite(x0b) ? [x0b, x1b, y0b, y1b] : null;
       if (labels && states && states.length && states.length <= 8) {
         // Each state's label stands on its land cell nearest the middle of its cells.
