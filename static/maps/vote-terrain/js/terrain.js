@@ -11,7 +11,7 @@ import { getJSON, getBin } from './data.js';
 
 const GROUND = new THREE.Color('#E8ECEC');
 
-export async function initTerrain({ container, geo, ramp, ramp2, onHover, labels = [], locator = null }) {
+export async function initTerrain({ container, geo, ramp, ramp2, onHover, labels = [], locator = null, onLost = null }) {
   const H = await getJSON('terrain.json');
   const [owner, cells] = await Promise.all([getBin('terrain-counties.bin', Uint16Array), getBin('terrain-cells.bin', Uint32Array)]);
   const { cols, rows, cell: CELL, x0, yTop, land: L, k, sqmiPerUnit2, fips } = H;
@@ -106,6 +106,7 @@ export async function initTerrain({ container, geo, ramp, ramp2, onHover, labels
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
   renderer.setClearColor(GROUND);
   container.appendChild(renderer.domElement);
+  renderer.domElement.addEventListener('webglcontextlost', (ev) => { ev.preventDefault(); if (onLost) onLost(); });   // the browser dropped the 3D context: the page falls back to Circles
   const scene = new THREE.Scene();
   // Everything drawn on the map sits in one group, so a card can scale every height together (fitHeights).
   const world = new THREE.Group(); scene.add(world);
@@ -587,8 +588,10 @@ export async function initTerrain({ container, geo, ramp, ramp2, onHover, labels
   })();
 
   return {
-    async setState(st, { animate = true, base = null } = {}) {
+    async setState(st, { animate = true, base: baseAsked = null } = {}) {
       if (st.m && Number(st.m) !== setting && H.settings.includes(Number(st.m))) setting = Number(st.m);
+      // The baseline election's surface (about 0.5 MB) is read only when the view uses it: swing colour, or the ghost grid.
+      const base = baseAsked && (st.mode === 'swing' || st.g === '1') ? baseAsked : null;
       await Promise.all([loadGrid(st.e, setting), base ? loadGrid(base, setting) : null]);
       flat = st.d === '2d';
       material.uniforms.uMax.value = st.mode === 'value' ? st.valueMax : st.mode === 'swing' ? 26 : 70;

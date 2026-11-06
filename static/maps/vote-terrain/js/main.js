@@ -135,7 +135,7 @@ const ensureBlocks = () => {
   if (blocks || blocksLoading || glFailed) return;
   blocksLoading = import('./blocks.js').then(({ createBlocks }) => {
     blocks = createBlocks({ container: $('map'), pieces, presets, k: el.k, onHover: tip.hoverCounty,
-      initial: { view: state.v, flat: state.d === '2d', side: sideSpace(), scene: blocksScene() } });
+      initial: { view: state.v, flat: state.d === '2d', side: sideSpace(), scene: blocksScene() }, onLost: () => noGL() });
     render({ animate: false });
     if (framesSel()) blocks.frame(sel.counties);
   }).catch(() => noGL());
@@ -195,7 +195,7 @@ const METROS = [['06037', 'Los Angeles'], ['36061', 'New York'], ['17031', 'Chic
   ['11001', 'Washington']].map(([f, name]) => ({ f, name }));
 if (!glFailed) terrainModule
   .then((m) => m.initTerrain({ container: $('terrain'), geo, ramp: buildRamp(toward), ramp2: buildRamp(towardW), onHover: tip.hoverCounty, labels: METROS,
-    locator: $('locator') }))
+    locator: $('locator'), onLost: () => noGL() }))
   .then((t) => { terrain = t; showView(); terrainMarks(); if (!isHouse()) terrain.setState(terrainState(), { animate: false, base: baselineOf() }); terrain.view(state.v, presets, sideSpace(), false);
     terrainSel(framesSel(), false, 1.15);
     if (firstVisit && state.s === 'terrain' && effW() === 'terrain') terrain.spin(); })
@@ -352,7 +352,7 @@ const funnelCtx = () => {
   if (!funnel) return null;
   const year = model.funYear(), src = funnel.data.meta.sources.find((x) => x.year === year), E = eff.elections[funnel.electionFor(year)];
   return { year, fs: state.fs, cols: funnelCols(), hasSel: !!sel, placeState: sel && sel.states && sel.states.length === 1 ? sel.states[0] : '', compareState: state.fc === 'n' ? 'n' : state.fc.slice(2),
-    source: `U.S. Election Assistance Commission, Election Administration and Voting Survey, ${src ? src.version : year} (eac.gov); item codes in each figure. Residents: ${funnel.basisOf(year)} Census; citizens of voting age: ACS ${E ? E.cvap : 'special tabulation'}. Weight of a vote: ${elections[funnel.electionFor(year)].label}, effective.json. Missing codes (-88, -99, blanks) are missing, never zero. Ballots cast is derived (counted plus rejected, a floor).` };
+    source: `U.S. Election Assistance Commission, Election Administration and Voting Survey, ${src ? src.version : year} (eac.gov); item codes in each figure. Residents: ${funnel.basisOf(year)} Census; citizens of voting age: ${E && /ACS/.test(E.cvap) ? E.cvap : 'ACS ' + (E ? E.cvap : 'special tabulation')}. Weight of a vote: ${elections[funnel.electionFor(year)].label}, effective.json. Missing codes (-88, -99, blanks) are missing, never zero. Ballots cast is derived (counted plus rejected, a floor).` };
 };
 const ensurePeople = () => {
   if (peopleState !== 'idle') return;
@@ -463,6 +463,15 @@ views = createViews2d({
   sx: () => state.sx, setSx: (v) => { state.sx = v; render(); },
   ms: { rows: () => ms.msRows(model.rowsNow(), model.margin), running: ms.running, summarize: ms.summarize, QUADS: ms.QUADS },
 });
+// Each chart is a picture to a screen reader: name it, and say where its numbers are (the table, T).
+{ let queued = false;
+  const nameCharts = () => { queued = false; const w = effW(), tn = TAB_NAME[w] || 'Chart', e = elections[state.e];
+    document.querySelectorAll('#v2d svg, #v2d canvas').forEach((s) => { const r = s.getBoundingClientRect(); if (r.width < 200 || r.height < 100 || s.closest('button')) return;
+      s.setAttribute('role', 'img'); s.setAttribute('aria-label', `${tn} chart${e ? ', ' + e.label : ''}. The same figures are in the table: press T or the Table button.`); }); };
+  new MutationObserver(() => { if (!queued) { queued = true; requestAnimationFrame(nameCharts); } }).observe($('v2d'), { childList: true, subtree: true }); }
+let panelTab = null;
+const setPanelMin = (on) => { $('panel').classList.toggle('min', on); $('panelMin').setAttribute('aria-expanded', String(!on)); $('panelMin').textContent = on ? 'Controls' : 'Hide controls'; };
+$('panelMin').addEventListener('click', () => { setPanelMin(!$('panel').classList.contains('min')); if (effW() !== 'terrain') views.redraw(false); else window.dispatchEvent(new Event('resize')); });
 window.addEventListener('resize', () => { if (effW() !== 'terrain') views.redraw(false); });
 $('tabs').addEventListener('click', (ev) => {
   const b = ev.target.closest('[data-w]'); if (!b || b.disabled) return;
@@ -683,6 +692,9 @@ function render(opts = {}) {
   balance.fit();
   // Tabs: the one drawn is pressed; one that cannot draw is disabled, with its reason on hover and, when chosen, under the tabs.
   document.querySelectorAll('#tabs [data-w]').forEach((b) => { const why = tabWhy(b.dataset.w); b.disabled = !!why; b.title = why ? `${TAB_NAME[b.dataset.w]} ${why}.` : ''; b.setAttribute('aria-pressed', b.dataset.w === vw); });
+  // Phone: the controls panel folds to its title in the flat views, which need the room (the reader's own choice stands until the tab changes).
+  if (panelTab !== vw) { panelTab = vw; setPanelMin(window.innerWidth <= 640 && vw !== 'terrain'); }
+  const pressed = document.querySelector('#tabs [aria-pressed=true]'); if (pressed && pressed.scrollIntoView && window.innerWidth <= 640) pressed.scrollIntoView({ inline: 'center', block: 'nearest' });
   const tw = $('tabWhy');
   tw.textContent = vw !== state.w ? `${TAB_NAME[state.w]} ${tabWhy(state.w)}; showing ${TAB_NAME[vw]}.` : ''; tw.hidden = vw === state.w;
   const nt = $('notice');

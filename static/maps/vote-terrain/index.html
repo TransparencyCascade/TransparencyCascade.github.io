@@ -35,6 +35,7 @@
 
   .panel { position:fixed; left:12px; top:12px; width:224px; max-height:calc(100% - 160px); overflow:auto;
            background:var(--paper); border:1px solid var(--rule); padding:12px 12px 10px; font-size:13px; line-height:1.35; }
+  .panel-min { display:none; font:inherit; font-size:12px; color:var(--ink); background:transparent; border:1px solid var(--rule); padding:3px 9px; cursor:pointer; margin-left:6px; }
   .panel .head { margin:0 0 8px; } .panel .head h1 { white-space:nowrap; }
   button.link { font:inherit; font-size:11.5px; color:var(--ink); background:none; border:0; padding:0; text-decoration:underline; text-underline-offset:2px; cursor:pointer; }
   h1 { font-family:'Archivo Narrow', sans-serif; font-weight:600; font-size:26px; line-height:1; letter-spacing:-.01em; margin:0;
@@ -52,7 +53,7 @@
   .how { color:var(--graphite); font-size:12px; margin:8px 0 0; }
   .note { color:var(--graphite); font-size:12px; margin:10px 0 0; }
   .src { color:var(--graphite); font-size:12px; border-top:1px solid var(--rule); margin-top:12px; padding-top:8px; }
-  button:focus-visible { outline:2px solid var(--focus); outline-offset:2px; }
+  button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible, a:focus-visible, [tabindex]:focus-visible { outline:2px solid var(--focus); outline-offset:2px; }
 
   /* Key, beside the map */
   .key { position:fixed; right:12px; top:12px; width:182px; background:var(--paper); border:1px solid var(--rule); padding:8px 10px; font-size:11.5px; }
@@ -101,6 +102,7 @@
   .about header b { font-family:'Archivo Narrow', sans-serif; font-size:20px; }
   .about header button { font:inherit; font-size:12px; color:var(--ink); background:transparent; border:1px solid var(--rule); padding:3px 9px; cursor:pointer; }
   .about h3 { font-size:12.5px; margin:12px 0 4px; }
+  .about dl.lic dt { margin-top:8px; } .about dl.lic dd b { color:var(--ink); } .about dl.lic a { color:var(--ink); }
   .about p, .about dl { margin:0 0 6px; } .about dt { font-weight:700; } .about dd { margin:0 0 6px; color:var(--graphite); }
   .quick { margin:0 0 8px; } .quick button { font-size:12px; padding:4px 7px; }
   details.adjust { border-top:1px solid var(--rule); padding-top:10px; margin-bottom:6px; }
@@ -385,7 +387,15 @@
     .view-card { top:50px; left:10px; right:10px; width:auto; transform:none; z-index:6; max-height:40%; overflow:auto; }
     .tabs button { padding:6px 10px; }
     /* Seven tabs do not fit a phone: the ones that cannot draw this election step aside. */
-    .tabs { max-width:calc(100vw - 20px); overflow-x:auto; }
+    .tabs { max-width:calc(100vw - 20px); overflow-x:auto; flex-wrap:nowrap; scrollbar-width:thin; }   /* one row that scrolls: wrapped rows lay over the key and the balance box */
+    .tabs button { flex:none; }
+    .panel.min > :not(.head) { display:none; } .panel.min { max-height:none !important; padding:6px 12px; } .panel.min .head { margin:0; }
+    .panel-min { display:inline-block; }
+    /* touch targets of at least 24 px */
+    .panel .link, .panel-min { padding-top:5px; padding-bottom:5px; } .lens-i { width:26px; height:26px; } .panel summary { padding:4px 0; }
+    .v2d-label select, .v2d-head select, .v2d-head button { min-height:26px; }
+    .v2d-head .v2d-seg { max-width:100%; overflow-x:auto; }   /* a long chart picker scrolls instead of running off the screen */
+    .lens-i, .panel .lens-i { min-width:26px; }
     .tabs button:disabled { display:none; }
     .find { top:52px; }
     .table-wrap { inset:52px 10px 90px; }
@@ -403,6 +413,7 @@
     .offices { left:10px; transform:none; bottom:74px; }
     .timeline .step { min-width:88px; padding:8px 10px; } .timeline .step b { font-size:18px; }
   }
+  @media (pointer:coarse) { .panel .link, .panel-min { padding-top:5px; padding-bottom:5px; } .lens-i { width:26px; height:26px; } .panel summary { padding:4px 0; } .v2d-head select, .v2d-head button, .sim-lock, .v2d-label select { min-height:26px; } }
 </style>
 </head>
 <body>
@@ -424,8 +435,8 @@
   <div class="scroll"><table id="table"></table></div>
 </div>
 
-<div class="panel">
-  <div class="head"><h1>Vote terrain</h1><button class="link" id="aboutBtn" aria-controls="about" aria-expanded="false">About this map</button></div>
+<div class="panel" id="panel">
+  <div class="head"><h1>Vote terrain</h1><button class="link" id="aboutBtn" aria-controls="about" aria-expanded="false">About this map</button><button class="panel-min" id="panelMin" aria-expanded="true" aria-controls="panel">Controls</button></div>
   <p class="how" id="snapNote" hidden style="margin:0 0 8px"></p>
   <p class="how house-only" style="margin:0 0 10px">The four lenses read county results; the House track is by district, so its views are under the tabs above.</p>
   <div class="lenses county-only" role="group" aria-label="What to look at">
@@ -561,6 +572,28 @@
   <h3>Notes and sources</h3>
   <p class="note" id="notes"></p>
   <div class="src" id="source"></div>
+  <h3 id="aboutLicHead">Data and licences</h3>
+  <p class="note">Every dataset the page draws on, with the terms it is published under and the credit it asks for. Licences were read from each source's own page on 2026-11-05. Our own compiled files carry the sources' terms where they have any.</p>
+  <dl class="lic">
+    <dt>MIT Election Data and Science Lab</dt>
+    <dd>County and state election returns, 1976-2024 (president, Senate, governor; precinct files summed to counties). <b>CC0 1.0</b> (public domain dedication), as each Harvard Dataverse record states (doi:10.7910/DVN/VOQCHQ, 42MVDX, PEJ5QU, NVQYMG, NT66Z3, UYQIEP and the other precinct-return records of the series). No credit is required; the lab asks to be cited: MIT Election Data and Science Lab, Harvard Dataverse.</dd>
+    <dt>U.S. Census Bureau</dt>
+    <dd>Population counts, apportionment, citizen voting-age population (ACS), tract population centres for the dot map, and the county outlines (via us-atlas, ISC licence). A work of the U.S. Government, not subject to copyright (<a href="https://www.law.cornell.edu/uscode/text/17/105">17 U.S.C. 105</a>). Credit: "U.S. Census Bureau", as its <a href="https://www.census.gov/about/policies/citation.html">citation guidance</a> asks.</dd>
+    <dt>Federal Election Commission</dt>
+    <dd>Campaign money (bulk files) and certified results. A work of the U.S. Government (17 U.S.C. 105). One restriction: information copied from FEC reports <a href="https://www.law.cornell.edu/uscode/text/52/30111">may not be sold or used to solicit contributions or for commercial purposes</a> (52 U.S.C. 30111(a)(4)). The page shows these figures for reporting and analysis.</dd>
+    <dt>U.S. Election Assistance Commission</dt>
+    <dd>Election Administration and Voting Survey (registration, removals, rejected ballots; 2016-2024). A work of the U.S. Government (17 U.S.C. 105); eac.gov states no further terms. Credit: "U.S. Election Assistance Commission, Election Administration and Voting Survey".</dd>
+    <dt>AP via CNN (2026)</dt>
+    <dd>Unofficial results, as reported, from the results feed CNN publishes. Every 2026 figure is marked unofficial until the states certify.</dd>
+    <dt>Vera Institute of Justice</dt>
+    <dd>ICE Detention Trends, fiscal 2026 (average daily population by facility; the detention overlay). Published by Vera under its <a href="https://github.com/vera-institute/ice-detention-trends/blob/main/License.md">data access licence</a>. Credit: Vera Institute of Justice.</dd>
+    <dt>U.S. Department of Justice</dt>
+    <dd>Press release 26-1310 (the Election Day monitoring list). Public domain unless otherwise indicated, as <a href="https://www.justice.gov/legalpolicies">justice.gov states</a>; citation is appreciated.</dd>
+    <dt>House History, Art &amp; Archives; Clerk of the House; National Archives; Senate</dt>
+    <dd>Party divisions of the House and Senate, House statistics, electoral votes by year: counts, cited to each page in the files. These offices state no licence for them; the House's rights page covers images only, and none are used.</dd>
+    <dt>Code and type</dt>
+    <dd>d3 7.9.0 (ISC), three.js 0.160.0 (MIT), us-atlas 3.0.1 (ISC), Archivo Narrow and Courier Prime through Google Fonts (SIL Open Font Licence).</dd>
+  </dl>
 </aside>
 
 <div class="key" id="keyBox" aria-live="polite">

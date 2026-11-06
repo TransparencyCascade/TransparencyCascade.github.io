@@ -12,7 +12,7 @@ import { rgb, NEUTRAL } from './colour.js';
 const GROUND = new THREE.Color('#E8ECEC');
 const ALT = 0.5 / Math.tan(THREE.MathUtils.degToRad(20));   // camera distance per screen height at zoom 0 (fov 40)
 
-export function createBlocks({ container, pieces, presets, k, onHover, initial }) {
+export function createBlocks({ container, pieces, presets, k, onHover, initial, onLost = null }) {
   // ---------- per-county data texture: rgb colour (0..1) and height ----------
   const fipsList = [...new Set(pieces.map((p) => p.f))], idxOf = new Map(fipsList.map((f, i) => [f, i]));
   const NC = fipsList.length, REF_IDX = NC;                // two more texels for the reference blocks
@@ -126,6 +126,7 @@ export function createBlocks({ container, pieces, presets, k, onHover, initial }
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
   renderer.setClearColor(GROUND);
   container.appendChild(renderer.domElement);
+  renderer.domElement.addEventListener('webglcontextlost', (ev) => { ev.preventDefault(); if (onLost) onLost(); });
   const scene = new THREE.Scene();
   scene.add(counties, refMesh);
   const camera = new THREE.PerspectiveCamera(40, 1, 1, 20000);

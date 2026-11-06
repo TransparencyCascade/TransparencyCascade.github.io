@@ -231,9 +231,14 @@ Phase 7, "Money: dollars per decisive vote". Rules are in the script's docstring
 - **Files.** The U.S. Election Assistance Commission's Election Administration and Voting Survey (EAVS) public CSVs from https://www.eac.gov/research-and-data/datasets-codebooks-and-surveys: 2016 V1.1,
   2018 V1.3 (Updates3), 2020 V1.2, 2022 V1, 2024 V2 (Feb 2026), the "nolabel" CSV of each, unzipped into `tools/vote-terrain/.eavs-cache/csv/` (about 220 MB with the zips and codebooks in `.eavs-cache/raw/`; not committed).
   Residents and citizens of voting age come from `effective.json` (2010 Census and ACS 2014-2018 for 2016-2020; 2020 Census and ACS 2019-2023 for 2022-2024), so the funnel and the effective vote use one population.
-- **Items, with the code each wave uses.** Registered A1a; active A1b (A3a in 2016); removed A11a / A9a / A12a (2016 / 2018-2022 / 2024) and reasons b-g (moved, death, felony, failed to respond and did not vote, mental incompetence, voter request), 2024
+- **Items, with the code each wave uses.** Registered A1a (all records, active and inactive); active A1b (A3a in 2016); removed A11a / A9a / A12a (2016 / 2018-2022 / 2024) and reasons b-g (moved, death, felony, failed to respond and did not vote, mental incompetence, voter request), 2024
   adds A12h duplicate records (included in A12a); mail ballots returned C1b and rejected C4b (2016), C4a (2018, 2020), C9a (2022, 2024); provisional ballots E1a and rejected E1d; people counted F1a. Ballots cast is derived (F1a plus the rejected mail and
   provisional ballots), a floor, because EAVS has no total-cast item. `meta.items` lists every code per year.
+- **Active is the main bar; inactive is a band.** EAVS's total registered (A1a) includes inactive records, so in 2024 it nearly equals citizens of voting age (232.4M against 238.7M) and the registration gap looked like 2.7%. The Funnel's registered bar is now active registrations (A1b: 209.0M nationally, 63.1% of residents,
+  12.4% of citizens of voting age short). Inactive registrations (registered less active, 23.3M, 10.0% of registrations) are a hatched band beside it with a labelled row, and one line says why they exist: inactive records stay on the rolls until removed under the National Voter
+  Registration Act's notice-and-wait process, 52 U.S.C. 20507(d) (verified from the text: a notice, no reply, and no voting through the day after the second general election for Federal office after the notice). The registration-gap colour (`fs=gap`) is citizens of voting age without an active registration.
+  Inactive is computed only over jurisdictions that reported both items (`pr` slots 8 and 9: active and registered, pairwise valid), so a jurisdiction missing A1b does not turn its whole registration into "inactive"; the table lists active, inactive and all records separately.
+  Tokens: `calc.funnel.y2024.nation.act|inact|inactPct|reg|gapPct`.
 - **Missing is not zero.** EAVS marks a figure that is not there with -88 (not applicable), -99 (data not available), -77 or a blank (-888888 and -999999 as text before 2018). The build treats every one as missing: a state's sum is of the jurisdictions that
   reported, `miss` counts those that did not, `missReg` is the registered voters they hold, and a figure no jurisdiction in a state reported is null. A county's figure is null when any jurisdiction in it is missing. Counts per year and item are in `checks.missingCodes`;
   per state in `checks.missingJurisdictionsByState`.
@@ -243,6 +248,52 @@ Phase 7, "Money: dollars per decisive vote". Rules are in the script's docstring
   239 state-years outside it. (2) Registered and removed totals against the harmonised research file (`cascade-research/notes/data/eavs-removals-registration-jurisdiction-harmonized-2008-2024-2026-11-05.csv`): 496 state-years, none differ.
   (3) The smoke test recomputes Indiana, Georgia and the nation from the raw 2024 CSV and compares them with what the page shows.
 - **Guards.** A removed registration or a rejected ballot is not proof that an eligible voter was turned away; the page shows reasons as reported (they do not always add to the total) and never says a count changed an outcome.
+
+## Readiness checklist (Phase 8, launch)
+
+Read from each source's own page on 2026-11-05. Done means checked and fixed or confirmed; open means someone has to decide or wait.
+
+**Done**
+- [x] **Licences and attribution.** The About drawer has a "Data and licences" section naming every dataset, its terms and the credit asked (table below).
+- [x] **Page weight.** First load of the default view (desktop, empty cache): 5,126,900 bytes in 69 files before, 4,638,816 bytes in 68 files after (about 2.28 MB gzipped before, 1.82 MB after, estimated by gzipping each file; Hugo's host decides the real
+  compression). The baseline election's terrain grid (`terrain-pres2020-s1.bin`, 488 KB) is now read only when a view uses it (swing colour or the ghost grid); the default view did not. Largest files at start: three.js 1.27 MB (CDN, 258 KB gzipped), `elections.json` 784 KB,
+  `terrain-pres2024-s1.bin` 488 KB, `terrain-cells.bin` 326 KB, d3 280 KB (CDN). Already lazy: People, Money, Funnel, Simulator data, exact counties (`blocks.js`).
+- [x] **Build scripts outside the published folder.** `static/maps/vote-terrain/` holds only what the page loads: 106 files, 19,623,049 bytes (18.7 MiB; about 12.1 MB gzipped): `index.html`, `js/` (571,782 bytes), 27 `.json` data files (4,347,920 bytes with `views.json`) and 30 `.bin` files (14,646,245 bytes). No scripts, CSVs, caches, source maps, logs or
+  dotfiles. Snapshots would add about 15 MB each under `snapshots/<slug>/`; none exist yet.
+- [x] **Table version of every chart.** Every tab opens a table (T or the Table button) with the chart's figures: counties, districts, states, the simulator's races, the funnel's stages. Each chart (`svg` or `canvas`) is now an `img` with a label that names it and points to the table.
+- [x] **Accessibility basics.** Every button, select, input and summary has a name (checked on all 17 tabs). Focus outlines now cover select, input, summary and links as well as buttons. Tab reaches all 13 enabled tabs and Enter or Space activates them. With reduced motion the first-visit spin and the tours do not animate, and transitions are instant.
+- [x] **Context-loss recovery.** If the browser drops the 3D context the page falls back to Circles and says why (a handler on the terrain and exact-county canvases; tested by forcing the loss).
+- [x] **Phone pass** (390 x 844 and 768 x 1024, every tab; screenshots viewed). Fixed: the tab bar wrapped into three rows over the key and balance box (now one row that scrolls and keeps the active tab in view); the controls panel covered half the screen in flat views (now folds to its title with a "Controls" button, and unfolds on demand); long chart pickers ran off the screen; touch targets under 24 px
+  (info buttons, About, summaries, selects) are larger on coarse pointers and phones. No page-level horizontal overflow on any tab at either size.
+
+**Open**
+- [ ] **Mark's launch decisions** (plan, "Decisions for Mark"): default view on phones (Circles recommended; the terrain is still the default and the phone pass found it works but is heavy), simulator rule (uniform, or also proportional), overlay layers for launch, House on the timeline, launch scope, history depth, and where it lives (address and timing). The plan lists seven; "six" in the request is a miscount or one has been settled.
+- [ ] **Certified 2026 results.** Every 2026 figure is the unofficial AP-via-CNN feed. Follow "Refresh checklist" below once the states certify (task parked until 2026-12-15), then take the "unofficial" flags off.
+- [ ] **AP via CNN licence.** No terms found for `politics.api.cnn.io`; the About drawer says "unofficial results, as reported". Mark decides whether to keep using the feed publicly, ask AP for a licence, or hold 2026 results for the certified canvass.
+- [ ] **Vera Institute licence.** Vera's data access licence (License.md in github.com/vera-institute/ice-detention-trends) grants "the limited right to use the Dataset for Recipient's own academic, nonprofit, and research purposes", forbids commercial use and forbids using or distributing the Dataset "in any form" beyond that. The ICE detention overlay
+  (`overlays.json`) publishes per-facility average daily populations from it. Mark decides: ask Vera for written permission to publish, drop the per-facility figures, or drop the layer. Until then the drawer names the licence and links it.
+- [ ] **FEC contributor names.** 52 U.S.C. 30111(a)(4) bars selling or using information copied from FEC reports to solicit contributions or for commercial purposes. The Money tab names donors of $1 million or more with employer and state. A free page for reporting is the ordinary use, but Mark should confirm the page stays clear of soliciting and of anything commercial (a paid tier, ads, a donate ask on the page).
+- [ ] **House data licence.** The House History, Art & Archives site and the Clerk state no licence for the party-division and election-statistics tables (the rights page covers images only). They are counts, cited to the page. Optional: write history@mail.house.gov to confirm reuse.
+- [ ] **Licence for our own compiled files.** The data files combine CC0, public-domain and cited sources; Mark chooses what, if anything, to say about reuse of the compiled files.
+- [ ] **Long-run House data download.** The House by district since 1976 (MIT Election Lab, "U.S. House 1976-2024") and the presidential-by-district series are not downloaded yet (the History tab has seats per census, the smallest change and weight per vote only). Needs the long download and a build step.
+- [ ] **Phone: not fixed.** The page is still a desktop layout squeezed down: the key and balance box sit under the tab bar and take about 190 px of a 844 px screen, so flat views get a short scrolling area; the plan's bottom sheet (peek, half, full) is not built. Some chart titles clip at 390 px
+  (History, Power), SVG axis labels on History crowd, and a few controls stay under 24 px at 768 (the sim's "Lock", "Reset to actual"; the "+" on the balance box is 22 x 19). Tablet (768 px) keeps the desktop layout, which works.
+- [ ] **Accessibility: not fixed.** Chart marks (circles, dots, strips) are reachable by mouse and touch only; the table is the keyboard and screen-reader route. The play button steps the timeline every 2.5 s under reduced motion rather than stopping (it only runs when pressed). No automated colour-contrast audit has been run.
+- [ ] **Smoke baseline.** Re-record once after this branch's changes are accepted, then run one compare.
+
+**Licences, as the About drawer states them**
+
+| Source | Used for | Terms (checked 2026-11-05) | Credit |
+|---|---|---|---|
+| MIT Election Data and Science Lab | county and state returns, president, Senate, governor, precinct files | CC0 1.0 in each Harvard Dataverse record (VOQCHQ, 42MVDX, PEJ5QU, NVQYMG, NT66Z3, UYQIEP, IAD3XR, ZCM3BN, NYTPDU, OAARCY); the 2022 and 2024 GitHub copies carry no licence file, the same series is CC0 | not required; cite the dataset |
+| Census Bureau | population, apportionment, CVAP (ACS), tract centres, outlines (us-atlas, ISC) | U.S. Government work, 17 U.S.C. 105 (no copyright); no licence page of its own | cite the Census Bureau as source of the original data (census.gov/about/policies/citation.html) |
+| FEC | money, certified results | 17 U.S.C. 105; 52 U.S.C. 30111(a)(4) restricts solicitation and commercial use of contributor information | cite the FEC |
+| EAC EAVS | registration, removals, rejected ballots | 17 U.S.C. 105; eac.gov states no further terms | cite the EAC |
+| AP via CNN (2026) | unofficial 2026 results | no terms found; shown as "unofficial results, as reported" | **needs Mark** |
+| Vera Institute | ICE detention overlay | Vera Data Access License Terms: academic, nonprofit and research use, no commercial use, no distribution in any form | Vera Institute of Justice; **needs Mark** |
+| DOJ press releases | monitoring list | public domain unless otherwise indicated (justice.gov/legalpolicies) | citation appreciated |
+| House History, Art & Archives; Clerk; National Archives; Senate | party divisions, statistics, electoral votes | no licence stated for the tables (counts, cited) | cite the page |
+| d3 7.9.0, three.js 0.160.0, us-atlas 3.0.1, Archivo Narrow, Courier Prime | code and type | ISC, MIT, ISC, SIL OFL (Google Fonts metadata) | licence files travel with the CDN copies |
 
 ## Snapshots
 
