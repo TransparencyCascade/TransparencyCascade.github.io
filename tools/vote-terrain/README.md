@@ -262,6 +262,7 @@ Read from each source's own page on 2026-11-05. Done means checked and fixed or 
   dotfiles. Snapshots would add about 15 MB each under `snapshots/<slug>/`; none exist yet.
 - [x] **Table version of every chart.** Every tab opens a table (T or the Table button) with the chart's figures: counties, districts, states, the simulator's races, the funnel's stages. Each chart (`svg` or `canvas`) is now an `img` with a label that names it and points to the table.
 - [x] **Accessibility basics.** Every button, select, input and summary has a name (checked on all 17 tabs). Focus outlines now cover select, input, summary and links as well as buttons. Tab reaches all 13 enabled tabs and Enter or Space activates them. With reduced motion the first-visit spin and the tours do not animate, and transitions are instant.
+- [x] **Smoke baseline.** Re-recorded after these changes (348 scenarios) and compared once: all match, no page errors.
 - [x] **Context-loss recovery.** If the browser drops the 3D context the page falls back to Circles and says why (a handler on the terrain and exact-county canvases; tested by forcing the loss).
 - [x] **Phone pass** (390 x 844 and 768 x 1024, every tab; screenshots viewed). Fixed: the tab bar wrapped into three rows over the key and balance box (now one row that scrolls and keeps the active tab in view); the controls panel covered half the screen in flat views (now folds to its title with a "Controls" button, and unfolds on demand); long chart pickers ran off the screen; touch targets under 24 px
   (info buttons, About, summaries, selects) are larger on coarse pointers and phones. No page-level horizontal overflow on any tab at either size.
@@ -279,7 +280,6 @@ Read from each source's own page on 2026-11-05. Done means checked and fixed or 
 - [ ] **Phone: not fixed.** The page is still a desktop layout squeezed down: the key and balance box sit under the tab bar and take about 190 px of a 844 px screen, so flat views get a short scrolling area; the plan's bottom sheet (peek, half, full) is not built. Some chart titles clip at 390 px
   (History, Power), SVG axis labels on History crowd, and a few controls stay under 24 px at 768 (the sim's "Lock", "Reset to actual"; the "+" on the balance box is 22 x 19). Tablet (768 px) keeps the desktop layout, which works.
 - [ ] **Accessibility: not fixed.** Chart marks (circles, dots, strips) are reachable by mouse and touch only; the table is the keyboard and screen-reader route. The play button steps the timeline every 2.5 s under reduced motion rather than stopping (it only runs when pressed). No automated colour-contrast audit has been run.
-- [ ] **Smoke baseline.** Re-record once after this branch's changes are accepted, then run one compare.
 
 **Licences, as the About drawer states them**
 
