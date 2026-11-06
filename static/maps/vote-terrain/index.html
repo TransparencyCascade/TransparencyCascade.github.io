@@ -65,6 +65,10 @@
   .ramp { display:flex; height:16px; }
   .ramp i { flex:1; }
   .ramp-labels { display:flex; justify-content:space-between; color:var(--graphite); margin-top:3px; }
+  .key .race { margin:0 0 7px; padding-bottom:6px; border-bottom:1px solid var(--rule); }
+  .key .race b { display:block; font-family:'Archivo Narrow', sans-serif; font-size:20px; font-weight:600; line-height:1.05; }
+  .key .race span { color:var(--graphite); }
+  .off-view { display:none !important; }
   .key .vol { margin-top:5px; color:var(--graphite); line-height:1.3; }
 
   /* Timeline: elections in order along the bottom */
@@ -463,17 +467,17 @@
   <div class="head"><h1>Vote terrain</h1><button class="link" id="aboutBtn" aria-controls="about" aria-expanded="false">About this map</button></div>
   <p class="how" id="snapNote" hidden style="margin:0 0 8px"></p>
   <p class="how house-only" style="margin:0 0 10px">The four lenses read county results; the House track is by district, so its views are under the tabs above.</p>
-  <div class="lenses county-only" role="group" aria-label="What to look at">
+  <div class="lenses county-only" data-views="terrain circles" role="group" aria-label="What to look at">
     <div class="lens"><button data-l="votes">Where the votes are</button><button class="lens-i" data-li="votes" aria-label="What “Where the votes are” shows">i</button></div>
-    <div class="lens"><button data-l="won">Who won where</button><button class="lens-i" data-li="won" aria-label="What “Who won where” shows">i</button></div>
+    <div class="lens" data-views="terrain"><button data-l="won">Who won where</button><button class="lens-i" data-li="won" aria-label="What “Who won where” shows">i</button></div>
     <div class="lens"><button data-l="changed">What changed</button><button class="lens-i" data-li="changed" aria-label="What “What changed” shows">i</button></div>
     <div class="lens"><button data-l="worth">What a vote is worth</button><button class="lens-i" data-li="worth" aria-label="What “What a vote is worth” shows">i</button></div>
   </div>
-  <div class="seg seg2 county-only" id="worthRow" role="group" aria-label="Weight by" hidden style="margin-bottom:8px">
+  <div class="seg seg2 county-only" data-views="terrain circles" id="worthRow" role="group" aria-label="Weight by" hidden style="margin-bottom:8px">
     <button data-wh="ev">Electoral</button><button data-wh="sen">Senate</button><button data-wh="pop" title="Represented population">People</button>
   </div>
   <p class="notice" id="notice" hidden></p>
-  <p class="lens-how" id="lensHow" hidden><span id="lensHowText"></span><button id="lensHowClose" aria-label="Dismiss">×</button></p>
+  <p class="lens-how" id="lensHow" data-views="terrain circles" hidden><span id="lensHowText"></span><button id="lensHowClose" aria-label="Dismiss">×</button></p>
   <div class="sel-chip" id="selChip" hidden><span id="selText"></span><button id="selFrame">Frame</button><button id="selCloseup">Open close-up</button><button id="selClose" aria-label="Clear the selection">×</button></div>
   <p class="how" id="viewNote" hidden style="margin:0 0 10px"></p>
   <section class="hist-card county-only" id="histCard" hidden aria-label="County history"></section>
@@ -483,10 +487,10 @@
     <div class="tools"><button id="ovSelect">Select these places</button></div>
     <details class="how" id="ovSource"></details>
   </div>
-  <div class="tools quick"><button id="tour" aria-pressed="false">Tour</button><button id="reset">Reset view</button><button id="tableBtn">Table</button><button id="findBtn">Find</button></div>
+  <div class="tools quick"><button id="tour" data-views="terrain" aria-pressed="false">Tour</button><button id="reset">Reset view</button><button id="tableBtn">Table</button><button id="findBtn">Find</button></div>
   <details class="adjust" id="adjust">
     <summary>Adjust <span class="muted" id="lensState"></span></summary>
-  <div class="group county-only">
+  <div class="group county-only" data-views="terrain circles arrows dots">
     <span class="name" id="ov-name">Overlay from our research</span>
     <div class="seg" role="group" aria-labelledby="ov-name">
       <button data-ov="">None</button><button data-ov="monitors">DOJ monitors</button><button data-ov="detention">ICE detention</button>
@@ -500,19 +504,19 @@
     </div>
     <p class="how" id="psHow"></p>
   </div>
-  <div class="group county-only">
+  <div class="group county-only" data-views="terrain">
     <span class="name" id="s-name">Shape</span>
     <div class="seg" role="group" aria-labelledby="s-name">
       <button data-s="terrain">Terrain</button><button data-s="blocks">Exact counties</button>
     </div>
   </div>
-  <div class="group county-only" id="smoothGroup">
+  <div class="group county-only" data-views="terrain" id="smoothGroup">
     <span class="name" id="m-name">Smoothing</span>
     <div class="seg" role="group" aria-labelledby="m-name">
       <button data-m="1">Light</button><button data-m="8">Strong</button>
     </div>
   </div>
-  <div class="group county-only">
+  <div class="group county-only" data-views="terrain">
     <span class="name" id="h-name">Height</span>
     <div class="seg" role="group" aria-label="Height scale" style="margin-bottom:6px">
       <button data-n="area">Per square mile</button><button data-n="county">Per county</button>
@@ -532,7 +536,7 @@
     <p class="how" id="weightHow" hidden></p>
     <p class="how" id="scaleHow" hidden>Per county: height is each county's own total, not its votes per square mile, smoothed a little across county lines. Big counties with many votes stand as plateaus; volume no longer equals votes.</p>
   </div>
-  <div class="group county-only">
+  <div class="group county-only" data-views="terrain circles">
     <span class="name" id="c-name">Colour</span>
     <div class="seg" role="group" aria-labelledby="c-name">
       <button data-c="margin">Margin</button><button data-c="swing" id="swingBtn">Swing</button>
@@ -543,7 +547,7 @@
     <p class="how" id="dropHow" hidden></p>
     <p class="how" id="swingHow"></p>
   </div>
-  <div class="group county-only">
+  <div class="group county-only" data-views="terrain">
     <span class="name">View</span>
     <div class="tools">
       <button data-view="west">From the west</button><button data-view="east">From the east</button><button data-view="national">Overhead</button><button data-view="texas">Texas triangle</button><button data-view="maine">Maine</button>
@@ -621,6 +625,7 @@
 </aside>
 
 <div class="key" id="keyBox" aria-live="polite">
+  <p class="race" id="keyRace"><b></b><span></span></p>
   <div class="title"><span id="keyTitle">Swing</span><button class="fold-btn" id="keyFold" aria-controls="keyBody" aria-expanded="true" aria-label="Show or hide the key" hidden>▾</button><button class="lens-i" id="keyInfo" aria-label="More about the key">i</button></div>
   <div id="keyBody">
   <div class="ramp" id="ramp"></div>
@@ -650,6 +655,6 @@
 <div class="offices" id="offices" role="group" aria-label="Office"></div>
 <nav class="timeline" id="timeline" aria-label="Election"></nav>
 <canvas id="locator" aria-label="Locator: the whole country from above, with the part in view marked. Click to move the view there." role="button" tabindex="0"></canvas>
-<script type="module" src="js/main.js?v=98"></script>
+<script type="module" src="js/main.js?v=99"></script>
 </body>
 </html>

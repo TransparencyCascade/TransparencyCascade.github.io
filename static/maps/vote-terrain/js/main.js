@@ -461,7 +461,7 @@ views = createViews2d({
   setHistoryChart: (k) => { state.hc = k; render({ animate: false }); },
   // A History bar: open that election on the map with its smallest-change states selected, as the balance box's line does.
   openRoad: (e) => { state.e = e; state.w = 'road'; state.rb = 'pres'; render({ animate: false }); },
-  openElection: (e, states) => { state.e = e; state.w = hasGL ? 'terrain' : 'circles'; render({ animate: false }); setSelection({ states }, { frame: true }); },
+  openElection: (e, states) => { state.e = e; state.w = state.w === 'terrain' && hasGL ? 'terrain' : 'circles'; render({ animate: false }); setSelection({ states }, { frame: true }); },
   // The states the selection touches: chosen whole, or holding a selected county.
   selectedStates: () => (!sel ? null : new Set(sel.states || [...sel.counties].map((f) => meta[f].st))),
   infoButton: (b, text) => about.infoButton(b, text),
@@ -693,7 +693,7 @@ function render(opts = {}) {
   // Key: it follows the view drawn. Dots and Arrows colour by swing when there is a baseline, Scatter by margin.
   const panelColour = vw === 'terrain' || vw === 'circles', wt = panelColour && isWeight();
   const m = panelColour ? isMargin() : vw === 'scatter' || vw === 'sim' || vw === 'power' || vw === 'road' || vw === 'closest' || vw === 'dropoff' || vw === 'split' || !baselineOf(), max = m ? MARGIN_MAX : SWING_MAX;
-  $('keyTitle').textContent = wt ? 'Weight per vote' : m ? `Margin, ${elections[state.e].label}` : `Swing since ${baselineLabel()}`;
+  $('keyTitle').textContent = wt ? 'Weight per vote' : m ? 'Margin' : `Swing since ${baselineLabel()}`;
   $('ramp').innerHTML = wt ? d3.range(-WEIGHT_MAX, WEIGHT_MAX + 0.001, WEIGHT_MAX / 6).map((x) => `<i style="background:${towardW(x, WEIGHT_MAX)}"></i>`).join('')
     : d3.range(-max, max + 0.001, max / 6).map((x) => `<i style="background:${toward(x, max)}"></i>`).join('');
   $('rampLabels').innerHTML = wt ? '<span>¼×</span><span>average</span><span>4×</span>' : m
@@ -756,6 +756,15 @@ function render(opts = {}) {
   // Phone: the controls panel folds to its title in the flat views, which need the room (the reader's own choice stands until the tab changes).
   if (panelTab !== vw) { panelTab = vw; setSheet(window.innerWidth <= 640 && vw !== 'terrain' ? 'peek' : 'half'); }
   const pressed = document.querySelector('#tabs [aria-pressed=true]'); if (pressed && pressed.scrollIntoView && window.innerWidth <= 640) pressed.scrollIntoView({ inline: 'center', block: 'nearest' });
+  // Controls that change nothing in the view drawn are hidden: each names the views it changes (data-views);
+  // Adjust goes too when none of its groups is left.
+  document.querySelectorAll('[data-views]').forEach((el) => el.classList.toggle('off-view', !el.dataset.views.split(' ').includes(vw)));
+  const adj = $('adjust');
+  adj.classList.toggle('off-view', ![...adj.querySelectorAll('.group')].some((g) => !g.hidden && !g.classList.contains('off-view') && getComputedStyle(g).display !== 'none'));
+  // The race in view leads the key, so the reader always knows which election is drawn (the long-view tabs span many).
+  const kr = $('keyRace'), ev = elections[state.e] || {};
+  kr.hidden = ['history', 'money', 'funnel'].includes(vw);
+  if (!kr.hidden) { kr.firstChild.textContent = ev.label || state.e; kr.lastChild.textContent = ev.unofficial ? 'Unofficial results (AP via CNN)' : 'Certified results'; }
   const tw = $('tabWhy');
   // The reason sits just under the tabs (one or two rows) and clears after a few seconds, since it covers the view's own controls.
   const why = vw !== state.w ? `${TAB_NAME[state.w]} ${tabWhy(state.w)}; showing ${TAB_NAME[vw]}.` : '';

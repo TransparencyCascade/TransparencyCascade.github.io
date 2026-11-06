@@ -43,8 +43,8 @@ export const fromHash = (order) => {
   // A link that names a lens but not all its settings (a hand-written one) takes the lens's settings for the rest.
   if (LENSES[state.l]) for (const [k, v] of Object.entries(LENSES[state.l].set)) if (!q.get(k)) state[k] = v;
   if (!['0', '1'].includes(state.g)) state.g = '0';
-  // Phones open on Circles: the flat view that reads at that width.
-  if (!q.get('w') && window.innerWidth <= 640) state.w = 'circles';
+  // The page opens on Circles: it draws at once and reads at any width; Terrain is a tab away.
+  if (!q.get('w')) state.w = 'circles';
   if (!TABS.includes(state.w)) state.w = 'terrain';
   if (!['margin', 'swing', 'weight', 'drop', 'fun'].includes(state.c)) state.c = 'margin';
   state.sel = q.get('sel') || '';
