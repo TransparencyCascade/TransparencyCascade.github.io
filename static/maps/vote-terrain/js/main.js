@@ -345,7 +345,7 @@ const region = () => {
   if (ASK.exporting) return { left: 16, right: box('.key').left - 16, top: 4, bottom: window.innerHeight - 4 };   // a card: the map takes the whole image box
   const tw = $('tabWhy'), vc = $('viewCard');
   const top = Math.max((tw.hidden ? box('#tabs') : tw.getBoundingClientRect()).bottom + 10, vc.hidden ? 0 : vc.getBoundingClientRect().bottom + 10);
-  if (W <= 640) return { left: 10, right: W - 10, top: Math.max(top, box('.key').bottom + 8, box('#bop').bottom + 8), bottom: box('.panel').top - 8 };
+  if (W <= 640) return { left: 10, right: W - 10, top: Math.max(top, box('.key').bottom + 8, box('#bop').bottom + 8), bottom: box('.panel').bottom - PEEK_H - 8 };
   const dl = drawers.width(), right = Math.min(box('.key').left, box('#bop').left, dl == null ? Infinity : dl);
   return { left: box('.panel').right + 16, right: right - 16, top, bottom: box('#offices').top - 12 };
 };
@@ -483,9 +483,49 @@ views = createViews2d({
       s.setAttribute('role', 'img'); s.setAttribute('aria-label', `${tn} chart${e ? ', ' + e.label : ''}. The same figures are in the table: press T or the Table button.`); }); };
   new MutationObserver(() => { if (!queued) { queued = true; requestAnimationFrame(nameCharts); } }).observe($('v2d'), { childList: true, subtree: true }); }
 let panelTab = null;
-const setPanelMin = (on) => { $('panel').classList.toggle('min', on); $('panelMin').setAttribute('aria-expanded', String(!on)); $('panelMin').textContent = on ? 'Controls' : 'Hide controls'; };
-$('panelMin').addEventListener('click', () => { setPanelMin(!$('panel').classList.contains('min')); if (effW() !== 'terrain') views.redraw(false); else window.dispatchEvent(new Event('resize')); });
-window.addEventListener('resize', () => { if (effW() !== 'terrain') views.redraw(false); });
+// Phone: the controls panel is a bottom sheet with three heights (peek, half, full). The handle is a button: a tap or Enter cycles them,
+// Arrow Up and Down step, a drag snaps to the nearest. The chart's region ends above the peek, so a taller sheet covers the chart (region()).
+const SHEETS = ['peek', 'half', 'full'], SHEET_SAY = { peek: 'peek, controls hidden', half: 'half height', full: 'full height' };
+const PEEK_H = 64;
+const sheetOf = () => $('panel').dataset.sheet;
+const setSheet = (sh, say) => {
+  const p = $('panel'); p.dataset.sheet = sh; p.classList.toggle('min', sh === 'peek');
+  const b = $('panelMin'); b.setAttribute('aria-expanded', String(sh !== 'peek'));
+  b.setAttribute('aria-label', `Controls, ${SHEET_SAY[sh]}. Tap or press Enter to resize, or use the arrow keys.`);
+  $('panelMinText').textContent = sh === 'peek' ? 'Controls' : sh === 'half' ? 'Controls (half)' : 'Controls (full)';
+  if (say) $('sheetSay').textContent = `Controls ${SHEET_SAY[sh]}`;
+};
+const stepSheet = (d) => { const i = Math.max(0, Math.min(2, SHEETS.indexOf(sheetOf()) + d)); if (SHEETS[i] !== sheetOf()) setSheet(SHEETS[i], true); };
+const sheetPx = (sh) => (sh === 'peek' ? PEEK_H : sh === 'half' ? Math.round(window.innerHeight * 0.42) : window.innerHeight - 110 - 46);
+let sheetDrag = null, sheetSuppress = false;
+$('panelMin').addEventListener('pointerdown', (ev) => {
+  if (ev.button > 0) return;
+  sheetDrag = { y: ev.clientY, h: $('panel').getBoundingClientRect().height, moved: false, id: ev.pointerId };
+  try { $('panelMin').setPointerCapture(ev.pointerId); } catch (e) { /* synthetic pointers */ }
+});
+$('panelMin').addEventListener('pointermove', (ev) => {
+  if (!sheetDrag || ev.pointerId !== sheetDrag.id) return;
+  const dy = sheetDrag.y - ev.clientY; if (!sheetDrag.moved && Math.abs(dy) < 6) return;
+  if (!sheetDrag.moved) { sheetDrag.moved = true; $('panel').classList.add('dragging'); }
+  $('panel').style.height = Math.max(PEEK_H, Math.min(sheetPx('full'), sheetDrag.h + dy)) + 'px';
+});
+const endSheetDrag = (ev) => {
+  if (!sheetDrag || ev.pointerId !== sheetDrag.id) return;
+  const d = sheetDrag; sheetDrag = null;
+  if (!d.moved) return;
+  const h = $('panel').getBoundingClientRect().height;
+  $('panel').classList.remove('dragging'); $('panel').style.height = '';
+  sheetSuppress = true; setTimeout(() => { sheetSuppress = false; }, 0);
+  setSheet(SHEETS.reduce((best, k) => (Math.abs(sheetPx(k) - h) < Math.abs(sheetPx(best) - h) ? k : best), 'peek'), true);
+  sheetChanged();
+};
+const sheetChanged = () => { if (effW() === 'terrain') window.dispatchEvent(new Event('resize')); };
+$('panelMin').addEventListener('pointerup', endSheetDrag);
+$('panelMin').addEventListener('pointercancel', endSheetDrag);
+$('panelMin').addEventListener('click', () => { if (sheetSuppress) return; setSheet(SHEETS[(SHEETS.indexOf(sheetOf()) + 1) % 3], true); sheetChanged(); });
+$('panelMin').addEventListener('keydown', (ev) => {
+  if (ev.key === 'ArrowUp' || ev.key === 'ArrowDown') { ev.preventDefault(); ev.stopPropagation(); stepSheet(ev.key === 'ArrowUp' ? 1 : -1); sheetChanged(); }
+});window.addEventListener('resize', () => { if (effW() !== 'terrain') views.redraw(false); });
 $('tabs').addEventListener('click', (ev) => {
   const b = ev.target.closest('[data-w]'); if (!b || b.disabled) return;
   switchTab(b.dataset.w);
@@ -706,7 +746,7 @@ function render(opts = {}) {
   // Tabs: the one drawn is pressed; one that cannot draw is disabled, with its reason on hover and, when chosen, under the tabs.
   document.querySelectorAll('#tabs [data-w]').forEach((b) => { const why = tabWhy(b.dataset.w); b.disabled = !!why; b.title = why ? `${TAB_NAME[b.dataset.w]} ${why}.` : ''; b.setAttribute('aria-pressed', b.dataset.w === vw); });
   // Phone: the controls panel folds to its title in the flat views, which need the room (the reader's own choice stands until the tab changes).
-  if (panelTab !== vw) { panelTab = vw; setPanelMin(window.innerWidth <= 640 && vw !== 'terrain'); }
+  if (panelTab !== vw) { panelTab = vw; setSheet(window.innerWidth <= 640 && vw !== 'terrain' ? 'peek' : 'half'); }
   const pressed = document.querySelector('#tabs [aria-pressed=true]'); if (pressed && pressed.scrollIntoView && window.innerWidth <= 640) pressed.scrollIntoView({ inline: 'center', block: 'nearest' });
   const tw = $('tabWhy');
   tw.textContent = vw !== state.w ? `${TAB_NAME[state.w]} ${tabWhy(state.w)}; showing ${TAB_NAME[vw]}.` : ''; tw.hidden = vw === state.w;

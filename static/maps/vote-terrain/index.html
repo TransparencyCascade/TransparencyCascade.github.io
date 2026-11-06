@@ -35,7 +35,8 @@
 
   .panel { position:fixed; left:12px; top:12px; width:224px; max-height:calc(100% - 160px); overflow:auto;
            background:var(--paper); border:1px solid var(--rule); padding:12px 12px 10px; font-size:13px; line-height:1.35; }
-  .panel-min { display:none; font:inherit; font-size:12px; color:var(--ink); background:transparent; border:1px solid var(--rule); padding:3px 9px; cursor:pointer; margin-left:6px; }
+  .panel-min { display:none; }
+  .sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
   .panel .head { margin:0 0 8px; } .panel .head h1 { white-space:nowrap; }
   button.link { font:inherit; font-size:11.5px; color:var(--ink); background:none; border:0; padding:0; text-decoration:underline; text-underline-offset:2px; cursor:pointer; }
   h1 { font-family:'Archivo Narrow', sans-serif; font-weight:600; font-size:26px; line-height:1; letter-spacing:-.01em; margin:0;
@@ -390,10 +391,8 @@
     /* Seven tabs do not fit a phone: the ones that cannot draw this election step aside. */
     .tabs { max-width:calc(100vw - 20px); overflow-x:auto; flex-wrap:nowrap; scrollbar-width:thin; }   /* one row that scrolls: wrapped rows lay over the key and the balance box */
     .tabs button { flex:none; }
-    .panel.min > :not(.head) { display:none; } .panel.min { max-height:none !important; padding:6px 12px; } .panel.min .head { margin:0; }
-    .panel-min { display:inline-block; }
     /* touch targets of at least 24 px */
-    .panel .link, .panel-min { padding-top:5px; padding-bottom:5px; } .lens-i { width:26px; height:26px; } .panel summary { padding:4px 0; }
+    .panel .link { padding-top:5px; padding-bottom:5px; } .lens-i { width:26px; height:26px; } .panel summary { padding:4px 0; }
     .v2d-label select, .v2d-head select, .v2d-head button { min-height:26px; }
     #v2d .v2d-root[data-view=history] .v2d-body { overflow-y:auto; overflow-x:hidden; display:block; }   /* a chart that needs more than the room scrolls */
     .v2d-head .v2d-seg { max-width:100%; overflow-x:auto; }   /* a long chart picker scrolls instead of running off the screen */
@@ -408,8 +407,18 @@
     .bop.fold { padding:4px 10px; overflow:hidden; } .bop.fold #bopLines, .bop.fold #bopBody, .bop.fold #bopToggle { display:none; }
     .find { top:52px; }
     .table-wrap { inset:52px 10px 90px; }
-    .panel { left:10px; right:10px; width:auto; top:auto; bottom:110px; max-height:34%; padding:10px 12px; }
-    body[data-w=dots] .panel, body[data-w=people] .panel, body[data-w=funnel] .panel, body[data-w=arrows] .panel, body[data-w=scatter] .panel, body[data-w=strips] .panel, body[data-w=seats] .panel, body[data-w=history] .panel, body[data-w=money] .panel, body[data-w=sim] .panel, body[data-w=power] .panel, body[data-w=road] .panel, body[data-w=closest] .panel { max-height:24%; }
+    /* The controls panel is a bottom sheet with three heights. It sits above the timeline; the chart's region ends above the peek, so the sheet covers the chart rather than squeezing it. */
+    .panel { left:10px; right:10px; width:auto; top:auto; bottom:110px; max-height:none; padding:0 12px 10px; z-index:5; height:var(--sheet-h); transition:height .18s ease; overscroll-behavior:contain; }
+    .panel[data-sheet=peek] { --sheet-h:64px; overflow:hidden; padding-bottom:0; }
+    .panel[data-sheet=half] { --sheet-h:42dvh; }
+    .panel[data-sheet=full] { --sheet-h:calc(100dvh - 110px - 46px); }
+    .panel.dragging { transition:none; }
+    .panel[data-sheet=peek] > :not(.head):not(#panelMin):not(.sr-only) { display:none; }
+    .panel[data-sheet=peek] .head { margin:0; }
+    .panel-min { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; position:sticky; top:0; z-index:1; width:calc(100% + 24px); margin:0 -12px 6px; min-height:32px; padding:7px 12px 3px; font:inherit; font-size:12px; color:var(--ink); background:var(--paper); border:0; border-bottom:1px solid var(--rule); cursor:grab; touch-action:none; }
+    .panel[data-sheet=peek] .panel-min { border-bottom:0; margin-bottom:2px; }
+    .panel-min .grab { display:block; width:44px; height:5px; border-radius:3px; background:var(--graphite); }
+    .panel-min:active { cursor:grabbing; }
     body[data-w=dots] .key, body[data-w=people] .key, body[data-w=funnel] .key, body[data-w=arrows] .key, body[data-w=scatter] .key, body[data-w=strips] .key, body[data-w=seats] .key, body[data-w=history] .key, body[data-w=money] .key, body[data-w=sim] .key, body[data-w=power] .key, body[data-w=road] .key, body[data-w=closest] .key { width:150px; padding:8px 10px; }
     #locator { display:none !important; }
     h1 { font-size:24px; }
@@ -422,7 +431,8 @@
     .offices { left:10px; transform:none; bottom:74px; }
     .timeline .step { min-width:88px; padding:8px 10px; } .timeline .step b { font-size:18px; }
   }
-  @media (pointer:coarse) { .panel .link, .panel-min { padding-top:5px; padding-bottom:5px; } .lens-i { width:26px; height:26px; } .panel summary { padding:4px 0; } .v2d-head select, .v2d-head button, .sim-lock, .v2d-label select { min-height:26px; } }
+  @media (pointer:coarse) { .panel .link { padding-top:5px; padding-bottom:5px; } .lens-i { width:26px; height:26px; } .panel summary { padding:4px 0; } .v2d-head select, .v2d-head button, .sim-lock, .v2d-label select { min-height:26px; } }
+  @media (prefers-reduced-motion: reduce) { .panel { transition:none !important; } }
 </style>
 </head>
 <body>
@@ -444,8 +454,9 @@
   <div class="scroll"><table id="table"></table></div>
 </div>
 
-<div class="panel" id="panel">
-  <div class="head"><h1>Vote terrain</h1><button class="link" id="aboutBtn" aria-controls="about" aria-expanded="false">About this map</button><button class="panel-min" id="panelMin" aria-expanded="true" aria-controls="panel">Controls</button></div>
+<div class="panel" id="panel" data-sheet="half">
+  <button class="panel-min" id="panelMin" aria-expanded="true" aria-controls="panel" aria-keyshortcuts="ArrowUp ArrowDown"><span class="grab" aria-hidden="true"></span><span id="panelMinText">Controls</span></button><span class="sr-only" id="sheetSay" role="status"></span>
+  <div class="head"><h1>Vote terrain</h1><button class="link" id="aboutBtn" aria-controls="about" aria-expanded="false">About this map</button></div>
   <p class="how" id="snapNote" hidden style="margin:0 0 8px"></p>
   <p class="how house-only" style="margin:0 0 10px">The four lenses read county results; the House track is by district, so its views are under the tabs above.</p>
   <div class="lenses county-only" role="group" aria-label="What to look at">
