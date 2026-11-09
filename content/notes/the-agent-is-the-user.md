@@ -1,6 +1,6 @@
 ---
 title: "The Agent Is the User"
-description: "We ran hallway usability testing on the AI agents doing our research, and asked them to file bug reports. Half of one repo's commit history came out of it — including a defect that would have attributed one federal contractor's money to another."
+description: "We ran hallway usability testing on the AI agents doing our research, and asked them to file bug reports. Nearly half of one repo's commit history came out of it — including a defect that would have attributed one federal contractor's money to another."
 date: 2026-08-27
 lastmod: 2026-08-27
 draft: true
@@ -27,9 +27,9 @@ That is a usability bug report. It has an expected, a got, a diagnosis, a propos
 
 ## The claim
 
-Software built for AI agents is mostly built the way software has always been built: for a human, with an API bolted on so a machine can reach it. The machine is treated as plumbing — a caller, an integration, a consumer of endpoints.
+Every tool we needed on this beat and could not find was built the way software has always been built: for a human, with an API bolted on so a machine can reach it. The machine is treated as plumbing — a caller, an integration, a consumer of endpoints. We are not claiming that describes the whole field; people are working on agent-facing interface design, and some of them are ahead of us. We are claiming it described the tools in front of us, and that the fix was cheaper than the diagnosis.
 
-We think that is the wrong model, and we have spent a year finding out what happens when you reject it.
+We think that is the wrong model, and we have been finding out what happens when you reject it.
 
 **Treat the agent as a user.** Not a client, not an integration — a user, with the whole apparatus that word implies. Users get error messages written for them. Users get documentation that answers what they actually ask. Users get *usability testing*, because the maintainer cannot see where they stumble and the only signal is what they report.
 
@@ -63,9 +63,9 @@ Three rules did the heavy lifting, and each came from getting it wrong first.
 
 ## What it produced
 
-One repository, one month, thirty-four entries from seven different model identifiers. Forty-four graded severities: two blocked, twenty-six slowed, sixteen annoyed.
+One repository, one working day, thirty-four entries from four model identifiers across twenty-one parallel workers. Two were blocked outright; most of the rest cost time rather than stopping work.
 
-Thirteen of that repository's sixty-five commits exist to record those entries. Twenty-six more are fixes and documentation corrections, six of them tracked directly to a report and marked resolved in the log itself. **Half the commit history is either the field notes or the repairs they caused.**
+Thirty of that repository's sixty-seven commits touch the feedback log. Eighteen exist only to record entries; nine more are fixes that landed alongside the report that prompted them. Twenty-eight complaints carry an inline disposition — twenty-two `[fixed]`, five `[tracked]`, one `[wontfix]` — and thirteen of the fixes name the specific commit that closed them. **Nearly half the commit history passes through the field log.**
 
 The sharpest one arrived within an hour of a command shipping. The tool queries federal contracting records; a `--detail` flag fetches one award by its identifier. An agent noticed that `--detail` silently ignored the search query sitting next to it.
 
@@ -83,7 +83,11 @@ That is a usability defect producing a correctness failure. Unit tests do not fi
 
 "You are not testing usability. You are prompting a language model to generate plausible bug reports."
 
-It is a fair objection and the numbers answer it. The reports are reproducible: each carries the literal command, and the maintainer re-ran them. They are falsifiable, and some were falsified — the `exits 0` report was wrong, diagnosed, and the correction became a rule. They produced code, not sentiment: six defects tracked to a specific report and marked fixed in the log. And they surfaced things a human tester would have missed, because a human would not have run twelve parallel workers against one shared rate limiter and discovered the contention.
+It is a fair objection, and the part of it that bites is not the one usually stated. The reports are reproducible: each carries the literal command, and the maintainer re-ran them. They produced code, not sentiment: thirteen entries name the commit that closed them. And they surfaced things a human tester would have missed, because a human would not have run twelve parallel workers against one shared rate limiter and discovered the contention.
+
+The sharper objection is about who is grading whom. The agents were dispatched by the same operator who wrote the tool, and that operator decided which reports became commits. A panel that never disconfirms its own author is not measuring anything.
+
+So here is the honest version of that rate, and it is not flattering. Of twenty-eight complaints with a recorded disposition, twenty-two were fixed, five were deferred, and exactly one was refused outright. That is a very high acceptance rate, and part of the reason is simply that the tool was three days old and full of real defects. But part of it is the objection landing: the same person wrote the code, wrote the dispatch prompt, and graded the reports. What the log can show is that the grading was not automatic — one report was refused on the merits and argued with at length, and at least one was flat wrong and marked so, the `exits 0` report that turned out to be a pipeline artefact and became a rule instead of a fix. The full log is published unedited, including the entries that lost.
 
 The stronger version of the objection is that this only shows agents are good at *writing bug reports*, not that they are *users*. We would accept a narrower claim: agents are a user population whose friction is invisible by default and becomes visible for the price of asking. Whether that makes them users in the full sense is a philosophical question. The commits do not care.
 
@@ -105,10 +109,10 @@ Transparency Cascade Press is an investigative outfit. We report on institutiona
 
 That work runs on infrastructure that did not exist, so we built it: a knowledge base where every claim traces to the commit that introduced it, and a research client that distinguishes *we searched properly and it is not there* from *the door was shut in our face*. Both are open source. Both are used, daily, against live reporting.
 
-And both are largely built by agents. One of those repositories has a single human author and 667 of 691 commits carrying an agent co-author. If we are going to work that way — and we are — then the quality of that work depends on whether the tools are any good for the things doing it.
+And both are largely built by agents. One of those repositories has a single human author and, on its default branch, 667 of 691 commits carrying an agent co-author. If we are going to work that way — and we are — then the quality of that work depends on whether the tools are any good for the things doing it.
 
 Which is a usability question. So we ran usability testing.
 
 ---
 
-*The skill is open source, and works against any tool: [ramm-agent-skills](https://github.com/markramm/ramm-agent-skills). The research client and its full feedback log are at [cascade-search](https://github.com/markramm/cascade-search) — thirty-four entries, unedited, including the ones that were wrong.*
+*The skill is open source, and works against any tool: [ramm-agent-skills](https://github.com/markramm/ramm-agent-skills). The research client and its full feedback log are at [evidence-search](https://github.com/markramm/evidence-search) — thirty-four entries, unedited, including the ones that were wrong. Names of investigative subjects are replaced with stable placeholders; the commands and identifiers that make a report reproducible are not.*
